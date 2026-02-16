@@ -33,6 +33,11 @@ export interface StreamChunk {
   eval_count?: number;
 }
 
+export interface EmbedResult {
+  embedding: number[];
+  prompt_eval_count?: number;
+}
+
 const DEFAULT_BASE_URL = "http://127.0.0.1:11434";
 const DEFAULT_TIMEOUT_MS = 60_000;
 const DEFAULT_RETRIES = 2;
@@ -105,6 +110,24 @@ export class OllamaAdapter {
     };
     if (data.prompt_eval_count !== undefined) result.prompt_eval_count = data.prompt_eval_count;
     if (data.eval_count !== undefined) result.eval_count = data.eval_count;
+    return result;
+  }
+
+  /**
+   * Generate embedding for text. Uses POST /api/embed.
+   */
+  async embed(input: string, model: string, opts: { timeoutMs?: number } = {}): Promise<EmbedResult> {
+    const timeoutMs = opts.timeoutMs ?? this.timeoutMs;
+    const url = `${this.baseUrl}/api/embed`;
+    const body = { model, input };
+    const res = await this.fetchWithRetry(url, body, timeoutMs);
+    const data = (await res.json()) as {
+      embeddings?: number[][];
+      prompt_eval_count?: number;
+    };
+    const embedding = Array.isArray(data.embeddings) && data.embeddings[0] ? data.embeddings[0] : [];
+    const result: EmbedResult = { embedding };
+    if (data.prompt_eval_count !== undefined) result.prompt_eval_count = data.prompt_eval_count;
     return result;
   }
 

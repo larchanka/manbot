@@ -24,6 +24,9 @@ const PROCESS_SCRIPTS: Record<string, string> = {
   "critic-agent": join(DIST, "agents", "critic-agent.js"),
   "telegram-adapter": join(DIST, "adapters", "telegram-adapter.js"),
   "model-router": join(DIST, "services", "generator-service.js"),
+  "rag-service": join(DIST, "services", "rag-service.js"),
+  "tool-host": join(DIST, "services", "tool-host.js"),
+  "cron-manager": join(DIST, "services", "cron-manager.js"),
 };
 
 interface ChildEntry {

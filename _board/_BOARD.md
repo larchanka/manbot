@@ -2,39 +2,15 @@
 
 ## To Do
 
-### P4-03 Implement RAG Service
 
-  - tags: [pending]
-  - defaultExpanded: false
-    ```md
-    Implement a Retrieval-Augmented Generation (RAG) service using the FAISS vector database to provide the system with long-term semantic memory and document access.
 
-    Source: P4-03_RAG_SERVICE.md
-    ```
+## In Progress
 
-### P4-04 Semantic Search Node
-
-  - tags: [pending]
-  - defaultExpanded: false
-    ```md
-    Create a new node type in the capability graph that allows the Executor to invoke the RAG service for retrieving context.
-
-    Source: P4-04_SEMANTIC_SEARCH_NODE.md
-    ```
-
-### P4-05 Build Tool Host
-
-  - tags: [pending]
-  - defaultExpanded: false
-    ```md
-    Implement a secure and isolated tool execution host that allows the platform to perform actions in the physical world (filesystem, network, etc.).
-
-    Source: P4-05_TOOL_HOST.md
-    ```
+## Done
 
 ### P4-06 Cron Manager
 
-  - tags: [pending]
+  - tags: [done]
   - defaultExpanded: false
     ```md
     Add a service for managing scheduled background tasks, such as periodic maintenance, database optimization, or recurring AI actions.
@@ -42,10 +18,35 @@
     Source: P4-06_CRON_MANAGER.md
     ```
 
+### P4-05 Build Tool Host
 
-## In Progress
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Implement a secure and isolated tool execution host that allows the platform to perform actions in the physical world (filesystem, network, etc.).
 
-## Done
+    Source: P4-05_TOOL_HOST.md
+    ```
+
+### P4-04 Semantic Search Node
+
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Create a new node type in the capability graph that allows the Executor to invoke the RAG service for retrieving context.
+
+    Source: P4-04_SEMANTIC_SEARCH_NODE.md
+    ```
+
+### P4-03 Implement RAG Service
+
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Implement a Retrieval-Augmented Generation (RAG) service using the FAISS vector database to provide the system with long-term semantic memory and document access.
+
+    Source: P4-03_RAG_SERVICE.md
+    ```
 
 ### P3-06 Build Core Orchestrator
 
