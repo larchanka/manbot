@@ -2,46 +2,6 @@
 
 ## To Do
 
-### P2-02 Implement Model Router
-
-  - tags: [pending]
-  - defaultExpanded: false
-    ```md
-    Create a service that maps abstract task complexity levels (`small`, `medium`, `large`) to specific local model names in Ollama.
-
-    Source: P2-02_MODEL_ROUTER.md
-    ```
-
-### P2-03 Create System Prompts for Planner
-
-  - tags: [pending]
-  - defaultExpanded: false
-    ```md
-    Craft the foundational system prompts that guide the Planner Agent in converting a user message into a structured capability graph (DAG).
-
-    Source: P2-03_PLANNER_PROMPTS.md
-    ```
-
-### P2-04 Implement Planner Agent
-
-  - tags: [pending]
-  - defaultExpanded: false
-    ```md
-    Develop the Planner Agent process which takes user intent and produces a structured execution DAG using the Ollama Adapter.
-
-    Source: P2-04_PLANNER_AGENT.md
-    ```
-
-### P2-05 Validate DAG logic
-
-  - tags: [pending]
-  - defaultExpanded: false
-    ```md
-    Implement algorithmic checks to ensure that the plan produced by the Planner Agent is a valid Directed Acyclic Graph (DAG) before it reaches the Executor.
-
-    Source: P2-05_VALIDATE_DAG.md
-    ```
-
 ### P3-01 Implement Executor Agent core loop
 
   - tags: [pending]
@@ -165,16 +125,6 @@
 
 ## In Progress
 
-### P2-01 Implement Ollama Adapter
-
-  - tags: [in-progress]
-  - defaultExpanded: false
-    ```md
-    Build a bridge between the AI Agent platform and the local Ollama instance. This adapter will handle model inference, streaming responses, and token usage reporting.
-
-    Source: P2-01_OLLAMA_ADAPTER.md
-    ```
-
 ## Done
 
 ### P1-01 Initialize project structure
@@ -235,5 +185,55 @@
     Develop a comprehensive suite of integration tests to verify that the Task Memory Service correctly persists task states, child nodes, and their transitions throughout the execution lifecycle.
 
     Source: P1-06_TASK_MEMORY_TESTS.md
+    ```
+
+### P2-01 Implement Ollama Adapter
+
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Build a bridge between the AI Agent platform and the local Ollama instance. This adapter will handle model inference, streaming responses, and token usage reporting.
+
+    Source: P2-01_OLLAMA_ADAPTER.md
+    ```
+
+### P2-02 Implement Model Router
+
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Create a service that maps abstract task complexity levels (`small`, `medium`, `large`) to specific local model names in Ollama.
+
+    Source: P2-02_MODEL_ROUTER.md
+    ```
+
+### P2-03 Create System Prompts for Planner
+
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Craft the foundational system prompts that guide the Planner Agent in converting a user message into a structured capability graph (DAG).
+
+    Source: P2-03_PLANNER_PROMPTS.md
+    ```
+
+### P2-04 Implement Planner Agent
+
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Develop the Planner Agent process which takes user intent and produces a structured execution DAG using the Ollama Adapter.
+
+    Source: P2-04_PLANNER_AGENT.md
+    ```
+
+### P2-05 Validate DAG logic
+
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Implement algorithmic checks to ensure that the plan produced by the Planner Agent is a valid Directed Acyclic Graph (DAG) before it reaches the Executor.
+
+    Source: P2-05_VALIDATE_DAG.md
     ```
 
