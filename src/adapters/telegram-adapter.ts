@@ -2,7 +2,8 @@
  * Telegram Adapter: standalone service that interfaces the platform with Telegram.
  * Normalizes incoming messages to the Message Protocol and forwards to Core;
  * receives responses from Core and sends them back to the user.
- * See _board/TASKS/P4-01_TELEGRAM_ADAPTER.md
+ * P4-01: _board/TASKS/P4-01_TELEGRAM_ADAPTER.md
+ * P4-02: _board/TASKS/P4-02_TELEGRAM_INTEGRATION.md — commands, auth, task flow, progress.
  */
 
 import TelegramBot from "node-telegram-bot-api";
@@ -22,11 +23,38 @@ export interface TelegramIncomingPayload {
   messageId: number;
 }
 
+/** Payload for task creation from Telegram (user goal = message.text) */
+export interface TelegramTaskCreatePayload {
+  chatId: number;
+  userId: number;
+  username?: string;
+  goal: string;
+  messageId: number;
+}
+
 /** Payload for messages from Core instructing the adapter to send to Telegram */
 export interface TelegramSendPayload {
   chatId: number;
   text: string;
   parseMode?: "HTML" | "Markdown" | "MarkdownV2";
+}
+
+/** Payload for progress updates (streamed to chat) */
+export interface TelegramProgressPayload {
+  chatId: number;
+  text: string;
+}
+
+/** Parse allow-list from env: comma-separated Telegram user IDs. Empty = allow all. */
+function getAllowedUserIds(): Set<number> | null {
+  const raw = process.env.TELEGRAM_ALLOWED_USER_IDS?.trim();
+  if (!raw) return null;
+  const ids = new Set<number>();
+  for (const s of raw.split(",")) {
+    const n = Number.parseInt(s.trim(), 10);
+    if (Number.isFinite(n)) ids.add(n);
+  }
+  return ids.size > 0 ? ids : null;
 }
 
 function createEnvelope<T>(type: string, to: string, payload: T): Envelope<T> {
@@ -41,6 +69,11 @@ function createEnvelope<T>(type: string, to: string, payload: T): Envelope<T> {
   };
 }
 
+const HELP_TEXT = `Commands:
+/start — Welcome and brief intro
+/task [goal] — Start a new task with optional goal text
+/help — Show this help`;
+
 function main(): void {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   if (!token) {
@@ -48,47 +81,103 @@ function main(): void {
     process.exit(1);
   }
 
+  const allowedUserIds = getAllowedUserIds();
   const bot = new TelegramBot(token, { polling: true });
   const base = new BaseProcess({ processName: PROCESS_NAME });
 
-  // Incoming Telegram message → normalize to protocol and send to Core
+  function sendToUser(
+    chatId: number,
+    text: string,
+    options?: { parse_mode?: "HTML" | "Markdown" | "MarkdownV2" }
+  ): void {
+    const opts = options?.parse_mode != null ? { parse_mode: options.parse_mode } : undefined;
+    bot.sendMessage(chatId, text, opts).catch((err) => {
+      console.error("Telegram send error:", err);
+    });
+  }
+
+  // Incoming Telegram message → auth, commands, or task creation
   bot.on("message", (msg) => {
     const chatId = msg.chat?.id;
     const from = msg.from;
     const text = msg.text?.trim();
     if (chatId == null || from == null) return;
-    if (!text) {
-      void bot.sendMessage(chatId, "Please send a text message.");
+
+    // Authentication: allow-list of Telegram user IDs (optional)
+    if (allowedUserIds !== null && !allowedUserIds.has(from.id)) {
+      void bot.sendMessage(chatId, "You are not authorized to use this bot.");
       return;
     }
 
-    const payload: TelegramIncomingPayload = {
+    if (!text) {
+      sendToUser(chatId, "Please send a text message or use /help.");
+      return;
+    }
+
+    // /start
+    if (text === "/start") {
+      sendToUser(
+        chatId,
+        "Welcome to the AI Agent. Send a task description or use /task <goal>. Use /help for commands."
+      );
+      return;
+    }
+
+    // /help
+    if (text === "/help") {
+      sendToUser(chatId, HELP_TEXT);
+      return;
+    }
+
+    // /task [goal] — if goal is provided, create task; else show usage
+    if (text.startsWith("/task")) {
+      const goal = text.slice(5).trim();
+      if (!goal) {
+        sendToUser(chatId, "Usage: /task <your goal>. Example: /task Summarize the benefits of TypeScript.");
+        return;
+      }
+      const payload: TelegramTaskCreatePayload = {
+        chatId,
+        userId: from.id,
+        messageId: msg.message_id ?? 0,
+        goal,
+        ...(from.username !== undefined && from.username !== "" && { username: from.username }),
+      };
+      base.send(createEnvelope<TelegramTaskCreatePayload>("task.create", "core", payload));
+      sendToUser(chatId, `Task created: "${goal.slice(0, 80)}${goal.length > 80 ? "…" : ""}". You will receive progress and the result here.`);
+      return;
+    }
+
+    // Plain text: map to user goal and create task (same as /task <text>)
+    const taskPayload: TelegramTaskCreatePayload = {
       chatId,
       userId: from.id,
-      text,
       messageId: msg.message_id ?? 0,
+      goal: text,
       ...(from.username !== undefined && from.username !== "" && { username: from.username }),
     };
-    const envelope = createEnvelope<TelegramIncomingPayload>(
-      "telegram.incoming",
-      "core",
-      payload
-    );
-    base.send(envelope);
+    base.send(createEnvelope<TelegramTaskCreatePayload>("task.create", "core", taskPayload));
+    sendToUser(chatId, `Task created. You will receive progress and the result here.`);
   });
 
-  // Messages from Core (stdin) → send to Telegram user
+  // Messages from Core (stdin) → send to Telegram user (initial/final output and progress)
   base.onMessage((envelope: Envelope) => {
     if (envelope.to !== PROCESS_NAME) return;
 
     if (envelope.type === "telegram.send") {
       const pl = envelope.payload as TelegramSendPayload;
       if (typeof pl.chatId === "number" && typeof pl.text === "string") {
-        bot
-          .sendMessage(pl.chatId, pl.text, { parse_mode: pl.parseMode })
-          .catch((err) => {
-            console.error("Telegram send error:", err);
-          });
+        const opts = pl.parseMode != null ? { parse_mode: pl.parseMode } : undefined;
+        sendToUser(pl.chatId, pl.text, opts);
+      }
+      return;
+    }
+
+    // Stream task progress updates back to the chat
+    if (envelope.type === "telegram.progress") {
+      const pl = envelope.payload as TelegramProgressPayload;
+      if (typeof pl.chatId === "number" && typeof pl.text === "string") {
+        sendToUser(pl.chatId, pl.text);
       }
       return;
     }
@@ -99,9 +188,7 @@ function main(): void {
       if (pl.status === "success" && pl.result && typeof pl.result === "object") {
         const r = pl.result as { chatId?: number; text?: string };
         if (typeof r.chatId === "number" && typeof r.text === "string") {
-          bot.sendMessage(r.chatId, r.text).catch((err) => {
-            console.error("Telegram send error:", err);
-          });
+          sendToUser(r.chatId, r.text);
         }
       }
     }

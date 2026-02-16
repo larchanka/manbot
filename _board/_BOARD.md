@@ -62,16 +62,6 @@
     Source: P3-06_CORE_ORCHESTRATOR.md
     ```
 
-### P4-02 Connect Telegram to Orchestrator
-
-  - tags: [pending]
-  - defaultExpanded: false
-    ```md
-    Integrate the Telegram Adapter with the Core Orchestrator to enable the standard task creation and execution flow triggered by Telegram messages.
-
-    Source: P4-02_TELEGRAM_INTEGRATION.md
-    ```
-
 ### P4-03 Implement RAG Service
 
   - tags: [pending]
@@ -116,6 +106,16 @@
 ## In Progress
 
 ## Done
+
+### P4-02 Connect Telegram to Orchestrator
+
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Integrate the Telegram Adapter with the Core Orchestrator to enable the standard task creation and execution flow triggered by Telegram messages.
+
+    Source: P4-02_TELEGRAM_INTEGRATION.md
+    ```
 
 ### P4-01 Telegram Adapter
 
