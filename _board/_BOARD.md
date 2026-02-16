@@ -195,16 +195,6 @@
 
 ## In Progress
 
-### P1-04 Implement Logger Service
-
-  - tags: [in-progress]
-  - defaultExpanded: false
-    ```md
-    Create a dedicated logging service process that subscribes to system-wide events and persists them to files in a structured format.
-
-    Source: P1-04_LOGGER_SERVICE.md
-    ```
-
 ## Done
 
 ### P1-01 Initialize project structure
@@ -235,5 +225,15 @@
     Implement a base class or helper to standardize the way individual processes handle stdin/stdout communication, message parsing, and error handling.
 
     Source: P1-03_BASE_PROCESS_CLASS.md
+    ```
+
+### P1-04 Implement Logger Service
+
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Create a dedicated logging service process that subscribes to system-wide events and persists them to files in a structured format.
+
+    Source: P1-04_LOGGER_SERVICE.md
     ```
 
