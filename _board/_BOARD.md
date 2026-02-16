@@ -2,26 +2,6 @@
 
 ## To Do
 
-### P3-01 Implement Executor Agent core loop
-
-  - tags: [pending]
-  - defaultExpanded: false
-    ```md
-    Build the core engine that traverses the capability graph (DAG) and orchestrates the execution of individual nodes in the correct order based on their dependencies.
-
-    Source: P3-01_EXECUTOR_CORE_LOOP.md
-    ```
-
-### P3-02 Parallel node execution
-
-  - tags: [pending]
-  - defaultExpanded: false
-    ```md
-    Optimize the Executor Agent to execute independent nodes in parallel, maximizing the utilization of available services and reducing overall task latency.
-
-    Source: P3-02_PARALLEL_EXECUTION.md
-    ```
-
 ### P3-03 Create System Prompts for Critic
 
   - tags: [pending]
@@ -105,7 +85,27 @@
 
 ## In Progress
 
+### P3-02 Parallel node execution
+
+  - tags: [in_progress]
+  - defaultExpanded: false
+    ```md
+    Optimize the Executor Agent to execute independent nodes in parallel, maximizing the utilization of available services and reducing overall task latency.
+
+    Source: P3-02_PARALLEL_EXECUTION.md
+    ```
+
 ## Done
+
+### P3-01 Implement Executor Agent core loop
+
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Build the core engine that traverses the capability graph (DAG) and orchestrates the execution of individual nodes in the correct order based on their dependencies.
+
+    Source: P3-01_EXECUTOR_CORE_LOOP.md
+    ```
 
 ### P4-02 Connect Telegram to Orchestrator
 

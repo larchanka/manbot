@@ -108,3 +108,42 @@ export function validateGraph(dag: CapabilityGraph): ValidateGraphResult {
     errors,
   };
 }
+
+/** Dependencies for each node: node id -> set of node ids it depends on */
+export function getDependencyMap(graph: CapabilityGraph): Map<string, Set<string>> {
+  const nodeIds = new Set(graph.nodes.map((n) => n.id));
+  const deps = new Map<string, Set<string>>();
+  for (const n of graph.nodes) {
+    const set = new Set<string>();
+    const inputDeps = (n.input?.dependsOn as string[] | undefined) ?? [];
+    for (const ref of inputDeps) {
+      if (nodeIds.has(ref)) set.add(ref);
+    }
+    if (graph.edges) {
+      for (const e of graph.edges) {
+        if (e.to === n.id && nodeIds.has(e.from)) set.add(e.from);
+      }
+    }
+    deps.set(n.id, set);
+  }
+  return deps;
+}
+
+/** Return node ids that are ready: all dependencies are in completedIds */
+export function getReadyNodes(
+  graph: CapabilityGraph,
+  dependencyMap: Map<string, Set<string>>,
+  completedIds: Set<string>,
+): string[] {
+  const ready: string[] = [];
+  for (const n of graph.nodes) {
+    const nodeDeps = dependencyMap.get(n.id);
+    if (!nodeDeps || nodeDeps.size === 0) {
+      if (!completedIds.has(n.id)) ready.push(n.id);
+      continue;
+    }
+    const allDone = [...nodeDeps].every((d) => completedIds.has(d));
+    if (allDone && !completedIds.has(n.id)) ready.push(n.id);
+  }
+  return ready;
+}
