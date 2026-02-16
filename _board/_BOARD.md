@@ -215,16 +215,6 @@
 
 ## In Progress
 
-### P1-02 Define shared Zod schemas
-
-  - tags: [in-progress]
-  - defaultExpanded: false
-    ```md
-    Define the core message protocol using Zod to ensure type-safe IPC communication between all system processes.
-
-    Source: P1-02_DEFINE_SCHEMAS.md
-    ```
-
 ## Done
 
 ### P1-01 Initialize project structure
@@ -235,5 +225,15 @@
     Set up the base directory structure, initialize the Node.js project, and configure TypeScript for a multi-process architecture.
 
     Source: P1-01_INITIALIZE_PROJECT.md
+    ```
+
+### P1-02 Define shared Zod schemas
+
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Define the core message protocol using Zod to ensure type-safe IPC communication between all system processes.
+
+    Source: P1-02_DEFINE_SCHEMAS.md
     ```
 
