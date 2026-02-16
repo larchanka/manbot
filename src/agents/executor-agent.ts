@@ -3,9 +3,11 @@
  * Identifies ready nodes, dispatches to services, records results in Task Memory.
  * P3-01: _board/TASKS/P3-01_EXECUTOR_CORE_LOOP.md
  * P3-02: parallel execution with concurrency limit (_board/TASKS/P3-02_PARALLEL_EXECUTION.md).
+ * P3-05: handle REVISE from Critic, inject revision (re-run generation with feedback), max 3 cycles.
  */
 
 const MAX_CONCURRENT_NODES = 5;
+const MAX_REVISION_CYCLES = 3;
 
 import { randomUUID } from "node:crypto";
 import { BaseProcess } from "../shared/base-process.js";
@@ -139,9 +141,111 @@ export class ExecutorAgent extends BaseProcess {
       }
     }
 
-    const aggregated = this.aggregateResult(plan, nodeOutputs);
+    let aggregated = this.aggregateResult(plan, nodeOutputs);
+    const reflectionMode = (plan.reflectionMode ?? "OFF") as string;
+    const complexity = (plan.complexity ?? "medium") as "small" | "medium" | "large";
+
+    if (reflectionMode !== "OFF" && reflectionMode !== "off") {
+      let revisionCount = 0;
+      let draftOutput = this.draftToString(aggregated);
+      while (revisionCount <= MAX_REVISION_CYCLES) {
+        const evaluation = await this.dispatchReflection(taskId, goal, draftOutput, complexity);
+        if (evaluation.decision === "PASS") break;
+        this.sendTaskAppendReflection(taskId, undefined, evaluation.feedback, "REVISE");
+        revisionCount++;
+        if (revisionCount > MAX_REVISION_CYCLES) break;
+        const lastGenNode = this.getLastGenerationNode(plan);
+        if (!lastGenNode) break;
+        const revContext: Record<string, unknown> = {};
+        const deps = dependencyMap.get(lastGenNode.id);
+        if (deps) {
+          for (const depId of deps) {
+            const out = nodeOutputs.get(depId);
+            if (out !== undefined) revContext[depId] = out;
+          }
+        }
+        revContext["_goal"] = goal;
+        revContext["_criticFeedback"] = evaluation.feedback;
+        revContext["_previousDraft"] = draftOutput;
+        try {
+          const revised = await this.dispatchNode(taskId, lastGenNode, revContext);
+          draftOutput = this.draftToString(revised);
+          aggregated = revised;
+          nodeOutputs.set(lastGenNode.id, revised);
+        } catch {
+          break;
+        }
+      }
+    }
+
     this.sendTaskComplete(taskId);
     this.sendResponse(request, { taskId, result: aggregated });
+  }
+
+  private draftToString(draft: unknown): string {
+    if (typeof draft === "string") return draft;
+    if (draft != null && typeof draft === "object" && "text" in draft && typeof (draft as { text: string }).text === "string") return (draft as { text: string }).text;
+    return JSON.stringify(draft);
+  }
+
+  private getLastGenerationNode(plan: CapabilityGraph): CapabilityNode | undefined {
+    for (let i = plan.nodes.length - 1; i >= 0; i--) {
+      const n = plan.nodes[i];
+      if (n && (n.type === "generate_text" || n.type === "generate")) return n;
+    }
+    const last = plan.nodes[plan.nodes.length - 1];
+    return last ?? undefined;
+  }
+
+  private dispatchReflection(
+    taskId: string,
+    goal: string,
+    draftOutput: string,
+    complexity: "small" | "medium" | "large",
+  ): Promise<{ decision: "PASS" | "REVISE"; feedback: string; score: number }> {
+    return new Promise((resolve) => {
+      const id = randomUUID();
+      this.send({
+        id,
+        timestamp: Date.now(),
+        from: PROCESS_NAME,
+        to: "critic-agent",
+        type: "reflection.evaluate",
+        version: PROTOCOL_VERSION,
+        payload: { taskId, goal, draftOutput, complexity },
+      });
+      this.pending.set(id, {
+        resolve: (env) => {
+          const pl = env.payload as { status?: string; result?: { decision?: string; feedback?: string; score?: number } };
+          const r = pl.result;
+          const decision = r?.decision === "REVISE" ? "REVISE" : "PASS";
+          const feedback = typeof r?.feedback === "string" ? r.feedback : "";
+          const score = typeof r?.score === "number" ? r.score : 5;
+          resolve({ decision, feedback, score });
+        },
+        reject: (errEnv) => {
+          const pl = errEnv.payload as { message?: string };
+          resolve({ decision: "PASS", feedback: pl?.message ?? "Critic error", score: 5 });
+        },
+      });
+    });
+  }
+
+  private sendTaskAppendReflection(
+    taskId: string,
+    nodeId: string | undefined,
+    criticFeedback: string,
+    decision: "PASS" | "REVISE",
+  ): void {
+    this.send({
+      id: randomUUID(),
+      timestamp: Date.now(),
+      from: PROCESS_NAME,
+      to: "task-memory",
+      type: "task.appendReflection",
+      version: PROTOCOL_VERSION,
+      payload: { taskId, nodeId, criticFeedback, decision },
+    });
   }
 
   private dispatchNode(

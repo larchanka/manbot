@@ -2,46 +2,6 @@
 
 ## To Do
 
-### P3-03 Create System Prompts for Critic
-
-  - tags: [pending]
-  - defaultExpanded: false
-    ```md
-    Develop the system prompts for the Critic Agent, focusing on its role as a quality control layer that evaluates the Executor's draft results for accuracy, logic, and safety.
-
-    Source: P3-03_CRITIC_PROMPTS.md
-    ```
-
-### P3-04 Implement Critic Agent process
-
-  - tags: [pending]
-  - defaultExpanded: false
-    ```md
-    Implement the Critic Agent as a standalone process that receives execution results and provides feedback on whether the task is complete and satisfactory.
-
-    Source: P3-04_CRITIC_AGENT.md
-    ```
-
-### P3-05 Dynamic Revision Nodes
-
-  - tags: [pending]
-  - defaultExpanded: false
-    ```md
-    Extend the Executor Agent to handle "REVISE" decisions from the Critic by dynamically injecting revision nodes into the execution flow to improve the final result.
-
-    Source: P3-05_REVISION_LOGIC.md
-    ```
-
-### P3-06 Build Core Orchestrator
-
-  - tags: [pending]
-  - defaultExpanded: false
-    ```md
-    Develop the central supervisor process that manages the lifecycle of all agents and services, mediates communication, and handles system-wide errors.
-
-    Source: P3-06_CORE_ORCHESTRATOR.md
-    ```
-
 ### P4-03 Implement RAG Service
 
   - tags: [pending]
@@ -85,17 +45,57 @@
 
 ## In Progress
 
+## Done
+
+### P3-06 Build Core Orchestrator
+
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Develop the central supervisor process that manages the lifecycle of all agents and services, mediates communication, and handles system-wide errors.
+
+    Source: P3-06_CORE_ORCHESTRATOR.md
+    ```
+
+### P3-05 Dynamic Revision Nodes
+
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Extend the Executor Agent to handle "REVISE" decisions from the Critic by dynamically injecting revision nodes into the execution flow to improve the final result.
+
+    Source: P3-05_REVISION_LOGIC.md
+    ```
+
+### P3-04 Implement Critic Agent process
+
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Implement the Critic Agent process that receives execution results and provides feedback on whether the task is complete and satisfactory.
+
+    Source: P3-04_CRITIC_AGENT.md
+    ```
+
+### P3-03 Create System Prompts for Critic
+
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Develop the system prompts for the Critic Agent, focusing on its role as a quality control layer that evaluates the Executor's draft results for accuracy, logic, and safety.
+
+    Source: P3-03_CRITIC_PROMPTS.md
+    ```
+
 ### P3-02 Parallel node execution
 
-  - tags: [in_progress]
+  - tags: [done]
   - defaultExpanded: false
     ```md
     Optimize the Executor Agent to execute independent nodes in parallel, maximizing the utilization of available services and reducing overall task latency.
 
     Source: P3-02_PARALLEL_EXECUTION.md
     ```
-
-## Done
 
 ### P3-01 Implement Executor Agent core loop
 
