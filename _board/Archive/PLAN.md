@@ -39,13 +39,6 @@ This plan outlines the step-by-step implementation of the local multi-agent AI r
 - **[NEW] Tool Host**: Build a sandbox for executing external tools (File, HTTP, etc.).
 - **[NEW] Cron Manager**: Add support for scheduled background jobs.
 
----
-
-### Phase 5: DevOps & CI
-- **[NEW] GitHub Actions Workflow**: Set up basic CI pipeline to automate build and testing.
-- **[NEW] CI Build & Test Job**: Configure jobs to run `tsc` and `npm test` on every push to `main`.
-
-
 ## Verification Plan
 
 ### Automated Tests
