@@ -2,16 +2,6 @@
 
 ## To Do
 
-### P1-02 Define shared Zod schemas
-
-  - tags: [pending]
-  - defaultExpanded: false
-    ```md
-    Define the core message protocol using Zod to ensure type-safe IPC communication between all system processes.
-
-    Source: P1-02_DEFINE_SCHEMAS.md
-    ```
-
 ### P1-03 Create base Process class
 
   - tags: [pending]
@@ -224,6 +214,16 @@
 
 
 ## In Progress
+
+### P1-02 Define shared Zod schemas
+
+  - tags: [in-progress]
+  - defaultExpanded: false
+    ```md
+    Define the core message protocol using Zod to ensure type-safe IPC communication between all system processes.
+
+    Source: P1-02_DEFINE_SCHEMAS.md
+    ```
 
 ## Done
 
