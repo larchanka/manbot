@@ -130,16 +130,16 @@
 
 ## In Progress
 
+## Done
+
 ### S1-02 Add Command Validation
-  - tags: [in-progress]
+  - tags: [done]
   - defaultExpanded: false
     ```md
     Add validation to ensure commands operate within sandbox directory restrictions and prevent path traversal attacks.
     
     Source: S1-02_COMMAND_VALIDATION.md
     ```
-
-## Done
 
 ### S1-01 Implement Shell Tool Core
   - tags: [done]
