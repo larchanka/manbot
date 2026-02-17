@@ -13,7 +13,7 @@ import { envelopeSchema } from "../shared/protocol.js";
 import type { Envelope } from "../shared/protocol.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const ROOT = join(__dirname, "..", "..", "..");
+const ROOT = join(__dirname, "..", "..");
 const DIST = join(ROOT, "dist");
 
 const PROCESS_SCRIPTS: Record<string, string> = {

@@ -6,6 +6,16 @@
 
 ## Done
 
+### P8-01 Fix Orchestrator path calculation bug
+
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Fix incorrect path calculation in orchestrator.ts that causes "Cannot find module" errors when spawning child processes.
+
+    Source: P8-01_FIX_ORCHESTRATOR_PATH.md
+    ```
+
 ### P7-01 RAG Vector Search with sqlite-vss
   - tags: [done]
   - defaultExpanded: false
