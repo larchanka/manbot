@@ -45,7 +45,7 @@ AI-Agent/
 │   │   ├── task-memory.ts      # SQLite: tasks, nodes, edges, reflections
 │   │   ├── logger-service.ts   # event.* → pino file log
 │   │   ├── rag-service.ts     # Embeddings + SQLite; sqlite-vss KNN when available, else dot-product; memory.semantic.*, node.execute semantic_search
-│   │   ├── tool-host.ts        # read_file, write_file, http_get; sandbox; tool.execute / node.execute tool
+│   │   ├── tool-host.ts        # shell, http_get, http_search; sandbox; tool.execute / node.execute tool
 │   │   └── cron-manager.ts    # node-cron + SQLite schedules; event.cron.* to Logger
 │   └── shared/
 │       ├── config.ts           # Central config: config.json + env overrides
@@ -98,7 +98,7 @@ AI-Agent/
 - **Task Memory**: SQLite store; `conversation_id` on tasks; handles `task.create`, `task.update`, `task.get`, `task.getByConversationId`, `task.appendReflection`, `task.complete`, `task.fail`.
 - **Logger**: Subscribes to `event.*`; writes structured log (pino) to `logDir/logFile` from config.
 - **RAG Service**: Ollama embed; SQLite-backed document store; **sqlite-vss** for KNN vector search when extension loads (macOS/Linux x64), else in-DB dot-product; configurable `rag.embeddingDimensions` (768); `memory.semantic.insert`, `memory.semantic.search`; `node.execute` for `semantic_search` returns snippets for downstream nodes.
-- **Tool Host**: Registry of tools (read_file, write_file, http_get); sandbox dir from config; `tool.execute` and `node.execute` for type `tool`; permission errors for paths outside sandbox.
+- **Tool Host**: Registry of tools (shell, http_get, http_search); sandbox dir from config; `tool.execute` and `node.execute` for type `tool`; shell tool executes commands with sandbox restrictions; permission errors for paths outside sandbox.
 - **Cron Manager**: SQLite schedule table; node-cron; `cron.schedule.add/list/remove`; emits `event.cron.started/completed/failed` to Logger.
 
 ### Adapters
