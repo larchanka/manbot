@@ -170,6 +170,7 @@ export class Orchestrator {
       this.sendToTelegram(chatId, "Service unavailable.");
       return;
     }
+    this.sendToTelegram(chatId, "Planning started...", true);
     const plannerComplexity = getConfig().modelRouter.plannerComplexity;
     const planReq = this.sendAndWait(planner, "plan.create", { goal, complexity: plannerComplexity });
     let planEnv: Envelope;
@@ -197,6 +198,7 @@ export class Orchestrator {
       edges: edges.map((e) => ({ fromNode: e.from, toNode: e.to })),
     };
     this.sendAndWait(taskMemory, "task.create", taskCreatePayload).catch(() => { });
+    this.sendToTelegram(chatId, "Planning complete. Execution started...", true);
     const execReq = this.sendAndWait(executor, "plan.execute", { taskId, plan, goal });
     let execEnv: Envelope;
     try {

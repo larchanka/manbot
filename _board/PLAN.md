@@ -27,6 +27,16 @@ Based on the `AUDIT.md`, this plan aims to decouple hardcoded complexity default
 #### [MODIFY] [generator-service.ts](file:///Users/mikhaillarchanka/Projects/AI-Agent/src/services/generator-service.ts)
 - Update fallback for `modelClass` to check `p.context?._complexity` before defaulting to `"medium"`.
 
+---
+
+### Silent Notifications
+#### [MODIFY] [telegram-adapter.ts](file:///Users/mikhaillarchanka/Projects/AI-Agent/src/adapters/telegram-adapter.ts)
+- Update `pl.silent` handling to use `disable_notification: true` in `bot.sendMessage` instead of skipping the message.
+- Restore "Task created" messages but mark them as `silent: true`.
+
+#### [MODIFY] [orchestrator.ts](file:///Users/mikhaillarchanka/Projects/AI-Agent/src/core/orchestrator.ts)
+- Add silent "Planning started..." and "Execution started..." messages to `runTaskPipeline` to provide feedback without sound.
+
 ## Verification Plan
 
 ### Automated Tests

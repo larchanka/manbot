@@ -112,10 +112,9 @@ function main(): void {
   function sendToUser(
     chatId: number,
     text: string,
-    options?: { parse_mode?: "HTML" | "Markdown" | "MarkdownV2" }
+    options?: TelegramBot.SendMessageOptions
   ): void {
-    const opts = options?.parse_mode != null ? { parse_mode: options.parse_mode } : undefined;
-    bot.sendMessage(chatId, text, opts).catch((err) => {
+    bot.sendMessage(chatId, text, options).catch((err) => {
       console.error("Telegram send error:", err);
     });
   }
@@ -186,7 +185,6 @@ function main(): void {
         ...(from.username !== undefined && from.username !== "" && { username: from.username }),
       };
       base.send(createEnvelope<TelegramTaskCreatePayload>("task.create", "core", payload));
-      // Task creation message removed - user will receive final result only
       return;
     }
 
@@ -200,7 +198,6 @@ function main(): void {
       ...(from.username !== undefined && from.username !== "" && { username: from.username }),
     };
     base.send(createEnvelope<TelegramTaskCreatePayload>("task.create", "core", taskPayload));
-    // Task creation message removed - user will receive final result only
   });
 
   // Messages from Core (stdin) → send to Telegram user (initial/final output and progress)
@@ -210,11 +207,10 @@ function main(): void {
     if (envelope.type === "telegram.send") {
       const pl = envelope.payload as TelegramSendPayload;
       if (typeof pl.chatId === "number" && typeof pl.text === "string") {
-        // Skip silent messages (intermediate system messages)
-        if (pl.silent === true) {
-          return;
-        }
-        const opts = pl.parseMode != null ? { parse_mode: pl.parseMode } : undefined;
+        const opts: TelegramBot.SendMessageOptions = {
+          ...(pl.parseMode != null && { parse_mode: pl.parseMode }),
+          ...(pl.silent === true && { disable_notification: true }),
+        };
         sendToUser(pl.chatId, pl.text, opts);
       }
       return;
