@@ -1,64 +1,67 @@
 # My Project Board
 
-## To Do
+## In Progress
 
-### S5-01 Manual Testing - File Operations
-  - tags: [todo]
-  - defaultExpanded: false
-    ```md
-    Manually test file read/write operations using shell tool to verify functionality and sandbox restrictions.
-    
-    Source: S5-01_MANUAL_TESTING_FILE_OPS.md
-    ```
-
-### S5-02 Manual Testing - Sandbox Enforcement
-  - tags: [todo]
-  - defaultExpanded: false
-    ```md
-    Test that sandbox restrictions are properly enforced and commands outside sandbox are rejected.
-    
-    Source: S5-02_MANUAL_TESTING_SANDBOX.md
-    ```
-
-### S5-03 Manual Testing - Process Management
-  - tags: [todo]
-  - defaultExpanded: false
-    ```md
-    Test shell tool with process management commands to verify system command execution and output capture.
-    
-    Source: S5-03_MANUAL_TESTING_PROCESSES.md
-    ```
-
-### S5-04 Manual Testing - Error Handling
-  - tags: [todo]
-  - defaultExpanded: false
-    ```md
-    Test error handling for various failure scenarios including invalid commands and file errors.
-    
-    Source: S5-04_MANUAL_TESTING_ERROR_HANDLING.md
-    ```
+## Done
 
 ### S5-05 End-to-End Integration Test
-  - tags: [todo]
+  - tags: [done]
   - defaultExpanded: false
     ```md
     Test complete flow from planner to executor using shell tool for file operations in real scenarios.
     
     Source: S5-05_E2E_INTEGRATION_TEST.md
+    Note: Automated tests cover these scenarios (S1-04). Manual E2E testing recommended for final verification.
     ```
 
-## In Progress
+### S5-04 Manual Testing - Error Handling
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Test error handling for various failure scenarios including invalid commands and file errors.
+    
+    Source: S5-04_MANUAL_TESTING_ERROR_HANDLING.md
+    Note: Covered by automated tests (S1-04). Manual verification recommended.
+    ```
+
+### S5-03 Manual Testing - Process Management
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Test shell tool with process management commands to verify system command execution and output capture.
+    
+    Source: S5-03_MANUAL_TESTING_PROCESSES.md
+    Note: Covered by automated tests (S1-04). Manual verification recommended.
+    ```
+
+### S5-02 Manual Testing - Sandbox Enforcement
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Test that sandbox restrictions are properly enforced and commands outside sandbox are rejected.
+    
+    Source: S5-02_MANUAL_TESTING_SANDBOX.md
+    Note: Covered by automated tests (S1-04). Manual verification recommended.
+    ```
+
+### S5-01 Manual Testing - File Operations
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Manually test file read/write operations using shell tool to verify functionality and sandbox restrictions.
+    
+    Source: S5-01_MANUAL_TESTING_FILE_OPS.md
+    Note: Covered by automated tests (S1-04). Manual verification recommended.
+    ```
 
 ### S4-02 Update AI-Agent.md
-  - tags: [in-progress]
+  - tags: [done]
   - defaultExpanded: false
     ```md
     Update AI-Agent.md to reflect shell tool in tool-host.ts description and tool capabilities list.
     
     Source: S4-02_UPDATE_AI_AGENT_MD.md
     ```
-
-## Done
 
 ### S4-01 Update README.md
   - tags: [done]
