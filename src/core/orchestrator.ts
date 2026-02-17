@@ -161,10 +161,13 @@ export class Orchestrator {
     if (type === "reminder.list" && fromProcess === "telegram-adapter") {
       const chatId = payload.chatId as number | undefined;
       if (chatId != null) {
+        ConsoleLogger.info("core", `Handling reminder.list request for chatId: ${chatId}`, envelope);
         this.handleListReminders(chatId, envelope).catch((err) => {
           ConsoleLogger.error("core", "List reminders error", err instanceof Error ? err.message : String(err), envelope);
           this.sendToTelegram(chatId, `Error listing reminders: ${err instanceof Error ? err.message : String(err)}`);
         });
+      } else {
+        ConsoleLogger.warn("core", "reminder.list missing chatId", envelope);
       }
       return;
     }
@@ -339,14 +342,18 @@ export class Orchestrator {
   }
 
   private async handleListReminders(chatId: number, _request: Envelope): Promise<void> {
+    ConsoleLogger.info("core", `handleListReminders called for chatId: ${chatId}`);
     const cronManager = this.children.get("cron-manager");
     if (!cronManager?.stdin.writable) {
+      ConsoleLogger.warn("core", "Cron manager not available or not writable");
       this.sendToTelegram(chatId, "Cron manager service unavailable.");
       return;
     }
 
     try {
+      ConsoleLogger.info("core", "Sending cron.schedule.list to cron-manager");
       const response = await this.sendAndWait(cronManager, "cron.schedule.list", {});
+      ConsoleLogger.info("core", `Received response from cron-manager: ${JSON.stringify(response.payload).substring(0, 200)}`);
       const responsePayload = response.payload as { status?: string; result?: { schedules?: unknown[] } };
       const schedules = (responsePayload.result?.schedules ?? []) as Array<{
         id: string;
@@ -355,12 +362,17 @@ export class Orchestrator {
         enabled: boolean;
       }>;
 
+      ConsoleLogger.info("core", `Found ${schedules.length} total schedules`);
+
       // Filter reminders for this chatId - we need to check the payload of each schedule
       // Since we can't easily query by chatId, we'll need to get schedule details
       // For now, filter by taskType === "reminder"
       const reminderSchedules = schedules.filter((s) => s.taskType === "reminder" && s.enabled);
 
+      ConsoleLogger.info("core", `Found ${reminderSchedules.length} reminder schedules`);
+
       if (reminderSchedules.length === 0) {
+        ConsoleLogger.info("core", "No reminders found, sending 'No active reminders' message");
         this.sendToTelegram(chatId, "No active reminders.");
         return;
       }
@@ -370,9 +382,12 @@ export class Orchestrator {
       const formatted = reminderSchedules
         .map((rem) => `ID: ${rem.id}\nTime: ${rem.cronExpr}`)
         .join("\n\n---\n\n");
-      this.sendToTelegram(chatId, `Active reminders:\n\n${formatted}`);
+      const message = `Active reminders:\n\n${formatted}`;
+      ConsoleLogger.info("core", `Sending reminder list to chatId ${chatId}: ${message.substring(0, 100)}...`);
+      this.sendToTelegram(chatId, message);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
+      ConsoleLogger.error("core", `Error in handleListReminders: ${message}`, err instanceof Error ? err : undefined);
       this.sendToTelegram(chatId, `Error listing reminders: ${message}`);
     }
   }
