@@ -26,8 +26,12 @@
     "better-sqlite3": "^12.6.2",
     "node-cron": "^4.2.1",
     "node-telegram-bot-api": "^0.67.0",
+    "playwright": "^1.48.0",
+    "playwright-extra": "^4.3.6",
     "pino": "^9.5.0",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
     "sqlite-vss": "^0.1.2",
+    "turndown": "^7.2.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
@@ -35,6 +39,7 @@
     "@types/node": "^22.10.1",
     "@types/node-cron": "^3.0.11",
     "@types/node-telegram-bot-api": "^0.64.13",
+    "@types/turndown": "^5.0.5",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
     "vitest": "^4.0.18"
