@@ -139,16 +139,16 @@
 
 ## In Progress
 
+## Done
+
 ### S1-01 Implement Shell Tool Core
-  - tags: [in-progress]
+  - tags: [done]
   - defaultExpanded: false
     ```md
     Implement the core shell tool that executes shell commands in a sandboxed environment with structured response format.
     
     Source: S1-01_SHELL_TOOL_CORE.md
     ```
-
-## Done
 
 ### P12-14 Manual End-to-End Testing
   - tags: [done]
