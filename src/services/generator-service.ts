@@ -72,9 +72,14 @@ export class GeneratorService extends BaseProcess {
               if (v && typeof v === "object" && "body" in v && typeof v.body === "string") {
                 return v.body;
               }
-              // Extract content from read_file responses
-              if (v && typeof v === "object" && "content" in v && typeof v.content === "string") {
-                return v.content;
+              // Extract stdout from shell tool responses
+              if (v && typeof v === "object" && "stdout" in v && typeof v.stdout === "string") {
+                const shellResult = v as { stdout: string; stderr?: string };
+                // Include stderr in context if present (for debugging)
+                if (shellResult.stderr && shellResult.stderr.trim()) {
+                  return `${shellResult.stdout}\n\n[stderr: ${shellResult.stderr}]`;
+                }
+                return shellResult.stdout;
               }
               // For strings, return as-is
               if (typeof v === "string") {
@@ -100,9 +105,14 @@ export class GeneratorService extends BaseProcess {
               if (v && typeof v === "object" && "body" in v && typeof v.body === "string") {
                 return v.body;
               }
-              // Extract content from read_file responses
-              if (v && typeof v === "object" && "content" in v && typeof v.content === "string") {
-                return v.content;
+              // Extract stdout from shell tool responses
+              if (v && typeof v === "object" && "stdout" in v && typeof v.stdout === "string") {
+                const shellResult = v as { stdout: string; stderr?: string };
+                // Include stderr in context if present (for debugging)
+                if (shellResult.stderr && shellResult.stderr.trim()) {
+                  return `${shellResult.stdout}\n\n[stderr: ${shellResult.stderr}]`;
+                }
+                return shellResult.stdout;
               }
               // For strings, return as-is
               if (typeof v === "string") {
@@ -118,9 +128,14 @@ export class GeneratorService extends BaseProcess {
             if (v && typeof v === "object" && "body" in v && typeof v.body === "string") {
               return v.body;
             }
-            // Extract content from read_file responses
-            if (v && typeof v === "object" && "content" in v && typeof v.content === "string") {
-              return v.content;
+            // Extract stdout from shell tool responses
+            if (v && typeof v === "object" && "stdout" in v && typeof v.stdout === "string") {
+              const shellResult = v as { stdout: string; stderr?: string };
+              // Include stderr in context if present (for debugging)
+              if (shellResult.stderr && shellResult.stderr.trim()) {
+                return `${shellResult.stdout}\n\n[stderr: ${shellResult.stderr}]`;
+              }
+              return shellResult.stdout;
             }
             // For strings, return as-is
             if (typeof v === "string") {
