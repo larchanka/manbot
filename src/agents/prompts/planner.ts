@@ -56,6 +56,13 @@ You must respond with exactly one JSON object matching this structure. No markdo
 - **input**: \`{ "tool": "read_file" | "write_file" | "http_get", "arguments": {...} }\`
 - **DO NOT** invent tool names that don't exist. Only use the three tools listed above.
 
+### cron-manager service
+- **type**: \`schedule_reminder\`
+- Use for: scheduling reminders when user requests reminders (e.g., "remind me in 5 minutes", "remind me tomorrow at 3pm", "every Monday at 9am")
+- **input**: \`{ "cronExpr": "<cron expression>", "chatId": <number>, "reminderMessage": "<message>", "userId": <number> (optional) }\`
+- **Important**: Before scheduling, you must parse the natural language time expression into a cron expression. Use \`generate_text\` with \`model-router\` service first to convert time expressions like "in 5 minutes" or "tomorrow at 3pm" into a cron expression, then use that cron expression in the \`schedule_reminder\` node.
+- **Recognition**: When user says "remind me", "reminder", "schedule", "set a reminder", or similar phrases, create a plan that: (1) parses the time expression to cron, (2) schedules the reminder with cron-manager.
+
 ### critic-agent service
 - **type**: \`reflect\`
 - Use for: evaluating and providing feedback on generated content
@@ -69,6 +76,7 @@ You must respond with exactly one JSON object matching this structure. No markdo
 - **For code generation**: Use \`generate_text\` with \`model-router\` service. DO NOT create tools like "generate_javascript", "write_code", or "code_generator".
 - **For file operations**: Use \`tool\` type with \`tool-host\` service and tool name \`read_file\` or \`write_file\`.
 - **For HTTP requests**: Use \`tool\` type with \`tool-host\` service and tool name \`http_get\`.
+- **For reminders**: When user requests a reminder, create a two-step plan: (1) parse time expression to cron using \`generate_text\`, (2) schedule reminder using \`schedule_reminder\` with cron-manager. Extract chatId and userId from context if available.
 - Only use tools that exist: \`read_file\`, \`write_file\`, \`http_get\`. Never invent new tool names.
 
 - Output only valid JSON. No trailing commas, no comments.`;
@@ -207,6 +215,43 @@ User: "Draft a short blog post about TypeScript best practices."
   "edges": [
     { "from": "plan", "to": "draft" },
     { "from": "draft", "to": "reflect" }
+  ]
+}
+\`\`\`
+
+## Example 6: Schedule a reminder
+User: "Remind me tomorrow at 3pm to call John"
+
+\`\`\`json
+{
+  "taskId": "task-reminder-1",
+  "complexity": "small",
+  "reflectionMode": "OFF",
+  "nodes": [
+    {
+      "id": "parse-time",
+      "type": "generate_text",
+      "service": "model-router",
+      "input": {
+        "modelClass": "small",
+        "prompt": "Convert the time expression 'tomorrow at 3pm' into a valid cron expression. Current date/time context will be provided. Output only the cron expression in the format: minute hour day month dayOfWeek (e.g., '0 15 18 2 *' for Feb 18 at 3:00 PM)."
+      }
+    },
+    {
+      "id": "schedule",
+      "type": "schedule_reminder",
+      "service": "cron-manager",
+      "input": {
+        "dependsOn": ["parse-time"],
+        "cronExpr": "<output from parse-time node>",
+        "chatId": "<extract from context>",
+        "reminderMessage": "call John",
+        "userId": "<extract from context if available>"
+      }
+    }
+  ],
+  "edges": [
+    { "from": "parse-time", "to": "schedule" }
   ]
 }
 \`\`\`
