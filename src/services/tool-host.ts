@@ -5,6 +5,8 @@
  */
 
 import { randomUUID } from "node:crypto";
+import { exec } from "node:child_process";
+import { promisify } from "node:util";
 import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { BaseProcess } from "../shared/base-process.js";
@@ -18,6 +20,7 @@ import { ConsoleLogger } from "../utils/console-logger.js";
 
 const PROCESS_NAME = "tool-host";
 const TOOL_EXECUTE = "tool.execute";
+const execAsync = promisify(exec);
 
 interface ToolExecutePayload {
   name: string;
@@ -50,6 +53,7 @@ export class ToolHost extends BaseProcess {
     this.tools.set("write_file", this.writeFileTool.bind(this));
     this.tools.set("http_get", this.httpGetTool.bind(this));
     this.tools.set("http_search", this.httpSearchTool.bind(this));
+    this.tools.set("shell", this.shellTool.bind(this));
   }
 
   private resolvePath(relativePath: string): { path: string; allowed: boolean } {
@@ -179,6 +183,98 @@ export class ToolHost extends BaseProcess {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       throw new Error(`HTTP search failed: ${message}`);
+    }
+  }
+
+  /**
+   * Execute a shell command in a sandboxed environment.
+   * 
+   * @param args - Tool arguments
+   * @param args.command - Required. The shell command to execute
+   * @param args.cwd - Optional. Working directory for command execution. Defaults to sandboxDir from config
+   * @returns Structured response with stdout, stderr, exitCode, command, and cwd
+   * @throws Error if command is missing or execution fails critically (e.g., timeout)
+   */
+  private async shellTool(args: Record<string, unknown>): Promise<unknown> {
+    const command = args.command;
+    if (typeof command !== "string") {
+      throw new Error("shell requires command (string)");
+    }
+
+    // Use provided cwd or default to sandboxDir
+    const cwd = typeof args.cwd === "string" ? resolve(args.cwd) : this.sandboxDir;
+    
+    // Use executor timeout as a reasonable default (10 minutes), or 30 seconds as a fallback
+    const timeoutMs = getConfig().executor.nodeTimeoutMs || 30_000;
+    
+    try {
+      const { stdout, stderr } = await execAsync(command, {
+        cwd,
+        timeout: timeoutMs,
+        maxBuffer: 10 * 1024 * 1024, // 10MB max buffer
+      });
+
+      // Success case: command executed successfully
+      return {
+        stdout: stdout || "",
+        stderr: stderr || "",
+        exitCode: 0,
+        command,
+        cwd,
+      };
+    } catch (error: unknown) {
+      // execAsync rejects on non-zero exit codes or execution errors
+      // The error object contains stdout, stderr, and code properties
+      
+      // Handle timeout - this is a critical error that should be thrown
+      if (
+        error &&
+        typeof error === "object" &&
+        "code" in error &&
+        (error.code === "ETIMEDOUT" || error.code === "TIMEOUT")
+      ) {
+        throw new Error(`Command execution timed out after ${Math.floor(timeoutMs / 1000)}s: ${command}`);
+      }
+      
+      // Extract stdout, stderr, and exitCode from error object
+      let stdout = "";
+      let stderr = "";
+      let exitCode = 1; // Default to 1 for errors
+
+      if (error && typeof error === "object") {
+        // execAsync error object has stdout, stderr, and code properties
+        if ("stdout" in error && typeof error.stdout === "string") {
+          stdout = error.stdout;
+        }
+        if ("stderr" in error && typeof error.stderr === "string") {
+          stderr = error.stderr;
+        }
+        // code can be a number (exit code) or string (error code like 'ENOENT')
+        if ("code" in error) {
+          if (typeof error.code === "number") {
+            exitCode = error.code;
+          } else if (typeof error.code === "string" && error.code !== "ETIMEDOUT" && error.code !== "TIMEOUT") {
+            // For system errors (like ENOENT), set stderr with error message
+            const errorMessage = ("message" in error && typeof error.message === "string") 
+              ? error.message 
+              : String(error);
+            stderr = errorMessage;
+          }
+        }
+      } else {
+        // Fallback error handling
+        stderr = error instanceof Error ? error.message : String(error);
+      }
+
+      // Return structured response even on error (non-zero exit code)
+      // This allows the caller to handle command failures gracefully
+      return {
+        stdout,
+        stderr,
+        exitCode,
+        command,
+        cwd,
+      };
     }
   }
 
