@@ -9,13 +9,13 @@
 ### P12-15 Performance Benchmarking
 - Source: P12-15_PERFORMANCE_BENCHMARK.md
 
+## Done
+
 ### P12-16 Update README Documentation
 - Source: P12-16_UPDATE_README.md
 
 ### P12-17 Add Troubleshooting Guide
 - Source: P12-17_TROUBLESHOOTING_GUIDE.md
-
-## Done
 
 ### P12-13 Update Planner Prompt
 - Source: P12-13_UPDATE_PLANNER_PROMPT.md
