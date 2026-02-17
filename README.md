@@ -9,7 +9,7 @@ A multi-process AI platform with type-safe IPC and capability-graph execution. U
 - **Multi-agent pipeline**: Planner → Task Memory → Executor → Critic (optional revision loop)
 - **Capability graph (DAG)**: Nodes for `generate_text`, `semantic_search`, `reflect`, `tool`; parallel execution where dependencies allow
 - **Type-safe IPC**: JSONL over stdin/stdout with Zod-validated envelopes
-- **Services**: Task Memory (SQLite, with `conversation_id` for session grouping), Logger, RAG (embeddings + SQLite; vector search via **sqlite-vss** when available, fallback to in-DB dot-product), Tool Host (read_file, write_file, **enhanced http_get with browser fallback**), Cron Manager, Browser Service (Playwright with stealth capabilities)
+- **Services**: Task Memory (SQLite, with `conversation_id` for session grouping), Logger, RAG (embeddings + SQLite; vector search via **sqlite-vss** when available, fallback to in-DB dot-product), Tool Host (**shell tool** for file operations and system commands, **enhanced http_get with browser fallback**, http_search), Cron Manager, Browser Service (Playwright with stealth capabilities)
 - **Telegram adapter**: Commands `/start`, `/task`, `/new`, `/help`; session tracking and conversation archiving; optional allow-list of user IDs
 - **Conversation archiving**: `/new` resets the session, summarizes the previous conversation via a dedicated summarizer prompt, and stores the summary in RAG for later retrieval
 - **Reminder System**: Schedule one-time or recurring reminders via natural language; cron-based scheduling with Telegram delivery
@@ -50,7 +50,7 @@ ollama pull mistral
    - **rag.dbPath** — SQLite path for RAG document storage (default `data/rag.sqlite`)
    - **rag.embeddingDimensions** — Vector dimension for sqlite-vss (default 768 for nomic-embed-text)
    - **modelRouter** — Ollama model names for small/medium/large
-   - **toolHost.sandboxDir** — Directory allowed for file tools (default: cwd)
+   - **toolHost.sandboxDir** — Directory allowed for shell tool file operations (default: cwd)
 - **browserService.headless** — Run browser in headless mode (default: `true`)
 - **browserService.timeout** — Browser operation timeout in milliseconds (default: `30000`)
 - **browserService.enableStealth** — Enable stealth plugin for bot detection bypass (default: `true`)

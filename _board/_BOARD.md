@@ -2,15 +2,6 @@
 
 ## To Do
 
-### S4-01 Update README.md
-  - tags: [todo]
-  - defaultExpanded: false
-    ```md
-    Update README to reflect shell tool instead of read_file/write_file in services list and documentation.
-    
-    Source: S4-01_UPDATE_README.md
-    ```
-
 ### S4-02 Update AI-Agent.md
   - tags: [todo]
   - defaultExpanded: false
@@ -67,16 +58,25 @@
 
 ## In Progress
 
-### S3-03 Update Config Documentation
+### S4-01 Update README.md
   - tags: [in-progress]
+  - defaultExpanded: false
+    ```md
+    Update README to reflect shell tool instead of read_file/write_file in services list and documentation.
+    
+    Source: S4-01_UPDATE_README.md
+    ```
+
+## Done
+
+### S3-03 Update Config Documentation
+  - tags: [done]
   - defaultExpanded: false
     ```md
     Update config interface comments to reflect shell tool usage instead of read_file/write_file.
     
     Source: S3-03_UPDATE_CONFIG_DOCS.md
     ```
-
-## Done
 
 ### S3-02 Update Planner Prompt - Document Shell Tool
   - tags: [done]
