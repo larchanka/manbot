@@ -2,7 +2,7 @@
 
 ## To Do
 
-### P11-09 Add List Reminders Command
+### P11-11 Update Help Command
 - tags: [todo, reminder-system, phase-1, testing]
 - defaultExpanded: false
   ```md
@@ -112,7 +112,7 @@
 
 ## In Progress
 
-### P11-09 Add List Reminders Command
+### P11-11 Update Help Command
 - tags: [in-progress, reminder-system, phase-2]
 - defaultExpanded: false
   ```md
@@ -122,6 +122,24 @@
   ```
 
 ## Done
+### P11-10 Add Cancel Reminder Command
+- tags: [done, reminder-system, phase-5]
+- defaultExpanded: false
+  ```md
+  Add /cancel_reminder command to remove a specific reminder.
+
+  Source: P11-10_CANCEL_REMINDER_COMMAND.md
+  ```
+
+### P11-09 Add List Reminders Command
+- tags: [done, reminder-system, phase-5]
+- defaultExpanded: false
+  ```md
+  Add /reminders command to list active reminders for the user.
+
+  Source: P11-09_LIST_REMINDERS_COMMAND.md
+  ```
+
 ### P11-08 Add Schedule Reminder Handler to Executor
 - tags: [done, reminder-system, phase-4]
 - defaultExpanded: false

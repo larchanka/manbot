@@ -84,9 +84,13 @@ const HELP_TEXT = `Commands:
 /start — Welcome and brief intro
 /task [goal] — Start a new task with optional goal text
 /new — Start a new conversation (previous one will be archived)
-/reminders — List your active reminders
-/cancel_reminder [id] — Cancel a reminder by ID
-/help — Show this help`;
+/help — Show this help
+
+📅 Reminders:
+- Ask me to remind you: "Remind me in 5 minutes to check the oven"
+- Recurring reminders: "Remind me every day at 9am to take vitamins"
+- List reminders: /reminders
+- Cancel a reminder: /cancel_reminder <id>`;
 
 /** chatId -> current conversation ID for session grouping */
 const conversationIdByChat = new Map<number, string>();
