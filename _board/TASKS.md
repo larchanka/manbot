@@ -1,134 +1,180 @@
-# Reminder System Tasks
+# Enhanced HTTP Get Tool Tasks
 
-## Phase 1: Core Infrastructure
+## Phase 1: Dependencies and Configuration
 
-### Task 1.1: Create Time Parser Service
-**File**: `src/services/time-parser.ts`
+### Task 1.1: Add Required Dependencies
+**File**: `package.json`
 **Dependencies**: None
-**Description**: Create a service that converts natural language time expressions into cron expressions using the LLM.
+**Description**: Add Playwright, stealth plugin, and HTML-to-Markdown conversion libraries.
 **Acceptance Criteria**:
-- Exports `parseTimeExpression(input: string): Promise<{ cronExpr: string, isRecurring: boolean, description: string }>`
-- Uses `model-router` to parse natural language
-- Returns valid cron expressions compatible with `node-cron`
-- Handles both one-time and recurring reminders
-- Throws descriptive errors for invalid inputs
+- Add `playwright` to dependencies
+- Add `playwright-extra` to dependencies
+- Add `puppeteer-extra-plugin-stealth` to dependencies
+- Add `turndown` to dependencies
+- Add `@types/turndown` to devDependencies
+- Run `npm install` successfully
+- All dependencies are compatible with Node.js 20+
 
-### Task 1.2: Add Time Parser Tests
-**File**: `src/services/__tests__/time-parser.test.ts`
+### Task 1.2: Install Playwright Browsers
 **Dependencies**: Task 1.1
-**Description**: Create unit tests for the time parser service.
+**Description**: Install Chromium browser for Playwright.
 **Acceptance Criteria**:
-- Tests parsing "in X minutes/hours/days"
-- Tests parsing "tomorrow/next week at HH:MM"
-- Tests parsing "every day/week/Monday at HH:MM"
-- Tests error handling for invalid expressions
-- All tests pass with `npm test`
+- Run `npx playwright install chromium`
+- Verify Chromium is installed successfully
+- Document browser installation in README or setup docs
 
-### Task 1.3: Update Cron Manager Event Payload
-**File**: `src/services/cron-manager.ts`
+### Task 1.3: Add Browser Service Configuration
+**File**: `config.json`
 **Dependencies**: None
-**Description**: Modify `CronManager.runJob()` to emit structured reminder data in `event.cron.completed`.
+**Description**: Add configuration section for browser service.
 **Acceptance Criteria**:
-- `event.cron.completed` payload includes `chatId`, `reminderMessage`, `userId`
-- Payload is extracted from the stored `payload` column in the database
-- Existing functionality is not broken
+- Add `browserService` object with `headless`, `timeout`, `enableStealth`, `reuseContext` properties
+- Set sensible defaults (headless: true, timeout: 30000, enableStealth: true, reuseContext: true)
+- Configuration is valid JSON
 
-### Task 1.4: Add Cron Manager Integration Tests
-**File**: `src/services/__tests__/cron-manager.test.ts`
+### Task 1.4: Update Config TypeScript Types
+**File**: `src/shared/config.ts`
 **Dependencies**: Task 1.3
-**Description**: Create integration tests for cron manager reminder functionality.
+**Description**: Add TypeScript types and validation for browser service configuration.
 **Acceptance Criteria**:
-- Tests adding a reminder schedule via IPC
-- Tests that `event.cron.completed` is emitted with correct reminder payload
-- Tests listing schedules
-- Tests removing schedules
-- All tests pass with `npm test`
+- Add `BrowserServiceConfig` interface with typed properties
+- Add `browserService` to main config type
+- Add validation for browser service config in `getConfig()`
+- TypeScript compilation succeeds with no errors
 
 ---
 
-## Phase 2: Orchestrator Integration
+## Phase 2: Core Utilities
 
-### Task 2.1: Handle Cron Events in Orchestrator
-**File**: `src/core/orchestrator.ts`
-**Dependencies**: Task 1.3
-**Description**: Add handler for `event.cron.completed` to route reminders to Telegram.
+### Task 2.1: Create HTML to Markdown Converter
+**File**: `src/utils/html-to-markdown.ts`
+**Dependencies**: Task 1.1
+**Description**: Create utility to convert HTML to clean Markdown using Turndown.
 **Acceptance Criteria**:
-- `handleCoreMessage` handles `event.cron.completed` events
-- Extracts `chatId` and `reminderMessage` from payload
-- Calls `sendToTelegram` with formatted reminder message
-- Logs errors if chatId or message is missing
+- Exports `htmlToMarkdown(html: string, options?: ConversionOptions): string`
+- Configures Turndown to preserve links, images, code blocks, tables, headings, lists
+- Strips scripts, styles, navigation, footers, and other non-content elements
+- Handles malformed HTML gracefully
+- Returns empty string for empty/invalid input
+- Includes JSDoc documentation
+
+### Task 2.2: Add HTML to Markdown Tests
+**File**: `src/utils/__tests__/html-to-markdown.test.ts`
+**Dependencies**: Task 2.1
+**Description**: Create unit tests for HTML to Markdown converter.
+**Acceptance Criteria**:
+- Tests conversion of headings (h1-h6)
+- Tests conversion of lists (ul, ol)
+- Tests conversion of links and images
+- Tests conversion of code blocks and inline code
+- Tests conversion of tables
+- Tests stripping of scripts and styles
+- Tests handling of malformed HTML
+- Tests handling of empty input
+- All tests pass with `npm test`
+
+### Task 2.3: Create Browser Configuration
+**File**: `src/services/browser-config.ts`
+**Dependencies**: None
+**Description**: Create configuration for user agents, viewports, and stealth settings.
+**Acceptance Criteria**:
+- Exports array of 10+ realistic user agents (Chrome, Firefox, Safari on Windows, macOS, Linux)
+- Exports array of common viewport sizes (1920x1080, 1366x768, 1536x864, etc.)
+- Exports function `getRandomUserAgent(): string`
+- Exports function `getRandomViewport(): { width: number, height: number }`
+- Exports stealth plugin configuration object
+- Includes JSDoc documentation explaining bot detection bypass techniques
 
 ---
 
-## Phase 3: Planner Enhancement
+## Phase 3: Browser Service
 
-### Task 3.1: Update Planner Prompt with Reminder Capability
-**File**: `src/agents/prompts/planner.ts`
-**Dependencies**: None
-**Description**: Add `cron-manager` service and `schedule_reminder` capability to planner prompt.
+### Task 3.1: Create Browser Service Core
+**File**: `src/services/browser-service.ts`
+**Dependencies**: Task 1.1, Task 1.4, Task 2.3
+**Description**: Create service to manage Playwright browser instances.
 **Acceptance Criteria**:
-- Documents `cron-manager` service in "Available Services and Capabilities" section
-- Adds `schedule_reminder` capability type with input schema
-- Includes example showing reminder request → plan with time parsing + scheduling nodes
-- Prompt instructs planner to recognize reminder keywords ("remind me", "reminder", etc.)
+- Implements singleton pattern for browser instance
+- Exports `BrowserService` class extending `BaseProcess`
+- Implements `fetchWithBrowser(url: string, options?: BrowserFetchOptions): Promise<BrowserFetchResult>`
+- Implements `close(): Promise<void>` for cleanup
+- Configures Chromium with stealth plugin
+- Uses random user agent and viewport for each request
+- Handles browser launch errors gracefully
+- Includes timeout handling (from config)
+- Reuses browser context when `reuseContext` is enabled
 
-### Task 3.2: Add Planner Example for Reminders
-**File**: `src/agents/prompts/planner.ts`
+### Task 3.2: Add Realistic Behavior to Browser Service
+**File**: `src/services/browser-service.ts`
 **Dependencies**: Task 3.1
-**Description**: Add few-shot example showing how to plan a reminder request.
+**Description**: Add human-like behaviors to bypass bot detection.
 **Acceptance Criteria**:
-- Example shows user request: "Remind me tomorrow at 3pm to call John"
-- Plan includes two nodes: parse time expression, schedule reminder
-- Dependencies are correctly specified
-- Example follows the existing format
+- Adds random delay (100-500ms) before page interaction
+- Implements realistic mouse movement to random coordinates
+- Waits for network idle before extracting content
+- Adds random scroll behavior for long pages
+- Configures browser to disable automation flags
+- Sets realistic browser headers (Accept-Language, Accept-Encoding, etc.)
+
+### Task 3.3: Add Browser Service Tests
+**File**: `src/services/__tests__/browser-service.test.ts`
+**Dependencies**: Task 3.2
+**Description**: Create integration tests for browser service.
+**Acceptance Criteria**:
+- Tests fetching a simple static HTML page
+- Tests fetching a page with JavaScript (mocked SPA)
+- Tests timeout handling with slow-loading page
+- Tests browser instance reuse
+- Tests cleanup on shutdown
+- Tests error handling for invalid URLs
+- Tests stealth plugin is applied
+- All tests pass with `npm test`
 
 ---
 
-## Phase 4: Executor Enhancement
+## Phase 4: Enhanced HTTP Get Tool
 
-### Task 4.1: Add Schedule Reminder Handler to Executor
-**File**: `src/agents/executor-agent.ts`
-**Dependencies**: Task 1.1, Task 3.1
-**Description**: Add handler for `schedule_reminder` node type in the executor.
+### Task 4.1: Update HTTP Get Tool with Smart Fallback
+**File**: `src/services/tool-host.ts`
+**Dependencies**: Task 2.1, Task 3.2
+**Description**: Enhance `httpGetTool` to support Playwright with smart fallback logic.
 **Acceptance Criteria**:
-- Executor recognizes `schedule_reminder` node type
-- Calls `time-parser` to convert natural language to cron expression
-- Sends `cron.schedule.add` message to `cron-manager` with reminder metadata
-- Stores schedule ID in node output
-- Handles errors from time parser and cron manager
+- Accepts new optional parameters: `useBrowser?: boolean`, `convertToMarkdown?: boolean`
+- Implements fallback logic: try `fetch` first, use Playwright on 403/401 or if `useBrowser` is true
+- Detects HTML content type from response headers
+- Converts HTML to Markdown when `convertToMarkdown` is true (default for HTML)
+- Returns enhanced response with `status`, `body`, `contentType`, `finalUrl`, `method` fields
+- Handles errors from both `fetch` and Playwright
+- Logs which method was used (fetch vs browser)
+
+### Task 4.2: Add HTTP Get Tool Tests
+**File**: `src/services/__tests__/tool-host.test.ts`
+**Dependencies**: Task 4.1
+**Description**: Create integration tests for enhanced HTTP get tool.
+**Acceptance Criteria**:
+- Tests successful fetch with simple URL
+- Tests fallback to Playwright on 403 response
+- Tests explicit `useBrowser: true` parameter
+- Tests HTML to Markdown conversion
+- Tests response format includes all required fields
+- Tests error handling for invalid URLs
+- Tests error handling for network failures
+- All tests pass with `npm test`
 
 ---
 
-## Phase 5: Telegram Commands
+## Phase 5: Planner Integration
 
-### Task 5.1: Add List Reminders Command
-**File**: `src/adapters/telegram-adapter.ts`
-**Dependencies**: Task 1.3
-**Description**: Add `/reminders` command to list active reminders for the user.
+### Task 5.1: Update Planner Prompt
+**File**: `src/agents/prompts/planner.ts`
+**Dependencies**: Task 4.1
+**Description**: Update planner prompt to document enhanced `http_get` capabilities.
 **Acceptance Criteria**:
-- `/reminders` command sends `cron.schedule.list` to `cron-manager` via orchestrator
-- Filters results to show only user's reminders (by chatId)
-- Formats and displays reminder list with ID, time, and message
-- Shows "No active reminders" if list is empty
-
-### Task 5.2: Add Cancel Reminder Command
-**File**: `src/adapters/telegram-adapter.ts`
-**Dependencies**: Task 5.1
-**Description**: Add `/cancel_reminder` command to remove a specific reminder.
-**Acceptance Criteria**:
-- `/cancel_reminder <id>` command sends `cron.schedule.remove` to `cron-manager`
-- Validates that the reminder belongs to the requesting user
-- Sends confirmation message on success
-- Sends error message if ID is invalid or reminder not found
-
-### Task 5.3: Update Help Command
-**File**: `src/adapters/telegram-adapter.ts`
-**Dependencies**: Task 5.1, Task 5.2
-**Description**: Update `/help` command to document reminder functionality.
-**Acceptance Criteria**:
-- Help text includes reminder examples
-- Documents `/reminders` and `/cancel_reminder` commands
-- Provides example reminder requests
+- Updates `http_get` tool documentation to include `useBrowser` and `convertToMarkdown` parameters
+- Adds example showing when to use `useBrowser: true` (e.g., for SPAs, sites with bot detection)
+- Adds example showing Markdown conversion for web scraping
+- Documents that HTML responses are automatically converted to Markdown
+- Explains that `fetch` is tried first for performance, with automatic fallback to browser
 
 ---
 
@@ -136,21 +182,48 @@
 
 ### Task 6.1: Manual End-to-End Testing
 **Dependencies**: All previous tasks
-**Description**: Perform manual testing of the complete reminder flow.
+**Description**: Perform manual testing of the complete enhanced HTTP get flow.
 **Acceptance Criteria**:
-- One-time reminder works: "Remind me in 2 minutes to check the oven"
-- Recurring reminder works: "Remind me every day at 9am to take vitamins"
-- `/reminders` command lists active reminders
-- `/cancel_reminder` command removes reminders
-- Reminders are delivered to the correct chat
-- Error messages are clear and helpful
+- Test fetching static HTML page (should use `fetch`)
+- Test fetching SPA website (should fallback to Playwright)
+- Test fetching site with bot detection (should use Playwright with stealth)
+- Test explicit `useBrowser: true` parameter
+- Test Markdown conversion quality on real websites
+- Test error handling with invalid URLs
+- Test timeout handling with slow sites
+- Verify logs show which method was used
+- Verify response times (fetch should be faster than Playwright)
 
-### Task 6.2: Update README
+### Task 6.2: Performance Benchmarking
+**Dependencies**: Task 6.1
+**Description**: Benchmark performance of fetch vs Playwright.
+**Acceptance Criteria**:
+- Measure average response time for `fetch` (should be <1s for most sites)
+- Measure average response time for Playwright (should be <5s for most sites)
+- Measure browser startup time (first request vs subsequent requests)
+- Document performance characteristics in code comments or README
+- Verify browser context reuse improves performance
+
+### Task 6.3: Update README Documentation
 **File**: `README.md`
 **Dependencies**: Task 6.1
-**Description**: Document the reminder feature in the README.
+**Description**: Document the enhanced HTTP get tool in the README.
 **Acceptance Criteria**:
-- Adds "Reminder System" section to Features
-- Documents supported time expressions
-- Documents `/reminders` and `/cancel_reminder` commands
-- Includes examples of reminder requests
+- Adds section explaining enhanced `http_get` capabilities
+- Documents when Playwright is used vs `fetch`
+- Documents bot detection bypass techniques
+- Documents HTML to Markdown conversion
+- Includes examples of using `useBrowser` parameter
+- Documents browser installation requirement (`npx playwright install chromium`)
+
+### Task 6.4: Add Troubleshooting Guide
+**File**: `README.md` or `docs/TROUBLESHOOTING.md`
+**Dependencies**: Task 6.3
+**Description**: Create troubleshooting guide for common browser service issues.
+**Acceptance Criteria**:
+- Documents how to debug Playwright issues (headless: false, slowMo, screenshots)
+- Documents common bot detection bypass failures and solutions
+- Documents how to handle sites with CAPTCHA
+- Documents browser installation issues
+- Documents timeout configuration
+- Documents how to view browser logs

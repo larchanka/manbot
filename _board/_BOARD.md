@@ -1,15 +1,16 @@
 # My Project Board
 
+## To Do
 
 ## In Progress
+
+## Done
 
 ### P12-14 Manual End-to-End Testing
 - Source: P12-14_E2E_TESTING.md
 
 ### P12-15 Performance Benchmarking
 - Source: P12-15_PERFORMANCE_BENCHMARK.md
-
-## Done
 
 ### P12-16 Update README Documentation
 - Source: P12-16_UPDATE_README.md

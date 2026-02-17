@@ -541,19 +541,49 @@ export class ExecutorAgent extends BaseProcess {
     }
 
     if (!cronExpr) {
-      throw new Error("schedule_reminder requires cronExpr in input or dependency output");
+      const dependsOn = (nodeInput.dependsOn as string[] | undefined) ?? [];
+      const depOutputs = dependsOn.map(depId => {
+        const output = context[depId];
+        return `${depId}: ${typeof output === "string" ? output.substring(0, 100) : JSON.stringify(output).substring(0, 100)}`;
+      }).join("; ");
+      throw new Error(`schedule_reminder requires cronExpr in input or dependency output. Dependencies: ${depOutputs || "none"}`);
     }
 
     // Extract reminder metadata
     const chatId = (nodeInput.chatId as number | string | undefined) ??
       (context.chatId as number | string | undefined);
-    const reminderMessage = (nodeInput.reminderMessage as string | undefined) ??
+    let reminderMessage = (nodeInput.reminderMessage as string | undefined) ??
       (context.reminderMessage as string | undefined);
     const userId = (nodeInput.userId as number | string | undefined) ??
       (context.userId as number | string | undefined);
 
-    if (!chatId || !reminderMessage) {
-      throw new Error("schedule_reminder requires chatId and reminderMessage");
+    // Fallback: try to extract reminderMessage from goal if not provided
+    if (!reminderMessage && context._goal && typeof context._goal === "string") {
+      const goal = context._goal as string;
+      // Try to extract reminder message from common patterns
+      // Patterns: "remind me to X", "remind me X", "notify me about X", etc.
+      const patterns = [
+        /remind\s+me\s+(?:to\s+)?(.+?)(?:\s+(?:every|at|in|tomorrow|today|on))?$/i,
+        /notify\s+me\s+(?:at\s+[^a]+)?(?:about\s+)?(.+?)$/i,
+        /schedule\s+(?:a\s+)?reminder\s+(?:for\s+)?(.+?)(?:\s+(?:every|at|in|tomorrow|today|on))?$/i,
+      ];
+      for (const pattern of patterns) {
+        const match = goal.match(pattern);
+        if (match && match[1]) {
+          reminderMessage = match[1].trim();
+          // Remove time expressions that might have been captured
+          reminderMessage = reminderMessage.replace(/\s+(?:every|at|in|tomorrow|today|on)\s+.+$/i, "").trim();
+          if (reminderMessage) break;
+        }
+      }
+    }
+
+    if (!chatId) {
+      throw new Error(`schedule_reminder requires chatId (should be provided automatically by executor). Context keys: ${Object.keys(context).join(", ")}`);
+    }
+    if (!reminderMessage) {
+      const goal = context._goal ? ` Goal: "${context._goal}"` : "";
+      throw new Error(`schedule_reminder requires reminderMessage in node input or extractable from goal.${goal} Node input keys: ${Object.keys(nodeInput).join(", ")}`);
     }
 
     // Send cron.schedule.add to cron-manager
