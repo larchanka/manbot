@@ -10,6 +10,7 @@ A multi-process AI platform with type-safe IPC and capability-graph execution. U
 - **Services**: Task Memory (SQLite, with `conversation_id` for session grouping), Logger, RAG (embeddings + SQLite; vector search via **sqlite-vss** when available, fallback to in-DB dot-product), Tool Host (read_file, write_file, http_get), Cron Manager
 - **Telegram adapter**: Commands `/start`, `/task`, `/new`, `/help`; session tracking and conversation archiving; optional allow-list of user IDs
 - **Conversation archiving**: `/new` resets the session, summarizes the previous conversation via a dedicated summarizer prompt, and stores the summary in RAG for later retrieval
+- **Reminder System**: Schedule one-time or recurring reminders via natural language; cron-based scheduling with Telegram delivery
 
 ## Requirements
 
@@ -99,6 +100,26 @@ npm test
 ```
 
 The suite includes unit tests for Task Memory, RAG Store, and graph utils, plus an integration test for the conversation archiving flow (`src/__tests__/archiving.test.ts`).
+
+## Reminder System
+
+The bot supports scheduling reminders using natural language:
+
+### One-time Reminders
+- "Remind me in 5 minutes to check the oven"
+- "Remind me tomorrow at 3pm to call John"
+- "Remind me next Monday at 9am about the meeting"
+
+### Recurring Reminders
+- "Remind me every day at 9am to take vitamins"
+- "Remind me every Monday at 10am about the team meeting"
+- "Remind me every week to review the budget"
+
+### Managing Reminders
+- List active reminders: `/reminders`
+- Cancel a reminder: `/cancel_reminder <id>`
+
+The system uses LLM-powered time parsing to convert natural language expressions into cron expressions, which are then scheduled via the Cron Manager service. When a reminder fires, the bot sends a message back to the user via Telegram.
 
 ## Project layout
 
