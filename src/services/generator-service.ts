@@ -64,7 +64,30 @@ export class GeneratorService extends BaseProcess {
           prompt = buildSummarizerPrompt(chatHistory);
           systemPrompt = SUMMARIZER_SYSTEM_PROMPT;
         } else if (typeof p.input?.prompt === "string") {
-          prompt = p.input.prompt;
+          // When there's an explicit prompt, still include dependency outputs if available
+          const depOutputs = Object.entries(context)
+            .filter(([k]) => !k.startsWith("_"))
+            .map(([, v]) => {
+              // Extract body from http_get responses
+              if (v && typeof v === "object" && "body" in v && typeof v.body === "string") {
+                return v.body;
+              }
+              // Extract content from read_file responses
+              if (v && typeof v === "object" && "content" in v && typeof v.content === "string") {
+                return v.content;
+              }
+              // For strings, return as-is
+              if (typeof v === "string") {
+                return v;
+              }
+              // For other objects, stringify
+              return JSON.stringify(v);
+            });
+          if (depOutputs.length > 0) {
+            prompt = `${p.input.prompt}\n\nContent:\n${depOutputs.join("\n\n")}`;
+          } else {
+            prompt = p.input.prompt;
+          }
         } else if (goal && (context["_criticFeedback"] != null || context["_previousDraft"] != null)) {
           const feedback = context["_criticFeedback"] as string | undefined;
           const previous = context["_previousDraft"] as string | undefined;
@@ -72,10 +95,40 @@ export class GeneratorService extends BaseProcess {
         } else if (goal) {
           const depOutputs = Object.entries(context)
             .filter(([k]) => !k.startsWith("_"))
-            .map(([, v]) => (typeof v === "string" ? v : JSON.stringify(v)));
+            .map(([, v]) => {
+              // Extract body from http_get responses
+              if (v && typeof v === "object" && "body" in v && typeof v.body === "string") {
+                return v.body;
+              }
+              // Extract content from read_file responses
+              if (v && typeof v === "object" && "content" in v && typeof v.content === "string") {
+                return v.content;
+              }
+              // For strings, return as-is
+              if (typeof v === "string") {
+                return v;
+              }
+              // For other objects, stringify
+              return JSON.stringify(v);
+            });
           prompt = `User goal: ${goal}\n\nContext from previous steps:\n${depOutputs.join("\n\n")}\n\nProduce a direct response to the goal. Output only the response text.`;
         } else {
-          const depOutputs = Object.values(context).map((v) => (typeof v === "string" ? v : JSON.stringify(v)));
+          const depOutputs = Object.values(context).map((v) => {
+            // Extract body from http_get responses
+            if (v && typeof v === "object" && "body" in v && typeof v.body === "string") {
+              return v.body;
+            }
+            // Extract content from read_file responses
+            if (v && typeof v === "object" && "content" in v && typeof v.content === "string") {
+              return v.content;
+            }
+            // For strings, return as-is
+            if (typeof v === "string") {
+              return v;
+            }
+            // For other objects, stringify
+            return JSON.stringify(v);
+          });
           prompt = depOutputs.join("\n\n") || "Generate a brief response.";
         }
         const genResult = systemPrompt
