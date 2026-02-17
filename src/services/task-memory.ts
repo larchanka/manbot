@@ -30,8 +30,8 @@ CREATE TABLE IF NOT EXISTS tasks (
 );
 
 CREATE TABLE IF NOT EXISTS task_nodes (
-  id TEXT PRIMARY KEY,
   task_id TEXT NOT NULL,
+  id TEXT NOT NULL,
   type TEXT NOT NULL,
   service TEXT NOT NULL,
   status TEXT CHECK(status IN ('pending','running','completed','failed')),
@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS task_nodes (
   started_at INTEGER,
   completed_at INTEGER,
   retry_count INTEGER DEFAULT 0,
+  PRIMARY KEY (task_id, id),
   FOREIGN KEY(task_id) REFERENCES tasks(id)
 );
 
@@ -48,14 +49,17 @@ CREATE TABLE IF NOT EXISTS task_edges (
   task_id TEXT NOT NULL,
   from_node TEXT NOT NULL,
   to_node TEXT NOT NULL,
+  FOREIGN KEY(task_id, from_node) REFERENCES task_nodes(task_id, id),
+  FOREIGN KEY(task_id, to_node) REFERENCES task_nodes(task_id, id),
   FOREIGN KEY(task_id) REFERENCES tasks(id)
 );
 
 CREATE TABLE IF NOT EXISTS task_node_results (
   id TEXT PRIMARY KEY,
+  task_id TEXT NOT NULL,
   node_id TEXT NOT NULL,
   result TEXT,
-  FOREIGN KEY(node_id) REFERENCES task_nodes(id)
+  FOREIGN KEY(task_id, node_id) REFERENCES task_nodes(task_id, id)
 );
 
 CREATE TABLE IF NOT EXISTS task_reflections (
@@ -65,7 +69,8 @@ CREATE TABLE IF NOT EXISTS task_reflections (
   critic_feedback TEXT,
   decision TEXT CHECK(decision IN ('PASS','REVISE')),
   created_at INTEGER,
-  FOREIGN KEY(task_id) REFERENCES tasks(id)
+  FOREIGN KEY(task_id) REFERENCES tasks(id),
+  FOREIGN KEY(task_id, node_id) REFERENCES task_nodes(task_id, id)
 );
 
 CREATE TABLE IF NOT EXISTS task_events (
@@ -73,7 +78,8 @@ CREATE TABLE IF NOT EXISTS task_events (
   task_id TEXT NOT NULL,
   event_type TEXT,
   payload TEXT,
-  timestamp INTEGER
+  timestamp INTEGER,
+  FOREIGN KEY(task_id) REFERENCES tasks(id)
 );
 `;
 
@@ -132,11 +138,27 @@ export class TaskMemoryStore {
     const path = dbPath ?? getConfig().taskMemory.dbPath;
     mkdirSync(dirname(path), { recursive: true });
     this.db = new Database(path);
+
+    // Check if task_nodes has a composite primary key
+    const tableInfo = this.db.prepare("PRAGMA table_info(task_nodes)").all() as Array<{ name: string; pk: number }>;
+    const pkCount = tableInfo.filter(c => c.pk > 0).length;
+
+    if (pkCount === 1 && tableInfo.find(c => c.name === "id")?.pk === 1) {
+      // Old schema detected, needs migration. Since it's a dev database, we'll drop and recreate
+      // as changing a PRIMARY KEY in SQLite requires recreating the table anyway.
+      this.db.exec("DROP TABLE IF EXISTS task_node_results");
+      this.db.exec("DROP TABLE IF EXISTS task_edges");
+      this.db.exec("DROP TABLE IF EXISTS task_reflections");
+      this.db.exec("DROP TABLE IF EXISTS task_nodes");
+      this.db.exec("DROP TABLE IF EXISTS tasks");
+      this.db.exec("DROP TABLE IF EXISTS task_events");
+    }
+
     this.db.exec(SCHEMA);
     try {
       this.db.exec("ALTER TABLE tasks ADD COLUMN conversation_id TEXT");
     } catch {
-      // Column already exists (e.g. after schema update)
+      // Column already exists
     }
   }
 
@@ -171,13 +193,13 @@ export class TaskMemoryStore {
       );
 
     const insertNode = this.db.prepare(
-      `INSERT INTO task_nodes (id, task_id, type, service, status, input)
+      `INSERT INTO task_nodes (task_id, id, type, service, status, input)
        VALUES (?, ?, ?, ?, 'pending', ?)`,
     );
     for (const n of payload.nodes) {
       insertNode.run(
-        n.id,
         payload.taskId,
+        n.id,
         n.type,
         n.service,
         this.json(n.input),
@@ -226,11 +248,11 @@ export class TaskMemoryStore {
       .run(now, taskId);
   }
 
-  storeNodeResult(nodeId: string, result: unknown): void {
+  storeNodeResult(taskId: string, nodeId: string, result: unknown): void {
     const id = randomUUID();
     this.db
-      .prepare(`INSERT INTO task_node_results (id, node_id, result) VALUES (?, ?, ?)`)
-      .run(id, nodeId, this.json(result));
+      .prepare(`INSERT INTO task_node_results (id, task_id, node_id, result) VALUES (?, ?, ?, ?)`)
+      .run(id, taskId, nodeId, this.json(result));
   }
 
   appendReflection(

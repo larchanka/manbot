@@ -165,7 +165,7 @@ describe("TaskMemoryStore", () => {
         edges: [],
       });
       store.updateNodeStatus(taskId, "n1", "completed", { output: { text: "hello" } });
-      store.storeNodeResult("n1", { content: "hello", tokens: 5 });
+      store.storeNodeResult(taskId, "n1", { content: "hello", tokens: 5 });
       store.appendReflection(taskId, "PASS", "Output looks good", "n1");
 
       const task = store.getTask(taskId) as Record<string, unknown>;
@@ -252,7 +252,7 @@ describe("TaskMemoryStore", () => {
       }).toThrow();
     });
 
-    it("duplicate node id across tasks causes UNIQUE constraint failure", () => {
+    it("duplicate node id across tasks is now allowed", () => {
       const taskId1 = "t1";
       const taskId2 = "t2";
       const nodeId = "n-shared";
@@ -262,14 +262,18 @@ describe("TaskMemoryStore", () => {
         nodes: [{ id: nodeId, type: "a", service: "b" }],
         edges: [],
       });
-      expect(() => {
-        store.createTaskWithDag({
-          taskId: taskId2,
-          goal: "g2",
-          nodes: [{ id: nodeId, type: "c", service: "d" }],
-          edges: [],
-        });
-      }).toThrow();
+      // This should NOT throw anymore
+      store.createTaskWithDag({
+        taskId: taskId2,
+        goal: "g2",
+        nodes: [{ id: nodeId, type: "c", service: "d" }],
+        edges: [],
+      });
+
+      const t1 = store.getTask(taskId1) as any;
+      const t2 = store.getTask(taskId2) as any;
+      expect(t1.nodes[0].id).toBe(nodeId);
+      expect(t2.nodes[0].id).toBe(nodeId);
     });
 
     it("getTask returns null for invalid task reference", () => {
