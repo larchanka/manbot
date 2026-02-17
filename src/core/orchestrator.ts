@@ -95,7 +95,14 @@ export class Orchestrator {
     const type = envelope.type;
     const payload = envelope.payload as Record<string, unknown>;
     if (type === "chat.new" && fromProcess === "telegram-adapter") {
-      // P6-05 will run archiving pipeline; for now just acknowledge receipt
+      const chatId = payload.chatId as number | undefined;
+      const conversationId = payload.conversationId as string | undefined;
+      if (chatId != null && conversationId != null) {
+        this.runArchivingPipeline(chatId, conversationId).catch((err) => {
+          process.stderr.write(`Orchestrator archiving error: ${err}\n`);
+          this.sendToTelegram(chatId, `Archiving failed: ${err instanceof Error ? err.message : String(err)}`);
+        });
+      }
       return;
     }
     if (type === "task.create" && fromProcess === "telegram-adapter") {
@@ -161,6 +168,71 @@ export class Orchestrator {
     const result = execPayload.result?.result;
     const text = typeof result === "string" ? result : result != null && typeof result === "object" && "text" in result ? String((result as { text: unknown }).text) : JSON.stringify(result ?? "Done.");
     this.sendToTelegram(chatId, text);
+  }
+
+  private async runArchivingPipeline(chatId: number, conversationId: string): Promise<void> {
+    const taskMemory = this.children.get("task-memory");
+    const modelRouter = this.children.get("model-router");
+    const ragService = this.children.get("rag-service");
+    if (!taskMemory?.stdin.writable || !modelRouter?.stdin.writable || !ragService?.stdin.writable) {
+      this.sendToTelegram(chatId, "Service unavailable for archiving.");
+      return;
+    }
+    let tasksEnv: Envelope;
+    try {
+      tasksEnv = await this.sendAndWait(taskMemory, "task.getByConversationId", { conversationId });
+    } catch {
+      this.sendToTelegram(chatId, "Archived."); // no history or error
+      return;
+    }
+    const tasksPayload = tasksEnv.payload as { status?: string; result?: { tasks?: Array<{ id: string; goal: string; status: string }> } };
+    const tasks = tasksPayload.result?.tasks ?? [];
+    if (tasks.length === 0) {
+      this.sendToTelegram(chatId, "Archived. (No previous tasks in this conversation.)");
+      return;
+    }
+    const historyParts: string[] = [];
+    for (const t of tasks) {
+      let taskDetail: Envelope;
+      try {
+        taskDetail = await this.sendAndWait(taskMemory, "task.get", { taskId: t.id });
+      } catch {
+        historyParts.push(`Goal: ${t.goal}\nResult: (unavailable)`);
+        continue;
+      }
+      const getTaskResult = (taskDetail.payload as { result?: { nodes?: Array<{ output?: string }> } }).result;
+      const nodes = getTaskResult?.nodes ?? [];
+      const lastOutput = nodes.filter((n) => n.output != null && n.output !== "").pop()?.output ?? "";
+      const resultText = typeof lastOutput === "string" ? lastOutput : JSON.stringify(lastOutput);
+      historyParts.push(`Goal: ${t.goal}\nResult: ${resultText || "(no output)"}`);
+    }
+    const chatHistory = historyParts.join("\n\n---\n\n");
+    let summaryEnv: Envelope;
+    try {
+      summaryEnv = await this.sendAndWait(modelRouter, "node.execute", {
+        taskId: `archive-${randomUUID()}`,
+        nodeId: "summarize-1",
+        type: "summarize",
+        service: "model-router",
+        input: { chatHistory },
+      });
+    } catch (errEnv) {
+      const err = errEnv as Envelope & { payload?: { message?: string } };
+      this.sendToTelegram(chatId, `Archiving failed: ${err.payload?.message ?? "Summarization error"}`);
+      return;
+    }
+    const summaryPayload = summaryEnv.payload as { status?: string; result?: { text?: string } };
+    const summaryText = summaryPayload.result?.text ?? chatHistory;
+    try {
+      await this.sendAndWait(ragService, "memory.semantic.insert", {
+        content: summaryText,
+        metadata: { conversationId, chatId, archivedAt: Date.now(), source: "archiving" },
+      });
+    } catch {
+      this.sendToTelegram(chatId, "Summary produced but storage failed. Check logs.");
+      return;
+    }
+    this.sendToTelegram(chatId, "Archived. Conversation summary has been stored for later retrieval.");
   }
 
   private sendToTelegram(chatId: number, text: string): void {

@@ -2,26 +2,12 @@
 
 ## To Do
 
-### P6-04 Specialized Summarizer Prompt and Node
-  - tags: [todo]
-  - defaultExpanded: false
-    ```md
-    Create a specialized system prompt and capability node for extracting persistent memory from chat history.
-    
-    Source: P6-04_SUMMARIZER_PROMPT_AGENT.md
-    ```
+## In Progress
 
-### P6-05 Orchestrate Conversation Archiving
-  - tags: [todo]
-  - defaultExpanded: false
-    ```md
-    Implement the logic in Orchestrator to handle chat.new and run the archiving pipeline.
-    
-    Source: P6-05_CHAT_NEW_ORCHESTRATION.md
-    ```
+## Done
 
 ### P6-06 End-to-End Archiving Integration Test
-  - tags: [todo]
+  - tags: [done]
   - defaultExpanded: false
     ```md
     Write an integration test that verifies the full conversation archiving flow.
@@ -29,9 +15,23 @@
     Source: P6-06_ARCHIVING_INTEGRATION_TESTS.md
     ```
 
-## In Progress
+### P6-05 Orchestrate Conversation Archiving
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Implement the logic in Orchestrator to handle chat.new and run the archiving pipeline.
+    
+    Source: P6-05_CHAT_NEW_ORCHESTRATION.md
+    ```
 
-## Done
+### P6-04 Specialized Summarizer Prompt and Node
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Create a specialized system prompt and capability node for extracting persistent memory from chat history.
+    
+    Source: P6-04_SUMMARIZER_PROMPT_AGENT.md
+    ```
 
 ### P6-03 Telegram /new Command and Session Tracking
   - tags: [done]

@@ -1,6 +1,7 @@
 /**
- * Generator Service: handles node.execute for generate_text.
+ * Generator Service: handles node.execute for generate_text and summarize.
  * Used by Executor when dispatching to "model-router"; calls Ollama via ModelRouter.
+ * P6-04: summarize type uses summarizer prompt for memory extraction.
  */
 
 import { randomUUID } from "node:crypto";
@@ -8,6 +9,7 @@ import { BaseProcess } from "../shared/base-process.js";
 import type { Envelope } from "../shared/protocol.js";
 import { PROTOCOL_VERSION } from "../shared/protocol.js";
 import { responsePayloadSchema } from "../shared/protocol.js";
+import { buildSummarizerPrompt, SUMMARIZER_SYSTEM_PROMPT } from "../agents/prompts/summarizer.js";
 import { OllamaAdapter } from "./ollama-adapter.js";
 import { ModelRouter } from "./model-router.js";
 
@@ -38,8 +40,8 @@ export class GeneratorService extends BaseProcess {
 
     const payload = envelope.payload as Record<string, unknown>;
     const p = payload as unknown as NodeExecutePayload;
-    if (p.type !== "generate_text" && p.type !== "generate") {
-      this.sendError(envelope, "UNSUPPORTED_TYPE", `Generator only handles generate_text, got ${p.type}`);
+    if (p.type !== "generate_text" && p.type !== "generate" && p.type !== "summarize") {
+      this.sendError(envelope, "UNSUPPORTED_TYPE", `Generator only handles generate_text, generate, summarize; got ${p.type}`);
       return;
     }
 
@@ -50,7 +52,15 @@ export class GeneratorService extends BaseProcess {
         const context = (p.context ?? {}) as Record<string, unknown>;
         const goal = context["_goal"] as string | undefined;
         let prompt: string;
-        if (typeof p.input?.prompt === "string") {
+        let systemPrompt: string | undefined;
+        if (p.type === "summarize") {
+          const chatHistory =
+            (typeof p.input?.chatHistory === "string" && p.input.chatHistory) ||
+            (context && typeof context.chatHistory === "string" && context.chatHistory) ||
+            "";
+          prompt = buildSummarizerPrompt(chatHistory);
+          systemPrompt = SUMMARIZER_SYSTEM_PROMPT;
+        } else if (typeof p.input?.prompt === "string") {
           prompt = p.input.prompt;
         } else if (goal && (context["_criticFeedback"] != null || context["_previousDraft"] != null)) {
           const feedback = context["_criticFeedback"] as string | undefined;
@@ -65,8 +75,11 @@ export class GeneratorService extends BaseProcess {
           const depOutputs = Object.values(context).map((v) => (typeof v === "string" ? v : JSON.stringify(v)));
           prompt = depOutputs.join("\n\n") || "Generate a brief response.";
         }
-        const result = await this.ollama.generate(prompt, model);
-        this.sendResponse(envelope, { text: result.text, prompt_eval_count: result.prompt_eval_count, eval_count: result.eval_count });
+        const genResult = systemPrompt
+          ? await this.ollama.chat([{ role: "system", content: systemPrompt }, { role: "user", content: prompt }], model)
+          : await this.ollama.generate(prompt, model);
+        const text = "message" in genResult ? genResult.message.content : genResult.text;
+        this.sendResponse(envelope, { text, prompt_eval_count: genResult.prompt_eval_count, eval_count: genResult.eval_count });
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         this.sendError(envelope, "GENERATOR_ERROR", message);
