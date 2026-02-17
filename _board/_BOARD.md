@@ -2,6 +2,15 @@
 
 ## To Do
 
+### P11-15 Fix Reminder List Handler in Orchestrator
+- tags: [todo, reminder-system, phase-5, bugfix]
+- defaultExpanded: false
+  ```md
+  Fix the orchestrator to properly handle reminder.list messages from telegram-adapter.
+
+  Source: P11-15_FIX_REMINDER_LIST_HANDLER.md
+  ```
+
 ### P11-12 Manual End-to-End Testing
 - tags: [todo, reminder-system, phase-6, testing]
 - defaultExpanded: false
@@ -12,6 +21,15 @@
   ```
 
 ## In Progress
+
+### P11-15 Fix Reminder List Handler in Orchestrator
+- tags: [in-progress, reminder-system, phase-5, bugfix]
+- defaultExpanded: false
+  ```md
+  Fix the orchestrator to properly handle reminder.list messages from telegram-adapter.
+
+  Source: P11-15_FIX_REMINDER_LIST_HANDLER.md
+  ```
 
 ## Done
 ### P11-14 Fix Cron Expression Extraction in Executor
