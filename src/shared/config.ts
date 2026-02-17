@@ -52,6 +52,11 @@ export interface ModelRouterConfig {
   plannerComplexity: string;
 }
 
+export interface ExecutorConfig {
+  /** Timeout for individual node execution in milliseconds. */
+  nodeTimeoutMs: number;
+}
+
 export interface AppConfig {
   ollama: OllamaConfig;
   telegram: TelegramConfig;
@@ -61,12 +66,13 @@ export interface AppConfig {
   toolHost: ToolHostConfig;
   cron: CronConfig;
   modelRouter: ModelRouterConfig;
+  executor: ExecutorConfig;
 }
 
 const DEFAULT_CONFIG: AppConfig = {
   ollama: {
     baseUrl: "http://127.0.0.1:11434",
-    timeoutMs: 60_000,
+    timeoutMs: 600_000, // 10 minutes default
     retries: 2,
   },
   telegram: {
@@ -96,6 +102,9 @@ const DEFAULT_CONFIG: AppConfig = {
     medium: "mistral",
     large: "mixtral",
     plannerComplexity: "medium",
+  },
+  executor: {
+    nodeTimeoutMs: 600_000, // 10 minutes default
   },
 };
 
@@ -146,6 +155,9 @@ function mergeEnv(config: AppConfig): AppConfig {
       medium: process.env.MODEL_ROUTER_MEDIUM ?? config.modelRouter.medium,
       large: process.env.MODEL_ROUTER_LARGE ?? config.modelRouter.large,
       plannerComplexity: process.env.MODEL_ROUTER_PLANNER_COMPLEXITY ?? config.modelRouter.plannerComplexity,
+    },
+    executor: {
+      nodeTimeoutMs: Number(process.env.EXECUTOR_NODE_TIMEOUT_MS) || config.executor.nodeTimeoutMs,
     },
   };
 }
