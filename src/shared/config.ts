@@ -36,7 +36,7 @@ export interface RagConfig {
 }
 
 export interface ToolHostConfig {
-  /** Directory allowed for read_file/write_file. Paths outside are rejected. */
+  /** Directory allowed for shell tool file operations. Paths outside are rejected. */
   sandboxDir: string;
 }
 
