@@ -2,9 +2,6 @@
 
 ## To Do
 
-### P12-10 Add Browser Service Tests
-- Source: P12-10_BROWSER_SERVICE_TESTS.md
-
 ### P12-11 Update HTTP Get Tool with Smart Fallback
 - Source: P12-11_ENHANCED_HTTP_GET.md
 
@@ -28,10 +25,13 @@
 
 ## In Progress
 
-### P12-09 Add Realistic Behavior to Browser Service
-- Source: P12-09_REALISTIC_BEHAVIOR.md
+### P12-10 Add Browser Service Tests
+- Source: P12-10_BROWSER_SERVICE_TESTS.md
 
 ## Done
+
+### P12-09 Add Realistic Behavior to Browser Service
+- Source: P12-09_REALISTIC_BEHAVIOR.md
 
 ### P12-08 Create Browser Service Core
 - Source: P12-08_BROWSER_SERVICE_CORE.md
