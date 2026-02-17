@@ -24,13 +24,12 @@ export interface BaseProcessEvents {
  */
 export class BaseProcess extends EventEmitter {
   readonly processName: string;
-  private readonly rl;
+  private rl: ReturnType<typeof createInterface> | null = null;
   private running = false;
 
   constructor(options: BaseProcessOptions) {
     super();
     this.processName = options.processName;
-    this.rl = createInterface({ input: process.stdin, terminal: false });
   }
 
   /**
@@ -39,6 +38,7 @@ export class BaseProcess extends EventEmitter {
   start(): void {
     if (this.running) return;
     this.running = true;
+    this.rl = createInterface({ input: process.stdin, terminal: false });
     this.rl.on("line", (line: string) => this.handleLine(line));
     this.rl.on("close", () => this.handleClose());
   }
