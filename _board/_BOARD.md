@@ -2,47 +2,136 @@
 
 ## To Do
 
+### P11-12 Manual End-to-End Testing
+- tags: [todo, reminder-system, phase-6, testing]
+- defaultExpanded: false
+  ```md
+  Perform manual testing of the complete reminder flow.
+
+  Source: P11-12_E2E_TESTING.md
+  ```
+
 ## In Progress
 
-### P11-12 Manual End-to-End Testing
+### P11-14 Fix Cron Expression Extraction in Executor
+- tags: [in-progress, reminder-system, phase-4, bugfix]
+- defaultExpanded: false
+  ```md
+  Fix the executor to properly extract cron expressions from dependency outputs instead of using placeholder strings.
+
+  Source: P11-14_FIX_CRON_EXPR_EXTRACTION.md
+  ```
 
 
 ## Done
 
 ### P11-13 Update README
+- tags: [done, reminder-system, phase-6, documentation]
+- defaultExpanded: false
+  ```md
+  Document the reminder feature in the README.
 
+  Source: P11-13_UPDATE_README.md
+  ```
 
 ### P11-11 Update Help Command
+- tags: [done, reminder-system, phase-5]
+- defaultExpanded: false
+  ```md
+  Update /help command to document reminder functionality.
 
+  Source: P11-11_UPDATE_HELP_COMMAND.md
+  ```
 
 ### P11-10 Add Cancel Reminder Command
+- tags: [done, reminder-system, phase-5]
+- defaultExpanded: false
+  ```md
+  Add /cancel_reminder command to remove a specific reminder.
 
+  Source: P11-10_CANCEL_REMINDER_COMMAND.md
+  ```
 
 ### P11-09 Add List Reminders Command
+- tags: [done, reminder-system, phase-5]
+- defaultExpanded: false
+  ```md
+  Add /reminders command to list active reminders for the user.
 
+  Source: P11-09_LIST_REMINDERS_COMMAND.md
+  ```
 
 ### P11-08 Add Schedule Reminder Handler to Executor
+- tags: [done, reminder-system, phase-4]
+- defaultExpanded: false
+  ```md
+  Add handler for schedule_reminder node type in the executor.
 
+  Source: P11-08_EXECUTOR_REMINDER_HANDLER.md
+  ```
 
 ### P11-07 Add Planner Example for Reminders
+- tags: [done, reminder-system, phase-3]
+- defaultExpanded: false
+  ```md
+  Add few-shot example showing how to plan a reminder request.
 
+  Source: P11-07_PLANNER_REMINDER_EXAMPLE.md
+  ```
 
 ### P11-06 Update Planner Prompt with Reminder Capability
+- tags: [done, reminder-system, phase-3]
+- defaultExpanded: false
+  ```md
+  Add cron-manager service and schedule_reminder capability to planner prompt.
 
+  Source: P11-06_PLANNER_REMINDER_CAPABILITY.md
+  ```
 
 ### P11-05 Handle Cron Events in Orchestrator
+- tags: [done, reminder-system, phase-2]
+- defaultExpanded: false
+  ```md
+  Add handler for event.cron.completed to route reminders to Telegram.
 
+  Source: P11-05_ORCHESTRATOR_CRON_HANDLER.md
+  ```
 
 ### P11-04 Add Cron Manager Integration Tests
+- tags: [done, reminder-system, phase-1, testing]
+- defaultExpanded: false
+  ```md
+  Create integration tests for cron manager reminder functionality.
 
+  Source: P11-04_CRON_INTEGRATION_TESTS.md
+  ```
 
 ### P11-03 Update Cron Manager Event Payload
+- tags: [done, reminder-system, phase-1]
+- defaultExpanded: false
+  ```md
+  Modify CronManager.runJob() to emit structured reminder data in event.cron.completed.
 
+  Source: P11-03_CRON_EVENT_PAYLOAD.md
+  ```
 
 ### P11-02 Add Time Parser Tests
+- tags: [done, reminder-system, phase-1, testing]
+- defaultExpanded: false
+  ```md
+  Create unit tests for the time parser service.
 
+  Source: P11-02_TIME_PARSER_TESTS.md
+  ```
 
 ### P11-01 Create Time Parser Service
+- tags: [done, reminder-system, phase-1]
+- defaultExpanded: false
+  ```md
+  Create a service that converts natural language time expressions into cron expressions using the LLM.
+
+  Source: P11-01_TIME_PARSER_SERVICE.md
+  ```
 
 
 ### P10-06 Model Selection Verification

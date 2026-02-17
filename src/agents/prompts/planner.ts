@@ -243,10 +243,7 @@ User: "Remind me tomorrow at 3pm to call John"
       "service": "cron-manager",
       "input": {
         "dependsOn": ["parse-time"],
-        "cronExpr": "<output from parse-time node>",
-        "chatId": "<extract from context>",
-        "reminderMessage": "call John",
-        "userId": "<extract from context if available>"
+        "reminderMessage": "call John"
       }
     }
   ],

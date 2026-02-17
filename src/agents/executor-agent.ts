@@ -458,28 +458,78 @@ export class ExecutorAgent extends BaseProcess {
 
     // Extract cronExpr from input or dependency output
     let cronExpr = nodeInput.cronExpr as string | undefined;
-    if (!cronExpr) {
+    
+    // Check if cronExpr is a placeholder string (should be ignored)
+    const isPlaceholder = cronExpr && (
+      cronExpr.includes("<output from") ||
+      cronExpr.includes("<extract from") ||
+      cronExpr.startsWith("<") && cronExpr.endsWith(">")
+    );
+    
+    if (!cronExpr || isPlaceholder) {
       // Check if cronExpr is in a dependency output (from parse-time node)
       const dependsOn = (nodeInput.dependsOn as string[] | undefined) ?? [];
       for (const depId of dependsOn) {
         const depOutput = context[depId];
         if (typeof depOutput === "string") {
           // Try to extract cron expression from dependency output
-          // The parse-time node should output a JSON string with cronExpr
+          // The parse-time node might output:
+          // 1. Plain text cron expression (e.g., "0 15 18 2 *")
+          // 2. JSON string with cronExpr field
+          // 3. JSON string with full parseTimeExpression result
+          const trimmed = depOutput.trim();
+          
+          // First, try parsing as JSON
           try {
-            const parsed = JSON.parse(depOutput) as { cronExpr?: string };
+            const parsed = JSON.parse(trimmed) as { cronExpr?: string; cron_expr?: string };
             if (parsed.cronExpr) {
               cronExpr = parsed.cronExpr;
               break;
             }
+            if (parsed.cron_expr) {
+              cronExpr = parsed.cron_expr;
+              break;
+            }
           } catch {
-            // If not JSON, treat the whole output as cronExpr
-            cronExpr = depOutput;
+            // If not JSON, check if it looks like a cron expression
+            // Cron expressions typically have 5 or 6 space-separated fields
+            const cronPattern = /^[\d\*\-\/,\s]+$/;
+            if (cronPattern.test(trimmed) && trimmed.split(/\s+/).length >= 5) {
+              cronExpr = trimmed;
+              break;
+            }
+            // Otherwise, treat the whole output as cronExpr (fallback)
+            cronExpr = trimmed;
             break;
           }
-        } else if (depOutput && typeof depOutput === "object" && "cronExpr" in depOutput) {
-          cronExpr = (depOutput as { cronExpr: string }).cronExpr;
-          break;
+        } else if (depOutput && typeof depOutput === "object") {
+          // Handle object outputs
+          if ("cronExpr" in depOutput && typeof depOutput.cronExpr === "string") {
+            cronExpr = depOutput.cronExpr as string;
+            break;
+          }
+          if ("cron_expr" in depOutput && typeof depOutput.cron_expr === "string") {
+            cronExpr = depOutput.cron_expr as string;
+            break;
+          }
+          // Check if it's a result object with text field that might contain cron
+          if ("text" in depOutput && typeof depOutput.text === "string") {
+            const text = depOutput.text as string;
+            try {
+              const parsed = JSON.parse(text) as { cronExpr?: string };
+              if (parsed.cronExpr) {
+                cronExpr = parsed.cronExpr;
+                break;
+              }
+            } catch {
+              // If text is not JSON, check if it's a cron expression
+              const cronPattern = /^[\d\*\-\/,\s]+$/;
+              if (cronPattern.test(text.trim()) && text.trim().split(/\s+/).length >= 5) {
+                cronExpr = text.trim();
+                break;
+              }
+            }
+          }
         }
       }
     }
