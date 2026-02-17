@@ -12,6 +12,8 @@ import type { Envelope } from "../shared/protocol.js";
 import { PROTOCOL_VERSION } from "../shared/protocol.js";
 import { responsePayloadSchema } from "../shared/protocol.js";
 import { getConfig } from "../shared/config.js";
+import { BrowserService } from "./browser-service.js";
+import { htmlToMarkdown } from "../utils/html-to-markdown.js";
 
 const PROCESS_NAME = "tool-host";
 const TOOL_EXECUTE = "tool.execute";
@@ -27,11 +29,19 @@ type ToolImpl = (args: Record<string, unknown>) => Promise<unknown>;
 export class ToolHost extends BaseProcess {
   private readonly sandboxDir: string;
   private readonly tools = new Map<string, ToolImpl>();
+  private browserService: BrowserService | null = null;
 
   constructor(options?: { sandboxDir?: string }) {
     super({ processName: PROCESS_NAME });
     this.sandboxDir = resolve(options?.sandboxDir ?? getConfig().toolHost.sandboxDir);
     this.registerDefaultTools();
+  }
+
+  private getBrowserService(): BrowserService {
+    if (!this.browserService) {
+      this.browserService = new BrowserService();
+    }
+    return this.browserService;
   }
 
   private registerDefaultTools(): void {
@@ -70,9 +80,94 @@ export class ToolHost extends BaseProcess {
   private async httpGetTool(args: Record<string, unknown>): Promise<unknown> {
     const url = args.url;
     if (typeof url !== "string") throw new Error("http_get requires url (string)");
-    const res = await fetch(url, { method: "GET" });
-    const text = await res.text();
-    return { status: res.status, body: text };
+    
+    const useBrowser = args.useBrowser === true;
+    const convertToMarkdown = args.convertToMarkdown !== false; // Default true for HTML
+    
+    const startTime = Date.now();
+    let method = "fetch";
+    
+    try {
+      // Try fetch first (unless useBrowser is explicitly true)
+      if (!useBrowser) {
+        try {
+          const res = await fetch(url, { method: "GET" });
+          const status = res.status;
+          const contentType = res.headers.get("content-type") || "";
+          const text = await res.text();
+          
+          // Check if we should fallback to browser (403, 401, or other error statuses)
+          if (status === 403 || status === 401) {
+            // Fallback to browser for blocked requests
+            method = "browser (fallback from fetch)";
+            return await this.fetchWithBrowser(url, text, contentType, convertToMarkdown, startTime);
+          }
+          
+          // Check if content is HTML and should be converted to Markdown
+          const isHTML = contentType.includes("text/html") || text.trim().startsWith("<!DOCTYPE") || text.trim().startsWith("<html");
+          let body = text;
+          
+          if (convertToMarkdown && isHTML) {
+            body = htmlToMarkdown(text);
+          }
+          
+          const responseTime = Date.now() - startTime;
+          
+          return {
+            status,
+            body,
+            contentType,
+            finalUrl: url,
+            method: "GET",
+            usedMethod: method,
+            responseTimeMs: responseTime,
+          };
+        } catch (fetchError) {
+          // If fetch fails, try browser as fallback
+          method = "browser (fallback from fetch error)";
+          const contentType = "";
+          return await this.fetchWithBrowser(url, "", contentType, convertToMarkdown, startTime);
+        }
+      } else {
+        // Use browser directly
+        method = "browser";
+        const contentType = "";
+        return await this.fetchWithBrowser(url, "", contentType, convertToMarkdown, startTime);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`HTTP GET failed (${method}): ${message}`);
+    }
+  }
+
+  private async fetchWithBrowser(
+    url: string,
+    fallbackContent: string,
+    contentType: string,
+    convertToMarkdown: boolean,
+    startTime: number
+  ): Promise<unknown> {
+    const browserService = this.getBrowserService();
+    const result = await browserService.fetchWithBrowser(url);
+    
+    const responseTime = Date.now() - startTime;
+    let body = result.body;
+    
+    // Convert to Markdown if requested and content is HTML
+    const isHTML = result.contentType.includes("text/html") || body.trim().startsWith("<!DOCTYPE") || body.trim().startsWith("<html");
+    if (convertToMarkdown && isHTML) {
+      body = htmlToMarkdown(body);
+    }
+    
+    return {
+      status: result.status,
+      body,
+      contentType: result.contentType,
+      finalUrl: result.finalUrl,
+      method: result.method,
+      usedMethod: "browser",
+      responseTimeMs: responseTime,
+    };
   }
 
   protected override handleEnvelope(envelope: Envelope): void {
