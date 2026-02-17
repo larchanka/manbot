@@ -68,6 +68,16 @@ function getAllowedUserIds(): Set<number> | null {
   return ids.size > 0 ? ids : null;
 }
 
+/**
+ * Escape special characters for Telegram MarkdownV2 format.
+ * According to Telegram API docs, these characters must be escaped: _ * [ ] ( ) ~ ` > # + - = | { } . !
+ */
+function escapeMarkdownV2(text: string): string {
+  // Characters that need to be escaped in MarkdownV2
+  const specialChars = /([_*\[\]()~`>#+\-=|{}.!])/g;
+  return text.replace(specialChars, "\\$1");
+}
+
 function createEnvelope<T>(type: string, to: string, payload: T): Envelope<T> {
   return {
     id: randomUUID(),
@@ -234,11 +244,13 @@ function main(): void {
     if (envelope.type === "telegram.send") {
       const pl = envelope.payload as TelegramSendPayload;
       if (typeof pl.chatId === "number" && typeof pl.text === "string") {
+        // Escape text if using MarkdownV2 parse mode
+        const text = pl.parseMode === "MarkdownV2" ? escapeMarkdownV2(pl.text) : pl.text;
         const opts: TelegramBot.SendMessageOptions = {
           ...(pl.parseMode != null && { parse_mode: pl.parseMode }),
           ...(pl.silent === true && { disable_notification: true }),
         };
-        sendToUser(pl.chatId, pl.text, opts);
+        sendToUser(pl.chatId, text, opts);
       }
       return;
     }

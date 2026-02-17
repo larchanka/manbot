@@ -333,7 +333,7 @@ export class Orchestrator {
     // Format reminder message
     const formattedMessage = `🔔 Reminder: ${reminderMessage}`;
     const chatIdNum = typeof chatId === "string" ? parseInt(chatId, 10) : chatId;
-    
+
     if (isNaN(chatIdNum)) {
       ConsoleLogger.warn("core", `Invalid chatId in reminder event: ${chatId}`, envelope);
       return;
@@ -414,21 +414,79 @@ export class Orchestrator {
     }
   }
 
+  /**
+   * Split text into chunks that fit within Telegram's 4096 character limit.
+   * Tries to split at newlines to avoid breaking sentences.
+   */
+  private splitMessage(text: string, maxLength: number = 4096): string[] {
+    if (text.length <= maxLength) {
+      return [text];
+    }
+
+    const chunks: string[] = [];
+    let remaining = text;
+
+    while (remaining.length > 0) {
+      if (remaining.length <= maxLength) {
+        chunks.push(remaining);
+        break;
+      }
+
+      // Try to find a good split point (newline) within the limit
+      let splitIndex = maxLength;
+      const lastNewline = remaining.lastIndexOf('\n', maxLength);
+
+      if (lastNewline > maxLength * 0.7) {
+        // If we found a newline in the last 30% of the chunk, use it
+        splitIndex = lastNewline + 1;
+      } else {
+        // Otherwise, try to split at a space
+        const lastSpace = remaining.lastIndexOf(' ', maxLength);
+        if (lastSpace > maxLength * 0.7) {
+          splitIndex = lastSpace + 1;
+        }
+      }
+
+      chunks.push(remaining.substring(0, splitIndex));
+      remaining = remaining.substring(splitIndex);
+    }
+
+    return chunks;
+  }
+
   private sendToTelegram(chatId: number, text: string, silent?: boolean): void {
     const telegram = this.children.get("telegram-adapter");
     if (!telegram?.stdin.writable) return;
-    const envelope: Envelope = {
-      id: randomUUID(),
-      timestamp: Date.now(),
-      from: "core",
-      to: "telegram-adapter",
-      type: "telegram.send",
-      version: "1.0",
-      payload: { chatId, text, silent },
-    };
-    telegram.stdin.write(JSON.stringify(envelope) + "\n");
-    // Log outgoing message to telegram
-    ConsoleLogger.ipc("core", "→", envelope);
+
+    // Split message if it's too long (Telegram limit is 4096 characters)
+    const chunks = this.splitMessage(text, 4000); // Use 4000 to leave room for continuation markers
+
+    chunks.forEach((chunk, index) => {
+      let messageText = chunk;
+
+      // Add continuation markers for multi-part messages
+      if (chunks.length > 1) {
+        if (index === 0) {
+          messageText = chunk + `\n\n(continued... ${index + 1}/${chunks.length})`;
+        } else if (index === chunks.length - 1) {
+          messageText = `(part ${index + 1}/${chunks.length})\n\n` + chunk;
+        } else {
+          messageText = `(part ${index + 1}/${chunks.length})\n\n` + chunk + `\n\n(continued...)`;
+        }
+      }
+
+      const envelope: Envelope = {
+        id: randomUUID(),
+        timestamp: Date.now(),
+        from: "core",
+        to: "telegram-adapter",
+        type: "telegram.send",
+        version: "1.0",
+        payload: { chatId, text: messageText, silent },
+      };
+      telegram.stdin.write(JSON.stringify(envelope) + "\n");
+      ConsoleLogger.ipc("core", "→", envelope);
+    });
   }
 
   private sendAndWait(target: ChildEntry, type: string, payload: unknown): Promise<Envelope> {
