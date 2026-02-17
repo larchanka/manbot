@@ -2,15 +2,6 @@
 
 ## To Do
 
-### S3-02 Update Planner Prompt - Document Shell Tool
-  - tags: [todo]
-  - defaultExpanded: false
-    ```md
-    Add comprehensive documentation for shell tool including purpose, arguments, response format, and common use cases.
-    
-    Source: S3-02_DOCUMENT_SHELL_TOOL.md
-    ```
-
 ### S3-03 Update Config Documentation
   - tags: [todo]
   - defaultExpanded: false
@@ -85,16 +76,25 @@
 
 ## In Progress
 
-### S3-01 Update Planner Prompt - Remove Old Tools
+### S3-02 Update Planner Prompt - Document Shell Tool
   - tags: [in-progress]
+  - defaultExpanded: false
+    ```md
+    Add comprehensive documentation for shell tool including purpose, arguments, response format, and common use cases.
+    
+    Source: S3-02_DOCUMENT_SHELL_TOOL.md
+    ```
+
+## Done
+
+### S3-01 Update Planner Prompt - Remove Old Tools
+  - tags: [done]
   - defaultExpanded: false
     ```md
     Remove read_file and write_file from planner prompt tool list and update references to use shell tool.
     
     Source: S3-01_REMOVE_OLD_TOOLS_FROM_PLANNER.md
     ```
-
-## Done
 
 ### S2-02 Add Generator Service Tests
   - tags: [done]

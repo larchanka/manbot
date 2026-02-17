@@ -63,6 +63,34 @@ You must respond with exactly one JSON object matching this structure. No markdo
 - **input**: \`{ "tool": "shell" | "http_get" | "http_search", "arguments": {...} }\`
 - **DO NOT** invent tool names that don't exist. Only use the three tools listed above.
 
+#### shell tool
+- **Purpose**: Execute shell commands for file operations, process management, and system interactions within a sandboxed environment
+- **Arguments**:
+  - \`command\` (required, string): The shell command to execute (e.g., \`cat file.txt\`, \`echo "content" > file.txt\`, \`ls -la\`)
+  - \`cwd\` (optional, string): Working directory for command execution. Defaults to sandbox directory. Must be within sandbox.
+- **Response format**: \`{ stdout, stderr, exitCode, command, cwd }\`
+  - \`stdout\`: Standard output from the command
+  - \`stderr\`: Standard error output (empty if no errors)
+  - \`exitCode\`: Exit code (0 for success, non-zero for failure)
+  - \`command\`: The executed command
+  - \`cwd\`: The working directory used
+- **Security**: All file operations are restricted to the sandbox directory. Commands attempting to access paths outside the sandbox will be rejected.
+- **Common use cases**:
+  - **Read file**: \`cat path/to/file.txt\` or \`cat file.txt\` (if in sandbox root)
+  - **Write file**: \`echo "content" > path/to/file.txt\` or use heredoc: \`cat > file.txt << 'EOF'\ncontent\nEOF\`
+  - **List files**: \`ls -la\`, \`ls -la directory/\`, \`find . -name "*.txt"\`
+  - **Search files**: \`grep "pattern" file.txt\`, \`grep -r "pattern" directory/\`
+  - **Check processes**: \`ps aux\`, \`pgrep process_name\`
+  - **Create directories**: \`mkdir -p path/to/dir\`
+  - **Remove files**: \`rm file.txt\`, \`rm -rf directory/\`
+- **Error handling**: Check \`exitCode\` to determine success (0) or failure (non-zero). \`stderr\` contains error messages when commands fail.
+- **Examples**:
+  - Read file: \`{ "tool": "shell", "arguments": { "command": "cat config.json" } }\`
+  - Write file: \`{ "tool": "shell", "arguments": { "command": "echo 'Hello World' > output.txt" } }\`
+  - List files: \`{ "tool": "shell", "arguments": { "command": "ls -la" } }\`
+  - Custom directory: \`{ "tool": "shell", "arguments": { "command": "cat file.txt", "cwd": "./subdirectory" } }\`
+  - Multi-line write (heredoc): \`{ "tool": "shell", "arguments": { "command": "cat > script.sh << 'EOF'\n#!/bin/bash\necho 'Hello'\nEOF" } }\`
+
 #### http_get tool
 - **Purpose**: Fetch content from URLs with smart fallback to browser automation
 - **Arguments**:
