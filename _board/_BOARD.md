@@ -2,60 +2,306 @@
 
 ## To Do
 
+### S1-02 Add Command Validation
+  - tags: [todo]
+  - defaultExpanded: false
+    ```md
+    Add validation to ensure commands operate within sandbox directory restrictions and prevent path traversal attacks.
+    
+    Source: S1-02_COMMAND_VALIDATION.md
+    ```
+
+### S1-03 Replace read_file and write_file Registration
+  - tags: [todo]
+  - defaultExpanded: false
+    ```md
+    Update tool registration to use shell tool instead of read_file/write_file tools and remove old implementations.
+    
+    Source: S1-03_REPLACE_FILE_TOOLS.md
+    ```
+
+### S1-04 Add Shell Tool Tests
+  - tags: [todo]
+  - defaultExpanded: false
+    ```md
+    Create comprehensive tests for shell tool functionality including file operations, validation, and error handling.
+    
+    Source: S1-04_SHELL_TOOL_TESTS.md
+    ```
+
+### S2-01 Update Generator Service Content Extraction
+  - tags: [todo]
+  - defaultExpanded: false
+    ```md
+    Update generator service to extract content from shell tool responses instead of read_file responses.
+    
+    Source: S2-01_UPDATE_GENERATOR_SERVICE.md
+    ```
+
+### S2-02 Add Generator Service Tests
+  - tags: [todo]
+  - defaultExpanded: false
+    ```md
+    Test that generator service correctly handles shell tool responses and extracts content for prompts.
+    
+    Source: S2-02_GENERATOR_SERVICE_TESTS.md
+    ```
+
+### S3-01 Update Planner Prompt - Remove Old Tools
+  - tags: [todo]
+  - defaultExpanded: false
+    ```md
+    Remove read_file and write_file from planner prompt tool list and update references to use shell tool.
+    
+    Source: S3-01_REMOVE_OLD_TOOLS_FROM_PLANNER.md
+    ```
+
+### S3-02 Update Planner Prompt - Document Shell Tool
+  - tags: [todo]
+  - defaultExpanded: false
+    ```md
+    Add comprehensive documentation for shell tool including purpose, arguments, response format, and common use cases.
+    
+    Source: S3-02_DOCUMENT_SHELL_TOOL.md
+    ```
+
+### S3-03 Update Config Documentation
+  - tags: [todo]
+  - defaultExpanded: false
+    ```md
+    Update config interface comments to reflect shell tool usage instead of read_file/write_file.
+    
+    Source: S3-03_UPDATE_CONFIG_DOCS.md
+    ```
+
+### S4-01 Update README.md
+  - tags: [todo]
+  - defaultExpanded: false
+    ```md
+    Update README to reflect shell tool instead of read_file/write_file in services list and documentation.
+    
+    Source: S4-01_UPDATE_README.md
+    ```
+
+### S4-02 Update AI-Agent.md
+  - tags: [todo]
+  - defaultExpanded: false
+    ```md
+    Update AI-Agent.md to reflect shell tool in tool-host.ts description and tool capabilities list.
+    
+    Source: S4-02_UPDATE_AI_AGENT_MD.md
+    ```
+
+### S5-01 Manual Testing - File Operations
+  - tags: [todo]
+  - defaultExpanded: false
+    ```md
+    Manually test file read/write operations using shell tool to verify functionality and sandbox restrictions.
+    
+    Source: S5-01_MANUAL_TESTING_FILE_OPS.md
+    ```
+
+### S5-02 Manual Testing - Sandbox Enforcement
+  - tags: [todo]
+  - defaultExpanded: false
+    ```md
+    Test that sandbox restrictions are properly enforced and commands outside sandbox are rejected.
+    
+    Source: S5-02_MANUAL_TESTING_SANDBOX.md
+    ```
+
+### S5-03 Manual Testing - Process Management
+  - tags: [todo]
+  - defaultExpanded: false
+    ```md
+    Test shell tool with process management commands to verify system command execution and output capture.
+    
+    Source: S5-03_MANUAL_TESTING_PROCESSES.md
+    ```
+
+### S5-04 Manual Testing - Error Handling
+  - tags: [todo]
+  - defaultExpanded: false
+    ```md
+    Test error handling for various failure scenarios including invalid commands and file errors.
+    
+    Source: S5-04_MANUAL_TESTING_ERROR_HANDLING.md
+    ```
+
+### S5-05 End-to-End Integration Test
+  - tags: [todo]
+  - defaultExpanded: false
+    ```md
+    Test complete flow from planner to executor using shell tool for file operations in real scenarios.
+    
+    Source: S5-05_E2E_INTEGRATION_TEST.md
+    ```
+
 ## In Progress
+
+### S1-01 Implement Shell Tool Core
+  - tags: [in-progress]
+  - defaultExpanded: false
+    ```md
+    Implement the core shell tool that executes shell commands in a sandboxed environment with structured response format.
+    
+    Source: S1-01_SHELL_TOOL_CORE.md
+    ```
 
 ## Done
 
 ### P12-14 Manual End-to-End Testing
-- Source: P12-14_E2E_TESTING.md
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Perform manual testing of the complete enhanced HTTP get flow including static pages, SPAs, bot-protected sites, and error handling.
+    
+    Source: P12-14_E2E_TESTING.md
+    ```
 
 ### P12-15 Performance Benchmarking
-- Source: P12-15_PERFORMANCE_BENCHMARK.md
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Benchmark performance of fetch vs Playwright to measure response times and browser startup overhead.
+    
+    Source: P12-15_PERFORMANCE_BENCHMARK.md
+    ```
 
 ### P12-16 Update README Documentation
-- Source: P12-16_UPDATE_README.md
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Document the enhanced http_get tool in the README including Playwright usage, bot detection bypass, and HTML to Markdown conversion.
+    
+    Source: P12-16_UPDATE_README.md
+    ```
 
 ### P12-17 Add Troubleshooting Guide
-- Source: P12-17_TROUBLESHOOTING_GUIDE.md
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Create troubleshooting guide for common browser service issues including Playwright debugging, bot detection failures, and CAPTCHA handling.
+    
+    Source: P12-17_TROUBLESHOOTING_GUIDE.md
+    ```
 
 ### P12-13 Update Planner Prompt
-- Source: P12-13_UPDATE_PLANNER_PROMPT.md
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Update planner prompt to document enhanced http_get capabilities including useBrowser and convertToMarkdown parameters.
+    
+    Source: P12-13_UPDATE_PLANNER_PROMPT.md
+    ```
 
 ### P12-12 Add HTTP Get Tool Tests
-- Source: P12-12_HTTP_GET_TESTS.md
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Create integration tests for enhanced HTTP get tool including fallback logic, browser usage, and Markdown conversion.
+    
+    Source: P12-12_HTTP_GET_TESTS.md
+    ```
 
 ### P12-11 Update HTTP Get Tool with Smart Fallback
-- Source: P12-11_ENHANCED_HTTP_GET.md
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Enhance httpGetTool to support Playwright with smart fallback logic from fetch to browser for SPAs and bot-protected sites.
+    
+    Source: P12-11_ENHANCED_HTTP_GET.md
+    ```
 
 ### P12-10 Add Browser Service Tests
-- Source: P12-10_BROWSER_SERVICE_TESTS.md
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Create integration tests for browser service including static pages, SPAs, timeout handling, and browser instance reuse.
+    
+    Source: P12-10_BROWSER_SERVICE_TESTS.md
+    ```
 
 ### P12-09 Add Realistic Behavior to Browser Service
-- Source: P12-09_REALISTIC_BEHAVIOR.md
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Add human-like behaviors to browser service including random delays, mouse movements, and realistic headers to bypass bot detection.
+    
+    Source: P12-09_REALISTIC_BEHAVIOR.md
+    ```
 
 ### P12-08 Create Browser Service Core
-- Source: P12-08_BROWSER_SERVICE_CORE.md
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Create service to manage Playwright browser instances with stealth plugin, user agent rotation, and context reuse.
+    
+    Source: P12-08_BROWSER_SERVICE_CORE.md
+    ```
 
 ### P12-07 Create Browser Configuration
-- Source: P12-07_BROWSER_CONFIG_UTILS.md
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Create configuration for user agents, viewports, and stealth settings to support bot detection bypass.
+    
+    Source: P12-07_BROWSER_CONFIG_UTILS.md
+    ```
 
 ### P12-06 Add HTML to Markdown Tests
-- Source: P12-06_HTML_MARKDOWN_TESTS.md
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Create unit tests for HTML to Markdown converter including various HTML elements, stripping unwanted content, and malformed HTML handling.
+    
+    Source: P12-06_HTML_MARKDOWN_TESTS.md
+    ```
 
 ### P12-05 Create HTML to Markdown Converter
-- Source: P12-05_HTML_TO_MARKDOWN.md
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Create utility to convert HTML content to clean Markdown using Turndown, preserving important elements and stripping scripts/styles.
+    
+    Source: P12-05_HTML_TO_MARKDOWN.md
+    ```
 
 ### P12-04 Update Config TypeScript Types
-- Source: P12-04_CONFIG_TYPES.md
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Add TypeScript types and validation for browser service configuration including headless, timeout, stealth, and context reuse settings.
+    
+    Source: P12-04_CONFIG_TYPES.md
+    ```
 
 ### P12-03 Add Browser Service Configuration
-- Source: P12-03_BROWSER_CONFIG.md
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Add configuration section for browser service with headless, timeout, enableStealth, and reuseContext properties.
+    
+    Source: P12-03_BROWSER_CONFIG.md
+    ```
 
 ### P12-02 Install Playwright Browsers
-- Source: P12-02_INSTALL_BROWSERS.md
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Install Chromium browser for Playwright automation and document browser installation requirements.
+    
+    Source: P12-02_INSTALL_BROWSERS.md
+    ```
 
 ### P12-01 Add Required Dependencies
-- Source: P12-01_ADD_DEPENDENCIES.md
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Add Playwright, stealth plugin, and HTML-to-Markdown conversion libraries to package.json dependencies.
+    
+    Source: P12-01_ADD_DEPENDENCIES.md
+    ```
 
 ### P11-12 Manual End-to-End Testing
 
