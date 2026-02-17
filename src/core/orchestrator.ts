@@ -73,10 +73,10 @@ export class Orchestrator {
     try {
       const raw = JSON.parse(trimmed) as unknown;
       const envelope = envelopeSchema.parse(raw) as Envelope;
-      
+
       // Log incoming IPC message
       ConsoleLogger.ipc("core", "←", envelope);
-      
+
       const to = envelope.to;
       const cid = envelope.correlationId ?? envelope.id;
       const pendingEntry = cid ? this.pending.get(cid) : undefined;
@@ -95,11 +95,35 @@ export class Orchestrator {
         target.stdin.write(trimmed + "\n");
         // Log outgoing IPC message
         ConsoleLogger.ipc("core", "→", envelope);
+      } else {
+        ConsoleLogger.warn("core", `Unknown target or process not writable: ${to}`, envelope);
+        // If it's a request (has an ID and is not a response/error/event), send error back to sender
+        if (envelope.type !== "response" && envelope.type !== "error" && !envelope.type.startsWith("event.")) {
+          this.sendErrorToSender(fromProcess, envelope, "UNKNOWN_TARGET", `Process [${to}] not found or unavailable`);
+        }
       }
-    } catch {
-      // skip malformed - log as debug
-      ConsoleLogger.debug("core", `Malformed JSON line from ${fromProcess}: ${trimmed.substring(0, 100)}`);
+    } catch (err) {
+      // skip malformed - log as debug/error
+      ConsoleLogger.error("core", `Malformed JSON line from ${fromProcess}: ${trimmed.substring(0, 100)}`, err instanceof Error ? err : String(err));
     }
+  }
+
+  private sendErrorToSender(to: string, request: Envelope, code: string, message: string): void {
+    const target = this.children.get(to);
+    if (!target?.stdin.writable) return;
+
+    const envelope: Envelope = {
+      id: randomUUID(),
+      correlationId: request.id,
+      timestamp: Date.now(),
+      from: "core",
+      to: to,
+      type: "error",
+      version: "1.0",
+      payload: { code, message, details: { originalTo: request.to, originalType: request.type } },
+    };
+    target.stdin.write(JSON.stringify(envelope) + "\n");
+    ConsoleLogger.ipc("core", "→", envelope);
   }
 
   private handleCoreMessage(fromProcess: string, envelope: Envelope): void {
@@ -165,7 +189,7 @@ export class Orchestrator {
       nodes: nodes.map((n) => ({ id: n.id, type: n.type, service: n.service, input: n.input })),
       edges: edges.map((e) => ({ fromNode: e.from, toNode: e.to })),
     };
-    this.sendAndWait(taskMemory, "task.create", taskCreatePayload).catch(() => {});
+    this.sendAndWait(taskMemory, "task.create", taskCreatePayload).catch(() => { });
     const execReq = this.sendAndWait(executor, "plan.execute", { taskId, plan, goal });
     let execEnv: Envelope;
     try {

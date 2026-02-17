@@ -1,18 +1,22 @@
 # My Project Board
 
 ## To Do
-
+ 
+ 
 ## In Progress
-
+ 
 ## Done
-### P9-01 Proper Terminal Logging with Colorization
+### P10-01 Investigate and fix Telegram response failure
 - tags: [done]
 - defaultExpanded: false
   ```md
-  Implement proper terminal logging system with structured formatting, timestamps, log levels, and colorization for IPC communication and system events.
-  
-  Source: P9-01_CONSOLE_LOGGING.md
+  Investigate why Telegram responses are not being sent despite logs indicating successful planning and execution steps.
+
+  Source: P10-01_TELEGRAM_RESPONSE_BUG.md
   ```
+
+### P9-01 Proper Terminal Logging with Colorization
+
 
 ### P8-01 Fix Orchestrator path calculation bug
 
@@ -20,11 +24,12 @@
   - defaultExpanded: false
     ```md
     Fix incorrect path calculation in orchestrator.ts that causes "Cannot find module" errors when spawning child processes.
-
+    
     Source: P8-01_FIX_ORCHESTRATOR_PATH.md
     ```
 
 ### P7-01 RAG Vector Search with sqlite-vss
+
   - tags: [done]
   - defaultExpanded: false
     ```md
@@ -34,6 +39,7 @@
     ```
 
 ### P6-06 End-to-End Archiving Integration Test
+
   - tags: [done]
   - defaultExpanded: false
     ```md
@@ -43,6 +49,7 @@
     ```
 
 ### P6-05 Orchestrate Conversation Archiving
+
   - tags: [done]
   - defaultExpanded: false
     ```md
@@ -52,6 +59,7 @@
     ```
 
 ### P6-04 Specialized Summarizer Prompt and Node
+
   - tags: [done]
   - defaultExpanded: false
     ```md
@@ -61,6 +69,7 @@
     ```
 
 ### P6-03 Telegram /new Command and Session Tracking
+
   - tags: [done]
   - defaultExpanded: false
     ```md
@@ -70,6 +79,7 @@
     ```
 
 ### P6-02 Add conversation_id to TaskMemory Schema
+
   - tags: [done]
   - defaultExpanded: false
     ```md
@@ -79,6 +89,7 @@
     ```
 
 ### P6-01 SQLite Persistence for RAG Service
+
   - tags: [done]
   - defaultExpanded: false
     ```md

@@ -272,12 +272,23 @@ export class ExecutorAgent extends BaseProcess {
         version: PROTOCOL_VERSION,
         payload,
       });
+      const timeout = setTimeout(() => {
+        if (this.pending.has(id)) {
+          this.pending.delete(id);
+          reject(new Error(`Node execution timed out after 30s: ${node.id} (${node.type})`));
+        }
+      }, 30000);
+
       this.pending.set(id, {
         resolve: (env) => {
+          clearTimeout(timeout);
           const pl = env.payload as { status?: string; result?: unknown };
           resolve(pl.result);
         },
-        reject,
+        reject: (err) => {
+          clearTimeout(timeout);
+          reject(err);
+        },
       });
     });
   }

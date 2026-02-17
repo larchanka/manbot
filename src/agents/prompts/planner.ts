@@ -37,6 +37,7 @@ You must respond with exactly one JSON object matching this structure. No markdo
 - There must be at least one "start" node with no dependencies (omit \`dependsOn\` or use []).
 - Use \`edges\` to define execution order: from → to. Edges should match dependency relationships.
 - \`nodes\` and \`edges\` are required. \`taskId\`, \`complexity\`, \`reflectionMode\` are optional but recommended.
+- Available services: model-router, rag-service, tool-host, critic-agent, task-memory.
 - Output only valid JSON. No trailing commas, no comments.`;
 
 export const PLANNER_FEW_SHOT_EXAMPLES = `
