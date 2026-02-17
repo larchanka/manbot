@@ -46,6 +46,8 @@ export interface TelegramSendPayload {
   chatId: number;
   text: string;
   parseMode?: "HTML" | "Markdown" | "MarkdownV2";
+  /** If true, suppress this message (useful for intermediate system messages) */
+  silent?: boolean;
 }
 
 /** Payload for progress updates (streamed to chat) */
@@ -184,7 +186,7 @@ function main(): void {
         ...(from.username !== undefined && from.username !== "" && { username: from.username }),
       };
       base.send(createEnvelope<TelegramTaskCreatePayload>("task.create", "core", payload));
-      sendToUser(chatId, `Task created: "${goal.slice(0, 80)}${goal.length > 80 ? "…" : ""}". You will receive progress and the result here.`);
+      // Task creation message removed - user will receive final result only
       return;
     }
 
@@ -198,7 +200,7 @@ function main(): void {
       ...(from.username !== undefined && from.username !== "" && { username: from.username }),
     };
     base.send(createEnvelope<TelegramTaskCreatePayload>("task.create", "core", taskPayload));
-    sendToUser(chatId, `Task created. You will receive progress and the result here.`);
+    // Task creation message removed - user will receive final result only
   });
 
   // Messages from Core (stdin) → send to Telegram user (initial/final output and progress)
@@ -208,6 +210,10 @@ function main(): void {
     if (envelope.type === "telegram.send") {
       const pl = envelope.payload as TelegramSendPayload;
       if (typeof pl.chatId === "number" && typeof pl.text === "string") {
+        // Skip silent messages (intermediate system messages)
+        if (pl.silent === true) {
+          return;
+        }
         const opts = pl.parseMode != null ? { parse_mode: pl.parseMode } : undefined;
         sendToUser(pl.chatId, pl.text, opts);
       }

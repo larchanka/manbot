@@ -1,15 +1,6 @@
 # My Project Board
 
 ## To Do
- 
-### P10-02 Silent system messages in Telegram
-- tags: [todo]
-- defaultExpanded: false
-  ```md
-  Silence "task created" and other intermediate system messages in Telegram to reduce clutter.
-
-  Source: P10-02_SILENT_SYSTEM_MESSAGES.md
-  ```
 
 ### P10-03 Enhanced node error logging and investigation
 - tags: [todo]
@@ -22,6 +13,14 @@
 
 
 ## In Progress
+### P10-02 Silent system messages in Telegram
+- tags: [in-progress]
+- defaultExpanded: false
+  ```md
+  Silence "task created" and other intermediate system messages in Telegram to reduce clutter.
+
+  Source: P10-02_SILENT_SYSTEM_MESSAGES.md
+  ```
  
 ## Done
 ### P10-01 Investigate and fix Telegram response failure

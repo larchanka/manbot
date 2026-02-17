@@ -270,7 +270,7 @@ export class Orchestrator {
     this.sendToTelegram(chatId, "Archived. Conversation summary has been stored for later retrieval.");
   }
 
-  private sendToTelegram(chatId: number, text: string): void {
+  private sendToTelegram(chatId: number, text: string, silent?: boolean): void {
     const telegram = this.children.get("telegram-adapter");
     if (!telegram?.stdin.writable) return;
     const envelope: Envelope = {
@@ -280,7 +280,7 @@ export class Orchestrator {
       to: "telegram-adapter",
       type: "telegram.send",
       version: "1.0",
-      payload: { chatId, text },
+      payload: { chatId, text, silent },
     };
     telegram.stdin.write(JSON.stringify(envelope) + "\n");
     // Log outgoing message to telegram

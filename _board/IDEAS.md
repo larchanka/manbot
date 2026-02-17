@@ -1,0 +1,2 @@
+- silent 'task created' messages (and another system messages)
+- if task fails get more detailes in console
