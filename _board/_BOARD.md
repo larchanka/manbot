@@ -112,16 +112,15 @@
 
 ## In Progress
 
+## Done
 ### P11-03 Update Cron Manager Event Payload
-- tags: [in-progress, reminder-system, phase-1]
+- tags: [done, reminder-system, phase-1]
 - defaultExpanded: false
   ```md
   Modify CronManager.runJob() to emit structured reminder data in event.cron.completed.
 
   Source: P11-03_CRON_EVENT_PAYLOAD.md
   ```
-
-## Done
 ### P11-02 Add Time Parser Tests
 - tags: [done, reminder-system, phase-1, testing]
 - defaultExpanded: false
