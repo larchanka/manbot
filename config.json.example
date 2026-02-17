@@ -34,5 +34,11 @@
   },
   "executor": {
     "nodeTimeoutMs": 600000
+  },
+  "browserService": {
+    "headless": true,
+    "timeout": 30000,
+    "enableStealth": true,
+    "reuseContext": true
   }
 }
