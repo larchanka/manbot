@@ -2,9 +2,6 @@
 
 ## To Do
 
-### P12-12 Add HTTP Get Tool Tests
-- Source: P12-12_HTTP_GET_TESTS.md
-
 ### P12-13 Update Planner Prompt
 - Source: P12-13_UPDATE_PLANNER_PROMPT.md
 
@@ -22,10 +19,13 @@
 
 ## In Progress
 
-### P12-11 Update HTTP Get Tool with Smart Fallback
-- Source: P12-11_ENHANCED_HTTP_GET.md
+### P12-12 Add HTTP Get Tool Tests
+- Source: P12-12_HTTP_GET_TESTS.md
 
 ## Done
+
+### P12-11 Update HTTP Get Tool with Smart Fallback
+- Source: P12-11_ENHANCED_HTTP_GET.md
 
 ### P12-10 Add Browser Service Tests
 - Source: P12-10_BROWSER_SERVICE_TESTS.md
