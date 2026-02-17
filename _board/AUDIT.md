@@ -2,7 +2,7 @@
 **Audit Time**: 2026-02-17 11:25:00
 
 ## Overview
-Investigation into how the AI-Agent selects models for planning and execution, and whether the `ModelRouter` works correctly with the current configuration.
+Investigation into how ManBot selects models for planning and execution, and whether the `ModelRouter` works correctly with the current configuration.
 
 ## Findings
 

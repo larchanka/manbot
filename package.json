@@ -1,7 +1,7 @@
 {
   "name": "ai-agent",
   "version": "1.0.0",
-  "description": "Multi-process AI platform with type-safe IPC and capability graph execution",
+  "description": "🧬 ManBot — Multi-process AI platform with type-safe IPC and capability graph execution",
   "main": "dist/index.js",
   "type": "module",
   "engines": {

@@ -1,7 +1,7 @@
 # Task: P2-01 Implement Ollama Adapter
 
 ## Description
-Build a bridge between the AI Agent platform and the local Ollama instance. This adapter will handle model inference, streaming responses, and token usage reporting.
+Build a bridge between the ManBot platform and the local Ollama instance. This adapter will handle model inference, streaming responses, and token usage reporting.
 
 ## Requirements
 - Create `src/services/ollama-adapter.ts`.

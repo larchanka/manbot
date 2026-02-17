@@ -1,7 +1,7 @@
 # Task: P4-01 Telegram Adapter
 
 ## Description
-Develop a standalone service to interface the AI Agent platform with Telegram, allowing users to interact with the system via a bot.
+Develop a standalone service to interface the ManBot platform with Telegram, allowing users to interact with the system via a bot.
 
 ## Requirements
 - Create `src/adapters/telegram-adapter.ts`.

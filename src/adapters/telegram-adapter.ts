@@ -157,7 +157,7 @@ function main(): void {
     if (text === "/start") {
       sendToUser(
         chatId,
-        "Welcome to the AI Agent. Send a task description or use /task <goal>. Use /help for commands."
+        "Welcome to 🧬 ManBot. Send a task description or use /task <goal>. Use /help for commands."
       );
       return;
     }

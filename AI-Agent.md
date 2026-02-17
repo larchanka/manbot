@@ -1,4 +1,4 @@
-# AI-Agent: Folder Structure and TypeScript Architecture
+# 🧬 ManBot (AI-Agent): Folder Structure and TypeScript Architecture
 
 ## Folder and File Structure
 

@@ -1,7 +1,7 @@
 # Task: P9-01 Proper Terminal Logging with Colorization
 
 ## Description
-Implement a proper terminal logging system for the AI Agent platform with structured formatting, timestamps, log levels, and colorization. This provides visibility into IPC communication, system events, and child process output for debugging and monitoring.
+Implement a proper terminal logging system for the ManBot platform with structured formatting, timestamps, log levels, and colorization. This provides visibility into IPC communication, system events, and child process output for debugging and monitoring.
 
 ## Requirements
 - Install `@larchanka/colors-js` dependency.

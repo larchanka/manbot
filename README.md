@@ -1,6 +1,8 @@
-# AI-Agent
+# 🧬 ManBot
 
 A multi-process AI platform with type-safe IPC and capability-graph execution. Users interact via Telegram; the system plans tasks as DAGs, executes nodes (LLM, RAG, tools), and optionally revises output with a Critic agent.
+
+> **Important:** This is **not** an AI chatbot. It is designed for **heavy tasks** that require time and substantial processing—planning, research, multi-step execution, tool use. It runs locally (Ollama) and performance depends on your machine's compute power; expect slower responses compared to cloud-based chat services.
 
 ## Features
 
@@ -196,7 +198,7 @@ See [Troubleshooting](#troubleshooting) for common issues and debugging tips.
 - **_docs/** — Architecture and protocol specs
 - **_board/** — Task board and task specs
 
-See **AI-Agent.md** for full folder/file structure and architecture.
+See **AI-Agent.md** for full folder/file structure and architecture. The agent users interact with is **🧬 ManBot**.
 
 ## Troubleshooting
 

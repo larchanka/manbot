@@ -1,5 +1,5 @@
 /**
- * AI-Agent platform entry point.
+ * 🧬 ManBot platform entry point.
  * Multi-process architecture: see _docs/ARCHITECTURE.md
  */
 

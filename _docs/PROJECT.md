@@ -1,8 +1,8 @@
-# AI Runtime Platform (Local Multi-Agent System)
+# 🧬 ManBot — AI Runtime Platform (Local Multi-Agent System)
 
 ## Overview
 
-This project is a local-first, multi-agent AI runtime built with Node.js and TypeScript.  
+ManBot is a local-first, multi-agent AI runtime built with Node.js and TypeScript.  
 It is designed as a modular, process-oriented architecture where each capability runs independently and communicates via structured JSON over stdin/stdout.
 
 The system operates as a clean, deterministic AI execution engine rather than a simple chatbot.

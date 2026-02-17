@@ -1,6 +1,6 @@
-# AI Agent Task Execution Instructions
+# 🧬 ManBot Task Execution Instructions
 
-To ensure a structured and consistent development process, the AI agent must follow these rules for task execution:
+To ensure a structured and consistent development process, ManBot must follow these rules for task execution:
 
 ## 1. Task Selection
 - Navigate to `_board/_BOARD.md`.
