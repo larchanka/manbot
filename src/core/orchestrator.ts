@@ -317,7 +317,7 @@ export class Orchestrator {
     this.sendToTelegram(chatIdNum, formattedMessage);
   }
 
-  private async handleListReminders(chatId: number, request: Envelope): Promise<void> {
+  private async handleListReminders(chatId: number, _request: Envelope): Promise<void> {
     const cronManager = this.children.get("cron-manager");
     if (!cronManager?.stdin.writable) {
       this.sendToTelegram(chatId, "Cron manager service unavailable.");
@@ -356,7 +356,7 @@ export class Orchestrator {
     }
   }
 
-  private async handleCancelReminder(chatId: number, reminderId: string, request: Envelope): Promise<void> {
+  private async handleCancelReminder(chatId: number, reminderId: string, _request: Envelope): Promise<void> {
     const cronManager = this.children.get("cron-manager");
     if (!cronManager?.stdin.writable) {
       this.sendToTelegram(chatId, "Cron manager service unavailable.");
