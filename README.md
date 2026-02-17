@@ -7,7 +7,7 @@ A multi-process AI platform with type-safe IPC and capability-graph execution. U
 - **Multi-agent pipeline**: Planner → Task Memory → Executor → Critic (optional revision loop)
 - **Capability graph (DAG)**: Nodes for `generate_text`, `semantic_search`, `reflect`, `tool`; parallel execution where dependencies allow
 - **Type-safe IPC**: JSONL over stdin/stdout with Zod-validated envelopes
-- **Services**: Task Memory (SQLite, with `conversation_id` for session grouping), Logger, RAG (embeddings + SQLite; vector search via **sqlite-vss** when available, fallback to in-DB dot-product), Tool Host (read_file, write_file, http_get), Cron Manager
+- **Services**: Task Memory (SQLite, with `conversation_id` for session grouping), Logger, RAG (embeddings + SQLite; vector search via **sqlite-vss** when available, fallback to in-DB dot-product), Tool Host (read_file, write_file, **enhanced http_get with browser fallback**), Cron Manager, Browser Service (Playwright with stealth capabilities)
 - **Telegram adapter**: Commands `/start`, `/task`, `/new`, `/help`; session tracking and conversation archiving; optional allow-list of user IDs
 - **Conversation archiving**: `/new` resets the session, summarizes the previous conversation via a dedicated summarizer prompt, and stores the summary in RAG for later retrieval
 - **Reminder System**: Schedule one-time or recurring reminders via natural language; cron-based scheduling with Telegram delivery
@@ -49,6 +49,10 @@ ollama pull mistral
    - **rag.embeddingDimensions** — Vector dimension for sqlite-vss (default 768 for nomic-embed-text)
    - **modelRouter** — Ollama model names for small/medium/large
    - **toolHost.sandboxDir** — Directory allowed for file tools (default: cwd)
+- **browserService.headless** — Run browser in headless mode (default: `true`)
+- **browserService.timeout** — Browser operation timeout in milliseconds (default: `30000`)
+- **browserService.enableStealth** — Enable stealth plugin for bot detection bypass (default: `true`)
+- **browserService.reuseContext** — Reuse browser context across requests (default: `true`)
 
 Environment variables override `config.json`. Supported env vars:
 
@@ -58,6 +62,7 @@ Environment variables override `config.json`. Supported env vars:
 - `TASK_MEMORY_DB`, `CRON_DB`, `LOG_DIR`, `LOG_FILE`
 - `RAG_EMBED_MODEL`, `RAG_DB`, `RAG_EMBEDDING_DIMENSIONS`, `TOOL_SANDBOX_DIR`
 - `MODEL_ROUTER_SMALL`, `MODEL_ROUTER_MEDIUM`, `MODEL_ROUTER_LARGE`
+- `BROWSER_SERVICE_HEADLESS`, `BROWSER_SERVICE_TIMEOUT`, `BROWSER_SERVICE_ENABLE_STEALTH`, `BROWSER_SERVICE_REUSE_CONTEXT`
 
 `config.json` is gitignored; do not commit secrets.
 
@@ -109,7 +114,7 @@ Other services (task-memory, logger, planner, executor, critic-agent, rag-servic
 npm test
 ```
 
-The suite includes unit tests for Task Memory, RAG Store, and graph utils, plus an integration test for the conversation archiving flow (`src/__tests__/archiving.test.ts`).
+The suite includes unit tests for Task Memory, RAG Store, graph utils, browser service, and HTTP Get tool, plus an integration test for the conversation archiving flow (`src/__tests__/archiving.test.ts`).
 
 ## Reminder System
 
@@ -131,6 +136,56 @@ The bot supports scheduling reminders using natural language:
 
 The system uses LLM-powered time parsing to convert natural language expressions into cron expressions, which are then scheduled via the Cron Manager service. When a reminder fires, the bot sends a message back to the user via Telegram.
 
+## Enhanced HTTP Get Tool
+
+The `http_get` tool includes smart fallback to browser automation for handling JavaScript-heavy sites and bot-protected pages.
+
+### Features
+
+- **Smart Fallback**: Tries `fetch` API first (faster), automatically falls back to Playwright browser on 403/401 errors or when explicitly requested
+- **Bot Detection Bypass**: Uses Playwright with stealth plugin to bypass common bot detection mechanisms
+- **HTML to Markdown**: Automatically converts HTML responses to clean Markdown format (can be disabled)
+- **Realistic Behavior**: Simulates human-like browsing with random delays, mouse movements, and scrolling
+
+### Usage
+
+The tool accepts these parameters:
+- `url` (required): The URL to fetch
+- `useBrowser` (optional): Force browser usage instead of fetch. Use for:
+  - Single Page Applications (SPAs) requiring JavaScript execution
+  - Sites with bot detection/anti-scraping protection
+  - Pages that load content dynamically via JavaScript
+- `convertToMarkdown` (optional, default: `true` for HTML): Convert HTML responses to Markdown
+
+### Examples
+
+```javascript
+// Simple fetch (uses fetch API)
+{ "tool": "http_get", "arguments": { "url": "https://example.com" } }
+
+// Force browser for SPA
+{ "tool": "http_get", "arguments": { "url": "https://spa.example.com", "useBrowser": true } }
+
+// Keep HTML format
+{ "tool": "http_get", "arguments": { "url": "https://example.com", "convertToMarkdown": false } }
+```
+
+### Performance
+
+- **Fetch API**: Typically <1 second for most sites
+- **Browser (Playwright)**: Typically 2-5 seconds, includes realistic delays and JavaScript execution
+- Browser context reuse improves performance for multiple requests
+
+### Configuration
+
+Browser service settings can be configured in `config.json`:
+- `browserService.headless`: Run in headless mode (default: `true`)
+- `browserService.timeout`: Operation timeout in milliseconds (default: `30000`)
+- `browserService.enableStealth`: Enable stealth plugin (default: `true`)
+- `browserService.reuseContext`: Reuse browser context (default: `true`)
+
+See [Troubleshooting](#troubleshooting) for common issues and debugging tips.
+
 ## Project layout
 
 - **src/core/** — Core Orchestrator (process spawning, message routing, task pipeline)
@@ -142,3 +197,38 @@ The system uses LLM-powered time parsing to convert natural language expressions
 - **_board/** — Task board and task specs
 
 See **AI-Agent.md** for full folder/file structure and architecture.
+
+## Troubleshooting
+
+### Browser Service Issues
+
+**Browser fails to launch:**
+- Ensure Chromium is installed: `npx playwright install chromium`
+- Check disk space (browser binaries are ~250MB)
+- Verify Node.js version >= 20
+
+**Timeout errors:**
+- Increase `browserService.timeout` in config.json (default: 30000ms)
+- Some sites may require longer timeouts for JavaScript-heavy pages
+
+**Bot detection still triggered:**
+- The stealth plugin helps but cannot bypass all detection systems
+- Sites with CAPTCHA cannot be automatically bypassed
+- Try increasing delays or using different user agents (configured automatically)
+
+**Debugging browser issues:**
+- Set `browserService.headless: false` in config.json to see browser window
+- Check browser console logs for JavaScript errors
+- Verify network connectivity and DNS resolution
+
+**Performance issues:**
+- Browser mode is slower than fetch (2-5s vs <1s)
+- Use `useBrowser: true` only when necessary (SPAs, protected sites)
+- Enable `browserService.reuseContext: true` to reuse browser instances
+
+**Memory usage:**
+- Browser instances consume ~100-200MB RAM
+- Browser context reuse reduces memory overhead
+- Close browser service when not needed for extended periods
+
+For more details, see the browser service implementation in `src/services/browser-service.ts`.

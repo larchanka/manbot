@@ -1,6 +1,7 @@
 # My Project Board
 
-## To Do
+
+## In Progress
 
 ### P12-14 Manual End-to-End Testing
 - Source: P12-14_E2E_TESTING.md
@@ -14,12 +15,10 @@
 ### P12-17 Add Troubleshooting Guide
 - Source: P12-17_TROUBLESHOOTING_GUIDE.md
 
-## In Progress
+## Done
 
 ### P12-13 Update Planner Prompt
 - Source: P12-13_UPDATE_PLANNER_PROMPT.md
-
-## Done
 
 ### P12-12 Add HTTP Get Tool Tests
 - Source: P12-12_HTTP_GET_TESTS.md
