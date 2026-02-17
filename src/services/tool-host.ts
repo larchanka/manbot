@@ -142,8 +142,8 @@ export class ToolHost extends BaseProcess {
 
   private async fetchWithBrowser(
     url: string,
-    fallbackContent: string,
-    contentType: string,
+    _fallbackContent: string,
+    _contentType: string,
     convertToMarkdown: boolean,
     startTime: number
   ): Promise<unknown> {

@@ -6,7 +6,7 @@
 import { randomUUID } from "node:crypto";
 import { mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { CronManager } from "../cron-manager.js";
 import type { Envelope } from "../../shared/protocol.js";
 import { PROTOCOL_VERSION } from "../../shared/protocol.js";
@@ -40,7 +40,9 @@ describe("CronManager Integration Tests", () => {
 
   afterEach(() => {
     // Stop all cron jobs
-    manager.close?.();
+    if (manager) {
+      manager.close();
+    }
     try {
       rmSync(TEST_DIR, { recursive: true, force: true });
     } catch {
@@ -64,21 +66,6 @@ describe("CronManager Integration Tests", () => {
     };
   }
 
-  function waitForResponse(requestId: string, timeout = 1000): Envelope | null {
-    const start = Date.now();
-    while (Date.now() - start < timeout) {
-      const response = sentMessages.find(
-        (msg) => msg.correlationId === requestId && msg.type === "response",
-      );
-      if (response) return response;
-      // Small delay to allow async operations
-      if (typeof setImmediate !== "undefined") {
-        // Node.js environment
-        return null; // For now, return null and check synchronously
-      }
-    }
-    return null;
-  }
 
   describe("cron.schedule.add", () => {
     it("adds a schedule and returns schedule ID", () => {
@@ -88,7 +75,7 @@ describe("CronManager Integration Tests", () => {
         payload: { chatId: "123", reminderMessage: "Test reminder" },
       });
 
-      manager.handleEnvelope(request);
+      (manager as any).handleEnvelope(request);
 
       const response = sentMessages.find(
         (msg) => msg.correlationId === request.id && msg.type === "response",
@@ -115,7 +102,7 @@ describe("CronManager Integration Tests", () => {
         },
       });
 
-      manager.handleEnvelope(request);
+      (manager as any).handleEnvelope(request);
 
       const response = sentMessages.find(
         (msg) => msg.correlationId === request.id && msg.type === "response",
@@ -130,7 +117,7 @@ describe("CronManager Integration Tests", () => {
         taskType: "reminder",
       });
 
-      manager.handleEnvelope(request);
+      (manager as any).handleEnvelope(request);
 
       const error = sentMessages.find(
         (msg) => msg.correlationId === request.id && msg.type === "error",
@@ -147,7 +134,7 @@ describe("CronManager Integration Tests", () => {
         taskType: "reminder",
       });
 
-      manager.handleEnvelope(request);
+      (manager as any).handleEnvelope(request);
 
       const error = sentMessages.find(
         (msg) => msg.correlationId === request.id && msg.type === "error",
@@ -168,12 +155,12 @@ describe("CronManager Integration Tests", () => {
         taskType: "reminder",
         payload: { chatId: "123" },
       });
-      manager.handleEnvelope(addRequest);
+      (manager as any).handleEnvelope(addRequest);
       sentMessages.length = 0; // Clear messages
 
       // List schedules
       const listRequest = createEnvelope("cron.schedule.list", {});
-      manager.handleEnvelope(listRequest);
+      (manager as any).handleEnvelope(listRequest);
 
       const response = sentMessages.find(
         (msg) => msg.correlationId === listRequest.id && msg.type === "response",
@@ -187,7 +174,7 @@ describe("CronManager Integration Tests", () => {
 
     it("returns empty array when no schedules exist", () => {
       const listRequest = createEnvelope("cron.schedule.list", {});
-      manager.handleEnvelope(listRequest);
+      (manager as any).handleEnvelope(listRequest);
 
       const response = sentMessages.find(
         (msg) => msg.correlationId === listRequest.id && msg.type === "response",
@@ -204,7 +191,7 @@ describe("CronManager Integration Tests", () => {
         cronExpr: "0 9 * * *",
         taskType: "reminder",
       });
-      manager.handleEnvelope(addRequest);
+      (manager as any).handleEnvelope(addRequest);
       const addResponse = sentMessages.find(
         (msg) => msg.correlationId === addRequest.id && msg.type === "response",
       );
@@ -218,7 +205,7 @@ describe("CronManager Integration Tests", () => {
       const removeRequest = createEnvelope("cron.schedule.remove", {
         id: scheduleId,
       });
-      manager.handleEnvelope(removeRequest);
+      (manager as any).handleEnvelope(removeRequest);
 
       const removeResponse = sentMessages.find(
         (msg) => msg.correlationId === removeRequest.id && msg.type === "response",
@@ -231,7 +218,7 @@ describe("CronManager Integration Tests", () => {
 
       // Verify it's gone
       const listRequest = createEnvelope("cron.schedule.list", {});
-      manager.handleEnvelope(listRequest);
+      (manager as any).handleEnvelope(listRequest);
       const listResponse = sentMessages.find(
         (msg) => msg.correlationId === listRequest.id && msg.type === "response",
       );
@@ -243,7 +230,7 @@ describe("CronManager Integration Tests", () => {
 
     it("rejects missing id", () => {
       const request = createEnvelope("cron.schedule.remove", {});
-      manager.handleEnvelope(request);
+      (manager as any).handleEnvelope(request);
 
       const error = sentMessages.find(
         (msg) => msg.correlationId === request.id && msg.type === "error",
@@ -270,7 +257,7 @@ describe("CronManager Integration Tests", () => {
           userId: "user-456",
         },
       });
-      manager.handleEnvelope(addRequest);
+      (manager as any).handleEnvelope(addRequest);
       const addResponse = sentMessages.find(
         (msg) => msg.correlationId === addRequest.id && msg.type === "response",
       );
@@ -303,7 +290,7 @@ describe("CronManager Integration Tests", () => {
 
       // Clean up: remove the schedule
       const removeRequest = createEnvelope("cron.schedule.remove", { id: scheduleId });
-      manager.handleEnvelope(removeRequest);
+      (manager as any).handleEnvelope(removeRequest);
     });
 
     it("emits event.cron.completed with structured fields for reminder task type", async () => {
@@ -317,7 +304,7 @@ describe("CronManager Integration Tests", () => {
           reminderMessage: "Another reminder",
         },
       });
-      manager.handleEnvelope(addRequest);
+      (manager as any).handleEnvelope(addRequest);
       const addResponse = sentMessages.find(
         (msg) => msg.correlationId === addRequest.id && msg.type === "response",
       );
@@ -341,7 +328,7 @@ describe("CronManager Integration Tests", () => {
 
       // Clean up
       const removeRequest = createEnvelope("cron.schedule.remove", { id: scheduleId });
-      manager.handleEnvelope(removeRequest);
+      (manager as any).handleEnvelope(removeRequest);
     });
 
     it("emits event.cron.completed without reminder fields for non-reminder tasks", async () => {
@@ -352,7 +339,7 @@ describe("CronManager Integration Tests", () => {
         taskType: "generic",
         payload: { someData: "value" },
       });
-      manager.handleEnvelope(addRequest);
+      (manager as any).handleEnvelope(addRequest);
       const addResponse = sentMessages.find(
         (msg) => msg.correlationId === addRequest.id && msg.type === "response",
       );
@@ -378,7 +365,7 @@ describe("CronManager Integration Tests", () => {
 
       // Clean up
       const removeRequest = createEnvelope("cron.schedule.remove", { id: scheduleId });
-      manager.handleEnvelope(removeRequest);
+      (manager as any).handleEnvelope(removeRequest);
     });
   });
 });

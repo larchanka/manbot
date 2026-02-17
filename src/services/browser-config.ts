@@ -59,7 +59,7 @@ export const VIEWPORTS = [
  */
 export function getRandomUserAgent(): string {
   const index = Math.floor(Math.random() * USER_AGENTS.length);
-  return USER_AGENTS[index];
+  return USER_AGENTS[index]!;
 }
 
 /**
@@ -70,7 +70,8 @@ export function getRandomUserAgent(): string {
  */
 export function getRandomViewport(): { width: number; height: number } {
   const index = Math.floor(Math.random() * VIEWPORTS.length);
-  return { ...VIEWPORTS[index] };
+  const viewport = VIEWPORTS[index]!;
+  return { ...viewport };
 }
 
 /**
