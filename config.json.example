@@ -29,6 +29,7 @@
   "modelRouter": {
     "small": "llama3:8b",
     "medium": "mistral",
-    "large": "mixtral"
+    "large": "mixtral",
+    "plannerComplexity": "medium"
   }
 }

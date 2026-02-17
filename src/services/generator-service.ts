@@ -47,7 +47,10 @@ export class GeneratorService extends BaseProcess {
 
     (async () => {
       try {
-        const modelClass = (p.input?.modelClass as string) ?? "medium";
+        // Check for modelClass in input, then fallback to _complexity from context, then default to "medium"
+        const modelClass = (p.input?.modelClass as string) ?? 
+                          (p.context?._complexity as string) ?? 
+                          "medium";
         const model = this.modelRouter.getModel(modelClass as "small" | "medium" | "large");
         const context = (p.context ?? {}) as Record<string, unknown>;
         const goal = context["_goal"] as string | undefined;

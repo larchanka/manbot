@@ -48,6 +48,8 @@ export interface ModelRouterConfig {
   small: string;
   medium: string;
   large: string;
+  /** Complexity level to use for initial planning phase */
+  plannerComplexity: string;
 }
 
 export interface AppConfig {
@@ -93,6 +95,7 @@ const DEFAULT_CONFIG: AppConfig = {
     small: "llama3:8b",
     medium: "mistral",
     large: "mixtral",
+    plannerComplexity: "medium",
   },
 };
 
@@ -142,6 +145,7 @@ function mergeEnv(config: AppConfig): AppConfig {
       small: process.env.MODEL_ROUTER_SMALL ?? config.modelRouter.small,
       medium: process.env.MODEL_ROUTER_MEDIUM ?? config.modelRouter.medium,
       large: process.env.MODEL_ROUTER_LARGE ?? config.modelRouter.large,
+      plannerComplexity: process.env.MODEL_ROUTER_PLANNER_COMPLEXITY ?? config.modelRouter.plannerComplexity,
     },
   };
 }

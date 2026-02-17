@@ -12,6 +12,7 @@ import { fileURLToPath } from "node:url";
 import { envelopeSchema } from "../shared/protocol.js";
 import type { Envelope } from "../shared/protocol.js";
 import { ConsoleLogger } from "../utils/console-logger.js";
+import { getConfig } from "../shared/config.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, "..", "..");
@@ -169,7 +170,8 @@ export class Orchestrator {
       this.sendToTelegram(chatId, "Service unavailable.");
       return;
     }
-    const planReq = this.sendAndWait(planner, "plan.create", { goal, complexity: "medium" });
+    const plannerComplexity = getConfig().modelRouter.plannerComplexity;
+    const planReq = this.sendAndWait(planner, "plan.create", { goal, complexity: plannerComplexity });
     let planEnv: Envelope;
     try {
       planEnv = await planReq;

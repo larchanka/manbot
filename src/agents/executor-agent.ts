@@ -129,6 +129,9 @@ export class ExecutorAgent extends BaseProcess {
           }
         }
         if (goal) context["_goal"] = goal;
+        // Include plan complexity in context for model selection fallback
+        const planComplexity = plan.complexity ?? "medium";
+        context["_complexity"] = planComplexity;
         try {
           const result = await this.dispatchNode(taskId, node, context);
           return { nodeId, result };
@@ -201,6 +204,9 @@ export class ExecutorAgent extends BaseProcess {
         revContext["_goal"] = goal;
         revContext["_criticFeedback"] = evaluation.feedback;
         revContext["_previousDraft"] = draftOutput;
+        // Include plan complexity in revision context
+        const planComplexity = plan.complexity ?? "medium";
+        revContext["_complexity"] = planComplexity;
         try {
           const revised = await this.dispatchNode(taskId, lastGenNode, revContext);
           draftOutput = this.draftToString(revised);

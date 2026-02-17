@@ -1,8 +1,20 @@
 # My Project Board
 
 ## To Do
+
+## In Progress
+### P10-06 Model Selection Verification
+- tags: [in-progress]
+- defaultExpanded: false
+  ```md
+  Conduct a verification run to ensure that the complexity mapping works as expected after the changes in P10-04 and P10-05.
+
+  Source: P10-06_MODEL_SELECTION_VERIFICATION.md
+  ```
+
+## Done
 ### P10-04 Improved Model Selection Fallback
-- tags: [todo]
+- tags: [done]
 - defaultExpanded: false
   ```md
   Ensure that model selection correctly falls back to the plan's global complexity instead of a hardcoded "medium" default.
@@ -11,7 +23,7 @@
   ```
 
 ### P10-05 Configurable Planner Complexity
-- tags: [todo]
+- tags: [done]
 - defaultExpanded: false
   ```md
   Move the hardcoded "medium" complexity for the initial planning phase into the global configuration.
@@ -19,44 +31,14 @@
   Source: P10-05_CONFIGURABLE_PLANNER_COMPLEXITY.md
   ```
 
-### P10-06 Model Selection Verification
-- tags: [todo]
-- defaultExpanded: false
-  ```md
-  Conduct a manual end-to-end test to verify that large complexity tasks use the appropriate models.
-
-  Source: P10-06_MODEL_SELECTION_VERIFICATION.md
-  ```
-
-
-
-## In Progress
 ### P10-03 Enhanced node error logging and investigation
-- tags: [in-progress]
-- defaultExpanded: false
-  ```md
-  Improve terminal logging for node failures to include more context, inputs, and stack traces.
 
-  Source: P10-03_ENHANCED_NODE_ERROR_LOGGING.md
-  ```
 
-## Done
 ### P10-02 Silent system messages in Telegram
-- tags: [done]
-- defaultExpanded: false
-  ```md
-  Silence "task created" and other intermediate system messages in Telegram to reduce clutter.
 
-  Source: P10-02_SILENT_SYSTEM_MESSAGES.md
-  ```
+
 ### P10-01 Investigate and fix Telegram response failure
-- tags: [done]
-- defaultExpanded: false
-  ```md
-  Investigate why Telegram responses are not being sent despite logs indicating successful planning and execution steps.
 
-  Source: P10-01_TELEGRAM_RESPONSE_BUG.md
-  ```
 
 ### P9-01 Proper Terminal Logging with Colorization
 
