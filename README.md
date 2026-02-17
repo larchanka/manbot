@@ -68,6 +68,16 @@ npm install
 npm run build
 ```
 
+### Browser Dependencies (for HTTP Get tool with browser fallback)
+
+If you plan to use the enhanced HTTP Get tool with browser automation (for JavaScript-heavy sites or bot-protected pages), install Playwright browsers:
+
+```bash
+npx playwright install chromium
+```
+
+This downloads Chromium (~250MB) to enable browser-based web scraping with stealth capabilities.
+
 ## Run
 
 ### Full pipeline (Orchestrator + all agents and services)
