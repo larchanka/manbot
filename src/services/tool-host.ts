@@ -1,13 +1,12 @@
 /**
- * Tool Host: secure sandbox for tool execution (read_file, write_file, http_get, http_search).
- * Enforces sandbox directory for file tools; MCP-compatible tool definition and execution.
+ * Tool Host: secure sandbox for tool execution (shell, http_get, http_search).
+ * Enforces sandbox directory restrictions for shell commands; MCP-compatible tool definition and execution.
  * P4-05: _board/TASKS/P4-05_TOOL_HOST.md
  */
 
 import { randomUUID } from "node:crypto";
 import { exec } from "node:child_process";
 import { promisify } from "node:util";
-import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { BaseProcess } from "../shared/base-process.js";
 import type { Envelope } from "../shared/protocol.js";
@@ -49,18 +48,9 @@ export class ToolHost extends BaseProcess {
   }
 
   private registerDefaultTools(): void {
-    this.tools.set("read_file", this.readFileTool.bind(this));
-    this.tools.set("write_file", this.writeFileTool.bind(this));
+    this.tools.set("shell", this.shellTool.bind(this));
     this.tools.set("http_get", this.httpGetTool.bind(this));
     this.tools.set("http_search", this.httpSearchTool.bind(this));
-    this.tools.set("shell", this.shellTool.bind(this));
-  }
-
-  private resolvePath(relativePath: string): { path: string; allowed: boolean } {
-    const pathArg = relativePath.replace(/\.\./g, "");
-    const full = resolve(this.sandboxDir, pathArg);
-    const allowed = full.startsWith(this.sandboxDir) && !full.includes("..");
-    return { path: full, allowed };
   }
 
   /**
@@ -115,26 +105,6 @@ export class ToolHost extends BaseProcess {
     }
 
     return { allowed: true };
-  }
-
-  private async readFileTool(args: Record<string, unknown>): Promise<unknown> {
-    const pathArg = args.path ?? args.file;
-    if (typeof pathArg !== "string") throw new Error("read_file requires path (string)");
-    const { path: full, allowed } = this.resolvePath(pathArg);
-    if (!allowed) throw new Error("Permission denied: path outside sandbox");
-    const content = await readFile(full, "utf-8");
-    return { content };
-  }
-
-  private async writeFileTool(args: Record<string, unknown>): Promise<unknown> {
-    const pathArg = args.path ?? args.file;
-    const content = args.content ?? args.data;
-    if (typeof pathArg !== "string") throw new Error("write_file requires path (string)");
-    if (typeof content !== "string") throw new Error("write_file requires content (string)");
-    const { path: full, allowed } = this.resolvePath(pathArg);
-    if (!allowed) throw new Error("Permission denied: path outside sandbox");
-    await writeFile(full, content, "utf-8");
-    return { path: full, written: true };
   }
 
   private async httpGetTool(args: Record<string, unknown>): Promise<unknown> {

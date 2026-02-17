@@ -2,15 +2,6 @@
 
 ## To Do
 
-### S1-03 Replace read_file and write_file Registration
-  - tags: [todo]
-  - defaultExpanded: false
-    ```md
-    Update tool registration to use shell tool instead of read_file/write_file tools and remove old implementations.
-    
-    Source: S1-03_REPLACE_FILE_TOOLS.md
-    ```
-
 ### S1-04 Add Shell Tool Tests
   - tags: [todo]
   - defaultExpanded: false
@@ -129,6 +120,15 @@
     ```
 
 ## In Progress
+
+### S1-03 Replace read_file and write_file Registration
+  - tags: [in-progress]
+  - defaultExpanded: false
+    ```md
+    Update tool registration to use shell tool instead of read_file/write_file tools and remove old implementations.
+    
+    Source: S1-03_REPLACE_FILE_TOOLS.md
+    ```
 
 ## Done
 
