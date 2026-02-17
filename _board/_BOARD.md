@@ -2,15 +2,6 @@
 
 ## To Do
 
-### S3-03 Update Config Documentation
-  - tags: [todo]
-  - defaultExpanded: false
-    ```md
-    Update config interface comments to reflect shell tool usage instead of read_file/write_file.
-    
-    Source: S3-03_UPDATE_CONFIG_DOCS.md
-    ```
-
 ### S4-01 Update README.md
   - tags: [todo]
   - defaultExpanded: false
@@ -76,16 +67,25 @@
 
 ## In Progress
 
-### S3-02 Update Planner Prompt - Document Shell Tool
+### S3-03 Update Config Documentation
   - tags: [in-progress]
+  - defaultExpanded: false
+    ```md
+    Update config interface comments to reflect shell tool usage instead of read_file/write_file.
+    
+    Source: S3-03_UPDATE_CONFIG_DOCS.md
+    ```
+
+## Done
+
+### S3-02 Update Planner Prompt - Document Shell Tool
+  - tags: [done]
   - defaultExpanded: false
     ```md
     Add comprehensive documentation for shell tool including purpose, arguments, response format, and common use cases.
     
     Source: S3-02_DOCUMENT_SHELL_TOOL.md
     ```
-
-## Done
 
 ### S3-01 Update Planner Prompt - Remove Old Tools
   - tags: [done]
