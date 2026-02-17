@@ -54,3 +54,6 @@
 - [x] **P10-01**: Investigate and fix Telegram response failure (user didn't receive response despite logs showing execution).
 - [ ] **P10-02**: Silent system messages in Telegram (tasks created, etc.).
 - [ ] **P10-03**: Enhanced node error logging and investigation (detailed error info in console).
+- [ ] **P10-04**: Improved Model Selection Fallback (Executor passes complexity to Generator).
+- [ ] **P10-05**: Configurable Planner Complexity (move "medium" default to config.json).
+- [ ] **P10-06**: Model Selection Verification (test run with "large" complexity).

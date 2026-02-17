@@ -2,17 +2,16 @@
 
 ## To Do
 
+
+## In Progress
 ### P10-03 Enhanced node error logging and investigation
-- tags: [todo]
+- tags: [in-progress]
 - defaultExpanded: false
   ```md
   Improve terminal logging for node failures to include more context, inputs, and stack traces.
 
   Source: P10-03_ENHANCED_NODE_ERROR_LOGGING.md
   ```
-
-
-## In Progress
 
 ## Done
 ### P10-02 Silent system messages in Telegram
