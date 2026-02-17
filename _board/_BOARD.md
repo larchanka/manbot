@@ -2,7 +2,7 @@
 
 ## To Do
 
-### P11-05 Handle Cron Events in Orchestrator
+### P11-06 Update Planner Prompt with Reminder Capability
 - tags: [todo, reminder-system, phase-1, testing]
 - defaultExpanded: false
   ```md
@@ -112,7 +112,7 @@
 
 ## In Progress
 
-### P11-05 Handle Cron Events in Orchestrator
+### P11-06 Update Planner Prompt with Reminder Capability
 - tags: [in-progress, reminder-system, phase-2]
 - defaultExpanded: false
   ```md
@@ -122,6 +122,15 @@
   ```
 
 ## Done
+### P11-05 Handle Cron Events in Orchestrator
+- tags: [done, reminder-system, phase-2]
+- defaultExpanded: false
+  ```md
+  Add handler for event.cron.completed to route reminders to Telegram.
+
+  Source: P11-05_ORCHESTRATOR_CRON_HANDLER.md
+  ```
+
 ### P11-04 Add Cron Manager Integration Tests
 - tags: [done, reminder-system, phase-1, testing]
 - defaultExpanded: false
