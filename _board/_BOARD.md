@@ -2,9 +2,6 @@
 
 ## To Do
 
-### P12-04 Update Config TypeScript Types
-- Source: P12-04_CONFIG_TYPES.md
-
 ### P12-05 Create HTML to Markdown Converter
 - Source: P12-05_HTML_TO_MARKDOWN.md
 
@@ -46,10 +43,13 @@
 
 ## In Progress
 
-### P12-03 Add Browser Service Configuration
-- Source: P12-03_BROWSER_CONFIG.md
+### P12-04 Update Config TypeScript Types
+- Source: P12-04_CONFIG_TYPES.md
 
 ## Done
+
+### P12-03 Add Browser Service Configuration
+- Source: P12-03_BROWSER_CONFIG.md
 
 ### P12-02 Install Playwright Browsers
 - Source: P12-02_INSTALL_BROWSERS.md

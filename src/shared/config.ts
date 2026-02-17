@@ -57,6 +57,17 @@ export interface ExecutorConfig {
   nodeTimeoutMs: number;
 }
 
+export interface BrowserServiceConfig {
+  /** Run browser in headless mode (default: true for production). */
+  headless: boolean;
+  /** Timeout for browser operations in milliseconds (default: 30000). */
+  timeout: number;
+  /** Enable stealth plugin to bypass bot detection (default: true). */
+  enableStealth: boolean;
+  /** Reuse browser context across requests (default: true). */
+  reuseContext: boolean;
+}
+
 export interface AppConfig {
   ollama: OllamaConfig;
   telegram: TelegramConfig;
@@ -67,6 +78,7 @@ export interface AppConfig {
   cron: CronConfig;
   modelRouter: ModelRouterConfig;
   executor: ExecutorConfig;
+  browserService: BrowserServiceConfig;
 }
 
 const DEFAULT_CONFIG: AppConfig = {
@@ -105,6 +117,12 @@ const DEFAULT_CONFIG: AppConfig = {
   },
   executor: {
     nodeTimeoutMs: 600_000, // 10 minutes default
+  },
+  browserService: {
+    headless: true,
+    timeout: 30_000, // 30 seconds default
+    enableStealth: true,
+    reuseContext: true,
   },
 };
 
@@ -158,6 +176,12 @@ function mergeEnv(config: AppConfig): AppConfig {
     },
     executor: {
       nodeTimeoutMs: Number(process.env.EXECUTOR_NODE_TIMEOUT_MS) || config.executor.nodeTimeoutMs,
+    },
+    browserService: {
+      headless: process.env.BROWSER_SERVICE_HEADLESS === "false" ? false : config.browserService.headless,
+      timeout: Number(process.env.BROWSER_SERVICE_TIMEOUT) || config.browserService.timeout,
+      enableStealth: process.env.BROWSER_SERVICE_ENABLE_STEALTH === "false" ? false : config.browserService.enableStealth,
+      reuseContext: process.env.BROWSER_SERVICE_REUSE_CONTEXT === "false" ? false : config.browserService.reuseContext,
     },
   };
 }
