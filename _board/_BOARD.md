@@ -2,9 +2,6 @@
 
 ## To Do
 
-### P12-05 Create HTML to Markdown Converter
-- Source: P12-05_HTML_TO_MARKDOWN.md
-
 ### P12-06 Add HTML to Markdown Tests
 - Source: P12-06_HTML_MARKDOWN_TESTS.md
 
@@ -43,10 +40,13 @@
 
 ## In Progress
 
-### P12-04 Update Config TypeScript Types
-- Source: P12-04_CONFIG_TYPES.md
+### P12-05 Create HTML to Markdown Converter
+- Source: P12-05_HTML_TO_MARKDOWN.md
 
 ## Done
+
+### P12-04 Update Config TypeScript Types
+- Source: P12-04_CONFIG_TYPES.md
 
 ### P12-03 Add Browser Service Configuration
 - Source: P12-03_BROWSER_CONFIG.md
