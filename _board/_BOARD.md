@@ -23,6 +23,14 @@
 ## In Progress
 
 ## Done
+### P11-16 Fix Executor Context for Reminder Scheduling
+- tags: [done, reminder-system, phase-4, bugfix]
+- defaultExpanded: false
+  ```md
+  Fix executor to receive and use chatId and userId in context for reminder scheduling.
+
+  Source: P11-16_FIX_EXECUTOR_CONTEXT.md
+  ```
 ### P11-15 Fix Reminder List Handler in Orchestrator
 - tags: [done, reminder-system, phase-5, bugfix]
 - defaultExpanded: false
