@@ -2,9 +2,6 @@
 
 ## To Do
 
-### P12-08 Create Browser Service Core
-- Source: P12-08_BROWSER_SERVICE_CORE.md
-
 ### P12-09 Add Realistic Behavior to Browser Service
 - Source: P12-09_REALISTIC_BEHAVIOR.md
 
@@ -34,10 +31,13 @@
 
 ## In Progress
 
-### P12-07 Create Browser Configuration
-- Source: P12-07_BROWSER_CONFIG_UTILS.md
+### P12-08 Create Browser Service Core
+- Source: P12-08_BROWSER_SERVICE_CORE.md
 
 ## Done
+
+### P12-07 Create Browser Configuration
+- Source: P12-07_BROWSER_CONFIG_UTILS.md
 
 ### P12-06 Add HTML to Markdown Tests
 - Source: P12-06_HTML_MARKDOWN_TESTS.md
