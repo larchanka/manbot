@@ -2,9 +2,6 @@
 
 ## To Do
 
-### P12-13 Update Planner Prompt
-- Source: P12-13_UPDATE_PLANNER_PROMPT.md
-
 ### P12-14 Manual End-to-End Testing
 - Source: P12-14_E2E_TESTING.md
 
@@ -19,10 +16,13 @@
 
 ## In Progress
 
-### P12-12 Add HTTP Get Tool Tests
-- Source: P12-12_HTTP_GET_TESTS.md
+### P12-13 Update Planner Prompt
+- Source: P12-13_UPDATE_PLANNER_PROMPT.md
 
 ## Done
+
+### P12-12 Add HTTP Get Tool Tests
+- Source: P12-12_HTTP_GET_TESTS.md
 
 ### P12-11 Update HTTP Get Tool with Smart Fallback
 - Source: P12-11_ENHANCED_HTTP_GET.md
