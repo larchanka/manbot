@@ -158,6 +158,27 @@ export class Orchestrator {
       }
       return;
     }
+    if (type === "reminder.list" && fromProcess === "telegram-adapter") {
+      const chatId = payload.chatId as number | undefined;
+      if (chatId != null) {
+        this.handleListReminders(chatId, envelope).catch((err) => {
+          ConsoleLogger.error("core", "List reminders error", err instanceof Error ? err.message : String(err), envelope);
+          this.sendToTelegram(chatId, `Error listing reminders: ${err instanceof Error ? err.message : String(err)}`);
+        });
+      }
+      return;
+    }
+    if (type === "reminder.cancel" && fromProcess === "telegram-adapter") {
+      const chatId = payload.chatId as number | undefined;
+      const reminderId = payload.reminderId as string | undefined;
+      if (chatId != null && reminderId != null) {
+        this.handleCancelReminder(chatId, reminderId, envelope).catch((err) => {
+          ConsoleLogger.error("core", "Cancel reminder error", err instanceof Error ? err.message : String(err), envelope);
+          this.sendToTelegram(chatId, `Error canceling reminder: ${err instanceof Error ? err.message : String(err)}`);
+        });
+      }
+      return;
+    }
     if (type === "task.create" && fromProcess === "telegram-adapter") {
       const goal = payload.goal as string | undefined;
       const chatId = payload.chatId as number | undefined;
