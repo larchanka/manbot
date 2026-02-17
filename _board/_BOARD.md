@@ -2,159 +2,110 @@
 
 ## To Do
 
-### P11-15 Fix Reminder List Handler in Orchestrator
-- tags: [todo, reminder-system, phase-5, bugfix]
-- defaultExpanded: false
-  ```md
-  Fix the orchestrator to properly handle reminder.list messages from telegram-adapter.
+### P12-02 Install Playwright Browsers
+- Source: P12-02_INSTALL_BROWSERS.md
 
-  Source: P11-15_FIX_REMINDER_LIST_HANDLER.md
-  ```
+### P12-03 Add Browser Service Configuration
+- Source: P12-03_BROWSER_CONFIG.md
 
-### P11-12 Manual End-to-End Testing
-- tags: [todo, reminder-system, phase-6, testing]
-- defaultExpanded: false
-  ```md
-  Perform manual testing of the complete reminder flow.
+### P12-04 Update Config TypeScript Types
+- Source: P12-04_CONFIG_TYPES.md
 
-  Source: P11-12_E2E_TESTING.md
-  ```
+### P12-05 Create HTML to Markdown Converter
+- Source: P12-05_HTML_TO_MARKDOWN.md
+
+### P12-06 Add HTML to Markdown Tests
+- Source: P12-06_HTML_MARKDOWN_TESTS.md
+
+### P12-07 Create Browser Configuration
+- Source: P12-07_BROWSER_CONFIG_UTILS.md
+
+### P12-08 Create Browser Service Core
+- Source: P12-08_BROWSER_SERVICE_CORE.md
+
+### P12-09 Add Realistic Behavior to Browser Service
+- Source: P12-09_REALISTIC_BEHAVIOR.md
+
+### P12-10 Add Browser Service Tests
+- Source: P12-10_BROWSER_SERVICE_TESTS.md
+
+### P12-11 Update HTTP Get Tool with Smart Fallback
+- Source: P12-11_ENHANCED_HTTP_GET.md
+
+### P12-12 Add HTTP Get Tool Tests
+- Source: P12-12_HTTP_GET_TESTS.md
+
+### P12-13 Update Planner Prompt
+- Source: P12-13_UPDATE_PLANNER_PROMPT.md
+
+### P12-14 Manual End-to-End Testing
+- Source: P12-14_E2E_TESTING.md
+
+### P12-15 Performance Benchmarking
+- Source: P12-15_PERFORMANCE_BENCHMARK.md
+
+### P12-16 Update README Documentation
+- Source: P12-16_UPDATE_README.md
+
+### P12-17 Add Troubleshooting Guide
+- Source: P12-17_TROUBLESHOOTING_GUIDE.md
 
 ## In Progress
 
+### P12-01 Add Required Dependencies
+- Source: P12-01_ADD_DEPENDENCIES.md
+
 ## Done
-### P11-16 Fix Executor Context for Reminder Scheduling
-- tags: [done, reminder-system, phase-4, bugfix]
-- defaultExpanded: false
-  ```md
-  Fix executor to receive and use chatId and userId in context for reminder scheduling.
 
-  Source: P11-16_FIX_EXECUTOR_CONTEXT.md
-  ```
+### P11-12 Manual End-to-End Testing
+
+
 ### P11-15 Fix Reminder List Handler in Orchestrator
-- tags: [done, reminder-system, phase-5, bugfix]
-- defaultExpanded: false
-  ```md
-  Fix the orchestrator to properly handle reminder.list messages from telegram-adapter.
 
-  Source: P11-15_FIX_REMINDER_LIST_HANDLER.md
-  ```
+
+### P11-16 Fix Executor Context for Reminder Scheduling
+
+
+### P11-15 Fix Reminder List Handler in Orchestrator
+
+
 ### P11-14 Fix Cron Expression Extraction in Executor
-- tags: [done, reminder-system, phase-4, bugfix]
-- defaultExpanded: false
-  ```md
-  Fix the executor to properly extract cron expressions from dependency outputs instead of using placeholder strings.
 
-  Source: P11-14_FIX_CRON_EXPR_EXTRACTION.md
-  ```
 
 ### P11-13 Update README
-- tags: [done, reminder-system, phase-6, documentation]
-- defaultExpanded: false
-  ```md
-  Document the reminder feature in the README.
 
-  Source: P11-13_UPDATE_README.md
-  ```
 
 ### P11-11 Update Help Command
-- tags: [done, reminder-system, phase-5]
-- defaultExpanded: false
-  ```md
-  Update /help command to document reminder functionality.
 
-  Source: P11-11_UPDATE_HELP_COMMAND.md
-  ```
 
 ### P11-10 Add Cancel Reminder Command
-- tags: [done, reminder-system, phase-5]
-- defaultExpanded: false
-  ```md
-  Add /cancel_reminder command to remove a specific reminder.
 
-  Source: P11-10_CANCEL_REMINDER_COMMAND.md
-  ```
 
 ### P11-09 Add List Reminders Command
-- tags: [done, reminder-system, phase-5]
-- defaultExpanded: false
-  ```md
-  Add /reminders command to list active reminders for the user.
 
-  Source: P11-09_LIST_REMINDERS_COMMAND.md
-  ```
 
 ### P11-08 Add Schedule Reminder Handler to Executor
-- tags: [done, reminder-system, phase-4]
-- defaultExpanded: false
-  ```md
-  Add handler for schedule_reminder node type in the executor.
 
-  Source: P11-08_EXECUTOR_REMINDER_HANDLER.md
-  ```
 
 ### P11-07 Add Planner Example for Reminders
-- tags: [done, reminder-system, phase-3]
-- defaultExpanded: false
-  ```md
-  Add few-shot example showing how to plan a reminder request.
 
-  Source: P11-07_PLANNER_REMINDER_EXAMPLE.md
-  ```
 
 ### P11-06 Update Planner Prompt with Reminder Capability
-- tags: [done, reminder-system, phase-3]
-- defaultExpanded: false
-  ```md
-  Add cron-manager service and schedule_reminder capability to planner prompt.
 
-  Source: P11-06_PLANNER_REMINDER_CAPABILITY.md
-  ```
 
 ### P11-05 Handle Cron Events in Orchestrator
-- tags: [done, reminder-system, phase-2]
-- defaultExpanded: false
-  ```md
-  Add handler for event.cron.completed to route reminders to Telegram.
 
-  Source: P11-05_ORCHESTRATOR_CRON_HANDLER.md
-  ```
 
 ### P11-04 Add Cron Manager Integration Tests
-- tags: [done, reminder-system, phase-1, testing]
-- defaultExpanded: false
-  ```md
-  Create integration tests for cron manager reminder functionality.
 
-  Source: P11-04_CRON_INTEGRATION_TESTS.md
-  ```
 
 ### P11-03 Update Cron Manager Event Payload
-- tags: [done, reminder-system, phase-1]
-- defaultExpanded: false
-  ```md
-  Modify CronManager.runJob() to emit structured reminder data in event.cron.completed.
 
-  Source: P11-03_CRON_EVENT_PAYLOAD.md
-  ```
 
 ### P11-02 Add Time Parser Tests
-- tags: [done, reminder-system, phase-1, testing]
-- defaultExpanded: false
-  ```md
-  Create unit tests for the time parser service.
 
-  Source: P11-02_TIME_PARSER_TESTS.md
-  ```
 
 ### P11-01 Create Time Parser Service
-- tags: [done, reminder-system, phase-1]
-- defaultExpanded: false
-  ```md
-  Create a service that converts natural language time expressions into cron expressions using the LLM.
-
-  Source: P11-01_TIME_PARSER_SERVICE.md
-  ```
 
 
 ### P10-06 Model Selection Verification
