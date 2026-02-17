@@ -121,16 +121,16 @@
 
 ## In Progress
 
+## Done
+
 ### S1-03 Replace read_file and write_file Registration
-  - tags: [in-progress]
+  - tags: [done]
   - defaultExpanded: false
     ```md
     Update tool registration to use shell tool instead of read_file/write_file tools and remove old implementations.
     
     Source: S1-03_REPLACE_FILE_TOOLS.md
     ```
-
-## Done
 
 ### S1-02 Add Command Validation
   - tags: [done]
