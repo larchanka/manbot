@@ -112,16 +112,16 @@
 
 ## In Progress
 
+## Done
+
 ### S1-04 Add Shell Tool Tests
-  - tags: [in-progress]
+  - tags: [done]
   - defaultExpanded: false
     ```md
     Create comprehensive tests for shell tool functionality including file operations, validation, and error handling.
     
     Source: S1-04_SHELL_TOOL_TESTS.md
     ```
-
-## Done
 
 ### S1-03 Replace read_file and write_file Registration
   - tags: [done]
