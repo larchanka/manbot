@@ -449,7 +449,7 @@ export class ExecutorAgent extends BaseProcess {
   }
 
   private async handleScheduleReminder(
-    taskId: string,
+    _taskId: string,
     node: CapabilityNode,
     context: Record<string, unknown>,
   ): Promise<unknown> {

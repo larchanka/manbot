@@ -84,6 +84,8 @@ const HELP_TEXT = `Commands:
 /start — Welcome and brief intro
 /task [goal] — Start a new task with optional goal text
 /new — Start a new conversation (previous one will be archived)
+/reminders — List your active reminders
+/cancel_reminder [id] — Cancel a reminder by ID
 /help — Show this help`;
 
 /** chatId -> current conversation ID for session grouping */
@@ -169,6 +171,27 @@ function main(): void {
       return;
     }
 
+    // /reminders — list active reminders
+    if (text === "/reminders") {
+      const reminderListEnvelope = createEnvelope("reminder.list", "core", { chatId });
+      base.send(reminderListEnvelope);
+      // Response will be handled in onMessage handler
+      return;
+    }
+
+    // /cancel_reminder [id] — cancel a reminder
+    if (text.startsWith("/cancel_reminder")) {
+      const reminderId = text.slice(16).trim();
+      if (!reminderId) {
+        sendToUser(chatId, "Usage: /cancel_reminder <reminder-id>. Use /reminders to see your reminder IDs.");
+        return;
+      }
+      const cancelEnvelope = createEnvelope("reminder.cancel", "core", { chatId, reminderId });
+      base.send(cancelEnvelope);
+      // Response will be handled in onMessage handler
+      return;
+    }
+
     // /task [goal] — if goal is provided, create task; else show usage
     if (text.startsWith("/task")) {
       const goal = text.slice(5).trim();
@@ -229,9 +252,22 @@ function main(): void {
     if (envelope.type === "response") {
       const pl = envelope.payload as { status: string; result?: unknown };
       if (pl.status === "success" && pl.result && typeof pl.result === "object") {
-        const r = pl.result as { chatId?: number; text?: string };
+        const r = pl.result as { chatId?: number; text?: string; reminders?: unknown[]; message?: string };
         if (typeof r.chatId === "number" && typeof r.text === "string") {
           sendToUser(r.chatId, r.text);
+        } else if (typeof r.chatId === "number" && r.reminders) {
+          // Handle reminder list response
+          const reminders = r.reminders as Array<{ id: string; cronExpr: string; reminderMessage?: string }>;
+          if (reminders.length === 0) {
+            sendToUser(r.chatId, "No active reminders.");
+          } else {
+            const formatted = reminders
+              .map((rem) => `ID: ${rem.id}\nTime: ${rem.cronExpr}\nMessage: ${rem.reminderMessage ?? "N/A"}`)
+              .join("\n\n---\n\n");
+            sendToUser(r.chatId, `Active reminders:\n\n${formatted}`);
+          }
+        } else if (typeof r.chatId === "number" && r.message) {
+          sendToUser(r.chatId, r.message);
         }
       }
     }
