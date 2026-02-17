@@ -2,7 +2,7 @@
 
 ## To Do
 
-### P11-08 Add Schedule Reminder Handler to Executor
+### P11-09 Add List Reminders Command
 - tags: [todo, reminder-system, phase-1, testing]
 - defaultExpanded: false
   ```md
@@ -112,7 +112,7 @@
 
 ## In Progress
 
-### P11-08 Add Schedule Reminder Handler to Executor
+### P11-09 Add List Reminders Command
 - tags: [in-progress, reminder-system, phase-2]
 - defaultExpanded: false
   ```md
@@ -122,6 +122,15 @@
   ```
 
 ## Done
+### P11-08 Add Schedule Reminder Handler to Executor
+- tags: [done, reminder-system, phase-4]
+- defaultExpanded: false
+  ```md
+  Add handler for schedule_reminder node type in the executor.
+
+  Source: P11-08_EXECUTOR_REMINDER_HANDLER.md
+  ```
+
 ### P11-07 Add Planner Example for Reminders
 - tags: [done, reminder-system, phase-3]
 - defaultExpanded: false

@@ -317,6 +317,66 @@ export class Orchestrator {
     this.sendToTelegram(chatIdNum, formattedMessage);
   }
 
+  private async handleListReminders(chatId: number, request: Envelope): Promise<void> {
+    const cronManager = this.children.get("cron-manager");
+    if (!cronManager?.stdin.writable) {
+      this.sendToTelegram(chatId, "Cron manager service unavailable.");
+      return;
+    }
+
+    try {
+      const response = await this.sendAndWait(cronManager, "cron.schedule.list", {});
+      const responsePayload = response.payload as { status?: string; result?: { schedules?: unknown[] } };
+      const schedules = (responsePayload.result?.schedules ?? []) as Array<{
+        id: string;
+        cronExpr: string;
+        taskType: string;
+        enabled: boolean;
+      }>;
+
+      // Filter reminders for this chatId - we need to check the payload of each schedule
+      // Since we can't easily query by chatId, we'll need to get schedule details
+      // For now, filter by taskType === "reminder"
+      const reminderSchedules = schedules.filter((s) => s.taskType === "reminder" && s.enabled);
+
+      if (reminderSchedules.length === 0) {
+        this.sendToTelegram(chatId, "No active reminders.");
+        return;
+      }
+
+      // Format reminders - we'll show ID and cronExpr, but reminderMessage is in the payload
+      // For a better implementation, we'd need to query each schedule's payload
+      const formatted = reminderSchedules
+        .map((rem) => `ID: ${rem.id}\nTime: ${rem.cronExpr}`)
+        .join("\n\n---\n\n");
+      this.sendToTelegram(chatId, `Active reminders:\n\n${formatted}`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      this.sendToTelegram(chatId, `Error listing reminders: ${message}`);
+    }
+  }
+
+  private async handleCancelReminder(chatId: number, reminderId: string, request: Envelope): Promise<void> {
+    const cronManager = this.children.get("cron-manager");
+    if (!cronManager?.stdin.writable) {
+      this.sendToTelegram(chatId, "Cron manager service unavailable.");
+      return;
+    }
+
+    try {
+      const response = await this.sendAndWait(cronManager, "cron.schedule.remove", { id: reminderId });
+      const responsePayload = response.payload as { status?: string; result?: { removed?: string } };
+      if (responsePayload.result?.removed === reminderId) {
+        this.sendToTelegram(chatId, `Reminder ${reminderId} has been canceled.`);
+      } else {
+        this.sendToTelegram(chatId, `Reminder ${reminderId} not found.`);
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      this.sendToTelegram(chatId, `Error canceling reminder: ${message}`);
+    }
+  }
+
   private sendToTelegram(chatId: number, text: string, silent?: boolean): void {
     const telegram = this.children.get("telegram-adapter");
     if (!telegram?.stdin.writable) return;
