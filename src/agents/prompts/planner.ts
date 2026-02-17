@@ -37,7 +37,40 @@ You must respond with exactly one JSON object matching this structure. No markdo
 - There must be at least one "start" node with no dependencies (omit \`dependsOn\` or use []).
 - Use \`edges\` to define execution order: from → to. Edges should match dependency relationships.
 - \`nodes\` and \`edges\` are required. \`taskId\`, \`complexity\`, \`reflectionMode\` are optional but recommended.
-- Available services: model-router, rag-service, tool-host, critic-agent, task-memory.
+
+## Available Services and Capabilities
+
+### model-router service
+- **type**: \`generate_text\` or \`generate\` or \`summarize\`
+- Use for: text generation, calculations, code generation, summarization, answering questions, mathematical operations
+- **input**: \`{ "modelClass": "small" | "medium" | "large", "prompt": "..." }\` (prompt is optional, will be built from goal/context)
+
+### rag-service service
+- **type**: \`semantic_search\`
+- Use for: searching stored knowledge/memory
+- **input**: \`{ "query": "search query" }\`
+
+### tool-host service
+- **type**: \`tool\`
+- **Available tools ONLY**: \`read_file\`, \`write_file\`, \`http_get\`
+- **input**: \`{ "tool": "read_file" | "write_file" | "http_get", "arguments": {...} }\`
+- **DO NOT** invent tool names that don't exist. Only use the three tools listed above.
+
+### critic-agent service
+- **type**: \`reflect\`
+- Use for: evaluating and providing feedback on generated content
+- **input**: \`{ "dependsOn": ["node-id"] }\`
+
+### task-memory service
+- Used internally by executor, do not include in plans
+
+## Important Guidelines
+- **For mathematical calculations**: Use \`generate_text\` with \`model-router\` service. DO NOT create tools like "calculate_average", "math", or "calculator".
+- **For code generation**: Use \`generate_text\` with \`model-router\` service. DO NOT create tools like "generate_javascript", "write_code", or "code_generator".
+- **For file operations**: Use \`tool\` type with \`tool-host\` service and tool name \`read_file\` or \`write_file\`.
+- **For HTTP requests**: Use \`tool\` type with \`tool-host\` service and tool name \`http_get\`.
+- Only use tools that exist: \`read_file\`, \`write_file\`, \`http_get\`. Never invent new tool names.
+
 - Output only valid JSON. No trailing commas, no comments.`;
 
 export const PLANNER_FEW_SHOT_EXAMPLES = `
@@ -72,7 +105,7 @@ User: "Find information about scalable API design and summarize the key points."
 }
 \`\`\`
 
-## Example 2: Multi-step calculation
+## Example 2: HTTP request then calculation
 User: "Get the latest exchange rate for USD to EUR, then convert 100 USD to EUR."
 
 \`\`\`json
@@ -85,7 +118,7 @@ User: "Get the latest exchange rate for USD to EUR, then convert 100 USD to EUR.
       "id": "fetch-rate",
       "type": "tool",
       "service": "tool-host",
-      "input": { "tool": "exchange_rate", "params": { "from": "USD", "to": "EUR" } }
+      "input": { "tool": "http_get", "arguments": { "url": "https://api.exchangerate-api.com/v4/latest/USD" } }
     },
     {
       "id": "convert",
@@ -100,6 +133,46 @@ User: "Get the latest exchange rate for USD to EUR, then convert 100 USD to EUR.
   "edges": [
     { "from": "fetch-rate", "to": "convert" }
   ]
+}
+\`\`\`
+
+## Example 4: Mathematical calculation
+User: "Calculate the average of [1, 32423, 20983743, 23]"
+
+\`\`\`json
+{
+  "taskId": "task-4",
+  "complexity": "small",
+  "reflectionMode": "OFF",
+  "nodes": [
+    {
+      "id": "calculate",
+      "type": "generate_text",
+      "service": "model-router",
+      "input": { "modelClass": "small", "prompt": "Calculate the average of [1, 32423, 20983743, 23]. Show your work and provide the final answer." }
+    }
+  ],
+  "edges": []
+}
+\`\`\`
+
+## Example 5: Code generation
+User: "Generate a JavaScript function to get a random number from a range"
+
+\`\`\`json
+{
+  "taskId": "task-5",
+  "complexity": "small",
+  "reflectionMode": "OFF",
+  "nodes": [
+    {
+      "id": "generate-code",
+      "type": "generate_text",
+      "service": "model-router",
+      "input": { "modelClass": "small", "prompt": "Generate a JavaScript function to get a random number from a range. Include function signature, implementation, and a brief example of usage." }
+    }
+  ],
+  "edges": []
 }
 \`\`\`
 
