@@ -20,7 +20,7 @@
     "test:watch": "vitest"
   },
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "@larchanka/colors-js": "^1.0.1",
     "better-sqlite3": "^12.6.2",
