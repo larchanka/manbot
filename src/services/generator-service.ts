@@ -48,9 +48,9 @@ export class GeneratorService extends BaseProcess {
     (async () => {
       try {
         // Check for modelClass in input, then fallback to _complexity from context, then default to "medium"
-        const modelClass = (p.input?.modelClass as string) ?? 
-                          (p.context?._complexity as string) ?? 
-                          "medium";
+        const modelClass = (p.input?.modelClass as string) ??
+          (p.context?._complexity as string) ??
+          "medium";
         const model = this.modelRouter.getModel(modelClass as "small" | "medium" | "large");
         const context = (p.context ?? {}) as Record<string, unknown>;
         const goal = context["_goal"] as string | undefined;
@@ -85,7 +85,17 @@ export class GeneratorService extends BaseProcess {
         this.sendResponse(envelope, { text, prompt_eval_count: genResult.prompt_eval_count, eval_count: genResult.eval_count });
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
-        this.sendError(envelope, "GENERATOR_ERROR", message);
+        const isTimeout = err instanceof Error && (err.name === "AbortError" || message.includes("aborted") || message.includes("timeout"));
+        const errorCode = isTimeout ? "GENERATOR_TIMEOUT" : "GENERATOR_ERROR";
+
+        const details: Record<string, unknown> = {
+          originalError: message,
+          isTimeout
+        };
+        if (err instanceof Error && err.stack) {
+          details.stack = err.stack;
+        }
+        this.sendError(envelope, errorCode, message, details);
       }
     })();
   }
@@ -104,7 +114,7 @@ export class GeneratorService extends BaseProcess {
     });
   }
 
-  private sendError(request: Envelope, code: string, message: string): void {
+  private sendError(request: Envelope, code: string, message: string, details: Record<string, unknown> = {}): void {
     this.send({
       id: randomUUID(),
       correlationId: request.id,
@@ -113,7 +123,7 @@ export class GeneratorService extends BaseProcess {
       type: "error",
       version: PROTOCOL_VERSION,
       timestamp: Date.now(),
-      payload: { code, message, details: {} },
+      payload: { code, message, details },
     });
   }
 }

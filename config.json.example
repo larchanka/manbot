@@ -31,5 +31,8 @@
     "medium": "mistral",
     "large": "mixtral",
     "plannerComplexity": "medium"
+  },
+  "executor": {
+    "nodeTimeoutMs": 600000
   }
 }
