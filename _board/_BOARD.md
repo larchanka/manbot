@@ -2,7 +2,7 @@
 
 ## To Do
 
-### P11-06 Update Planner Prompt with Reminder Capability
+### P11-08 Add Schedule Reminder Handler to Executor
 - tags: [todo, reminder-system, phase-1, testing]
 - defaultExpanded: false
   ```md
@@ -112,7 +112,7 @@
 
 ## In Progress
 
-### P11-06 Update Planner Prompt with Reminder Capability
+### P11-08 Add Schedule Reminder Handler to Executor
 - tags: [in-progress, reminder-system, phase-2]
 - defaultExpanded: false
   ```md
@@ -122,6 +122,24 @@
   ```
 
 ## Done
+### P11-07 Add Planner Example for Reminders
+- tags: [done, reminder-system, phase-3]
+- defaultExpanded: false
+  ```md
+  Add few-shot example showing how to plan a reminder request.
+
+  Source: P11-07_PLANNER_REMINDER_EXAMPLE.md
+  ```
+
+### P11-06 Update Planner Prompt with Reminder Capability
+- tags: [done, reminder-system, phase-3]
+- defaultExpanded: false
+  ```md
+  Add cron-manager service and schedule_reminder capability to planner prompt.
+
+  Source: P11-06_PLANNER_REMINDER_CAPABILITY.md
+  ```
+
 ### P11-05 Handle Cron Events in Orchestrator
 - tags: [done, reminder-system, phase-2]
 - defaultExpanded: false
