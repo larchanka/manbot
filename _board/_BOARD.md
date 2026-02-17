@@ -2,15 +2,6 @@
 
 ## To Do
 
-### S2-01 Update Generator Service Content Extraction
-  - tags: [todo]
-  - defaultExpanded: false
-    ```md
-    Update generator service to extract content from shell tool responses instead of read_file responses.
-    
-    Source: S2-01_UPDATE_GENERATOR_SERVICE.md
-    ```
-
 ### S2-02 Add Generator Service Tests
   - tags: [todo]
   - defaultExpanded: false
@@ -111,6 +102,15 @@
     ```
 
 ## In Progress
+
+### S2-01 Update Generator Service Content Extraction
+  - tags: [in-progress]
+  - defaultExpanded: false
+    ```md
+    Update generator service to extract content from shell tool responses instead of read_file responses.
+    
+    Source: S2-01_UPDATE_GENERATOR_SERVICE.md
+    ```
 
 ## Done
 
