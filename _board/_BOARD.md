@@ -1,6 +1,33 @@
 # My Project Board
 
 ## To Do
+### P10-04 Improved Model Selection Fallback
+- tags: [todo]
+- defaultExpanded: false
+  ```md
+  Ensure that model selection correctly falls back to the plan's global complexity instead of a hardcoded "medium" default.
+
+  Source: P10-04_IMPROVED_MODEL_FALLBACK.md
+  ```
+
+### P10-05 Configurable Planner Complexity
+- tags: [todo]
+- defaultExpanded: false
+  ```md
+  Move the hardcoded "medium" complexity for the initial planning phase into the global configuration.
+
+  Source: P10-05_CONFIGURABLE_PLANNER_COMPLEXITY.md
+  ```
+
+### P10-06 Model Selection Verification
+- tags: [todo]
+- defaultExpanded: false
+  ```md
+  Conduct a manual end-to-end test to verify that large complexity tasks use the appropriate models.
+
+  Source: P10-06_MODEL_SELECTION_VERIFICATION.md
+  ```
+
 
 
 ## In Progress
