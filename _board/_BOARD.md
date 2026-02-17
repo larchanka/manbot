@@ -13,17 +13,15 @@
 
 ## In Progress
 
+## Done
 ### P11-14 Fix Cron Expression Extraction in Executor
-- tags: [in-progress, reminder-system, phase-4, bugfix]
+- tags: [done, reminder-system, phase-4, bugfix]
 - defaultExpanded: false
   ```md
   Fix the executor to properly extract cron expressions from dependency outputs instead of using placeholder strings.
 
   Source: P11-14_FIX_CRON_EXPR_EXTRACTION.md
   ```
-
-
-## Done
 
 ### P11-13 Update README
 - tags: [done, reminder-system, phase-6, documentation]
