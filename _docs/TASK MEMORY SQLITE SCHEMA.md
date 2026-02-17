@@ -19,6 +19,7 @@ task_events
 CREATE TABLE tasks (
   id TEXT PRIMARY KEY,
   user_id TEXT,
+  conversation_id TEXT,
   goal TEXT NOT NULL,
   status TEXT CHECK(status IN ('pending','running','completed','failed')),
   complexity TEXT,

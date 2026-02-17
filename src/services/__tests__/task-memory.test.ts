@@ -76,6 +76,39 @@ describe("TaskMemoryStore", () => {
       expect(task?.user_id).toBe("u1");
       expect(task?.complexity).toBe("medium");
     });
+
+    it("creates task with optional conversationId and getTasksByConversationId returns history", () => {
+      const convId = "conv-" + randomUUID();
+      const taskId1 = "t-" + randomUUID();
+      const taskId2 = "t-" + randomUUID();
+      store.createTaskWithDag({
+        taskId: taskId1,
+        conversationId: convId,
+        goal: "first goal",
+        nodes: [{ id: "n1", type: "a", service: "b" }],
+        edges: [],
+      });
+      store.createTaskWithDag({
+        taskId: taskId2,
+        conversationId: convId,
+        goal: "second goal",
+        nodes: [{ id: "n2", type: "c", service: "d" }],
+        edges: [],
+      });
+
+      const task1 = store.getTask(taskId1) as Record<string, unknown>;
+      expect(task1?.conversation_id).toBe(convId);
+
+      const history = store.getTasksByConversationId(convId);
+      expect(history).toHaveLength(2);
+      expect(history.map((t) => t.id)).toContain(taskId1);
+      expect(history.map((t) => t.id)).toContain(taskId2);
+      expect(history.map((t) => t.goal)).toContain("first goal");
+      expect(history.map((t) => t.goal)).toContain("second goal");
+
+      const otherConv = store.getTasksByConversationId("other-conv");
+      expect(otherConv).toHaveLength(0);
+    });
   });
 
   describe("node status updates (Pending -> Running -> Completed)", () => {

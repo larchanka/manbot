@@ -137,6 +137,7 @@ export class Orchestrator {
     const taskCreatePayload = {
       taskId,
       userId: String(userId),
+      conversationId: String(chatId),
       goal,
       nodes: nodes.map((n) => ({ id: n.id, type: n.type, service: n.service, input: n.input })),
       edges: edges.map((e) => ({ fromNode: e.from, toNode: e.to })),

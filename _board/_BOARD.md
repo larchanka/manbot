@@ -2,15 +2,6 @@
 
 ## To Do
 
-### P6-02 Add conversation_id to TaskMemory Schema
-  - tags: [todo]
-  - defaultExpanded: false
-    ```md
-    Update the tasks table schema to include a conversation_id column to group tasks by chat session.
-    
-    Source: P6-02_TASK_MEMORY_SCHEMA_CONV_ID.md
-    ```
-
 ### P6-03 Telegram /new Command and Session Tracking
   - tags: [todo]
   - defaultExpanded: false
@@ -50,6 +41,15 @@
 ## In Progress
 
 ## Done
+
+### P6-02 Add conversation_id to TaskMemory Schema
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Update the tasks table schema to include a conversation_id column to group tasks by chat session.
+    
+    Source: P6-02_TASK_MEMORY_SCHEMA_CONV_ID.md
+    ```
 
 ### P6-01 SQLite Persistence for RAG Service
   - tags: [done]

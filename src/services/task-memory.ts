@@ -20,6 +20,7 @@ const SCHEMA = `
 CREATE TABLE IF NOT EXISTS tasks (
   id TEXT PRIMARY KEY,
   user_id TEXT,
+  conversation_id TEXT,
   goal TEXT NOT NULL,
   status TEXT CHECK(status IN ('pending','running','completed','failed')),
   complexity TEXT,
@@ -81,6 +82,8 @@ CREATE TABLE IF NOT EXISTS task_events (
 interface TaskCreatePayload {
   taskId: string;
   userId?: string;
+  /** Optional conversation/session ID to group tasks by chat session. */
+  conversationId?: string;
   goal: string;
   complexity?: string;
   nodes: Array<{ id: string; type: string; service: string; input?: unknown }>;
@@ -116,6 +119,10 @@ interface TaskFailPayload {
   reason?: string;
 }
 
+interface TaskGetByConversationIdPayload {
+  conversationId: string;
+}
+
 // --- Store ---
 
 export class TaskMemoryStore {
@@ -126,6 +133,11 @@ export class TaskMemoryStore {
     mkdirSync(dirname(path), { recursive: true });
     this.db = new Database(path);
     this.db.exec(SCHEMA);
+    try {
+      this.db.exec("ALTER TABLE tasks ADD COLUMN conversation_id TEXT");
+    } catch {
+      // Column already exists (e.g. after schema update)
+    }
   }
 
   close(): void {
@@ -144,12 +156,13 @@ export class TaskMemoryStore {
     const now = this.now();
     this.db
       .prepare(
-        `INSERT INTO tasks (id, user_id, goal, status, complexity, created_at, updated_at, metadata)
-         VALUES (?, ?, ?, 'pending', ?, ?, ?, ?)`,
+        `INSERT INTO tasks (id, user_id, conversation_id, goal, status, complexity, created_at, updated_at, metadata)
+         VALUES (?, ?, ?, ?, 'pending', ?, ?, ?, ?)`,
       )
       .run(
         payload.taskId,
         payload.userId ?? null,
+        payload.conversationId ?? null,
         payload.goal,
         payload.complexity ?? null,
         now,
@@ -276,6 +289,16 @@ export class TaskMemoryStore {
       .all(taskId) as Array<{ id: string; status: string }>;
     return { status: task.status, nodes };
   }
+
+  /** Retrieve task history for a conversation (by conversation_id). */
+  getTasksByConversationId(conversationId: string): Array<{ id: string; goal: string; status: string; created_at: number; updated_at: number }> {
+    const rows = this.db
+      .prepare(
+        `SELECT id, goal, status, created_at, updated_at FROM tasks WHERE conversation_id = ? ORDER BY created_at ASC`,
+      )
+      .all(conversationId) as Array<{ id: string; goal: string; status: string; created_at: number; updated_at: number }>;
+    return rows;
+  }
 }
 
 // --- Service process (stdin/stdout JSONL) ---
@@ -285,6 +308,7 @@ function isTaskMessage(type: string): boolean {
     type === "task.create" ||
     type === "task.update" ||
     type === "task.get" ||
+    type === "task.getByConversationId" ||
     type === "task.appendReflection" ||
     type === "task.complete" ||
     type === "task.fail"
@@ -332,6 +356,11 @@ export class TaskMemoryService extends BaseProcess {
         case "task.get": {
           const p = payload as unknown as TaskGetPayload;
           result = this.store.getTask(p.taskId);
+          break;
+        }
+        case "task.getByConversationId": {
+          const p = payload as unknown as TaskGetByConversationIdPayload;
+          result = { tasks: this.store.getTasksByConversationId(p.conversationId ?? "") };
           break;
         }
         case "task.appendReflection": {
