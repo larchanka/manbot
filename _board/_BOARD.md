@@ -2,9 +2,6 @@
 
 ## To Do
 
-### P12-07 Create Browser Configuration
-- Source: P12-07_BROWSER_CONFIG_UTILS.md
-
 ### P12-08 Create Browser Service Core
 - Source: P12-08_BROWSER_SERVICE_CORE.md
 
@@ -37,10 +34,13 @@
 
 ## In Progress
 
-### P12-06 Add HTML to Markdown Tests
-- Source: P12-06_HTML_MARKDOWN_TESTS.md
+### P12-07 Create Browser Configuration
+- Source: P12-07_BROWSER_CONFIG_UTILS.md
 
 ## Done
+
+### P12-06 Add HTML to Markdown Tests
+- Source: P12-06_HTML_MARKDOWN_TESTS.md
 
 ### P12-05 Create HTML to Markdown Converter
 - Source: P12-05_HTML_TO_MARKDOWN.md
