@@ -92,6 +92,18 @@ export class Orchestrator {
         }
         return;
       }
+      // Handle cron reminder events from cron-manager
+      if (fromProcess === "cron-manager" && envelope.type === "event.cron.completed") {
+        this.handleCronReminderEvent(envelope);
+        // Also forward to logger as before
+        const logger = this.children.get("logger");
+        if (logger?.stdin.writable) {
+          logger.stdin.write(trimmed + "\n");
+          ConsoleLogger.ipc("core", "→", envelope);
+        }
+        return;
+      }
+
       if (to === "core") {
         this.handleCoreMessage(fromProcess, envelope);
         return;
@@ -277,6 +289,32 @@ export class Orchestrator {
       return;
     }
     this.sendToTelegram(chatId, "Archived. Conversation summary has been stored for later retrieval.");
+  }
+
+  private handleCronReminderEvent(envelope: Envelope): void {
+    const payload = envelope.payload as Record<string, unknown>;
+    const chatId = payload.chatId as number | string | undefined;
+    const reminderMessage = payload.reminderMessage as string | undefined;
+
+    if (!chatId || !reminderMessage) {
+      ConsoleLogger.warn(
+        "core",
+        "event.cron.completed missing chatId or reminderMessage",
+        envelope,
+      );
+      return;
+    }
+
+    // Format reminder message
+    const formattedMessage = `🔔 Reminder: ${reminderMessage}`;
+    const chatIdNum = typeof chatId === "string" ? parseInt(chatId, 10) : chatId;
+    
+    if (isNaN(chatIdNum)) {
+      ConsoleLogger.warn("core", `Invalid chatId in reminder event: ${chatId}`, envelope);
+      return;
+    }
+
+    this.sendToTelegram(chatIdNum, formattedMessage);
   }
 
   private sendToTelegram(chatId: number, text: string, silent?: boolean): void {

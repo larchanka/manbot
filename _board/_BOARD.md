@@ -2,7 +2,7 @@
 
 ## To Do
 
-### P11-04 Add Cron Manager Integration Tests
+### P11-05 Handle Cron Events in Orchestrator
 - tags: [todo, reminder-system, phase-1, testing]
 - defaultExpanded: false
   ```md
@@ -112,7 +112,24 @@
 
 ## In Progress
 
+### P11-05 Handle Cron Events in Orchestrator
+- tags: [in-progress, reminder-system, phase-2]
+- defaultExpanded: false
+  ```md
+  Add handler for event.cron.completed to route reminders to Telegram.
+
+  Source: P11-05_ORCHESTRATOR_CRON_HANDLER.md
+  ```
+
 ## Done
+### P11-04 Add Cron Manager Integration Tests
+- tags: [done, reminder-system, phase-1, testing]
+- defaultExpanded: false
+  ```md
+  Create integration tests for cron manager reminder functionality.
+
+  Source: P11-04_CRON_INTEGRATION_TESTS.md
+  ```
 ### P11-03 Update Cron Manager Event Payload
 - tags: [done, reminder-system, phase-1]
 - defaultExpanded: false
