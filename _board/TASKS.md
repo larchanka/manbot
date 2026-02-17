@@ -227,3 +227,214 @@
 - Documents browser installation issues
 - Documents timeout configuration
 - Documents how to view browser logs
+
+---
+
+# Replace read_file and write_file with shell Tool Tasks
+
+## Phase 1: Core Shell Tool Implementation
+
+### Task S1.1: Implement Shell Tool Core
+**File**: `src/services/tool-host.ts`
+**Dependencies**: None
+**Description**: Implement the core shell tool that executes shell commands.
+**Acceptance Criteria**:
+- Add `shellTool` method that accepts `command` (required, string) and `cwd` (optional, string)
+- Use Node.js `child_process.exec` or `spawn` to execute commands
+- Default `cwd` to `sandboxDir` from config
+- Return structured response: `{ stdout, stderr, exitCode, command, cwd }`
+- Handle command execution errors gracefully
+- Include JSDoc documentation
+
+### Task S1.2: Add Command Validation
+**File**: `src/services/tool-host.ts`
+**Dependencies**: Task S1.1
+**Description**: Add validation to ensure commands operate within sandbox.
+**Acceptance Criteria**:
+- Add `validateCommand(command: string, cwd: string): { allowed: boolean, reason?: string }` method
+- Validate that `cwd` is within sandbox directory (resolve and check)
+- Validate that resolved `cwd` path starts with `sandboxDir` and doesn't contain `..`
+- Return clear error messages when validation fails
+- Handle edge cases (empty cwd, relative paths, etc.)
+
+### Task S1.3: Replace read_file and write_file Registration
+**File**: `src/services/tool-host.ts`
+**Dependencies**: Task S1.2
+**Description**: Update tool registration to use shell tool instead of read_file/write_file.
+**Acceptance Criteria**:
+- Remove `readFileTool` and `writeFileTool` from `registerDefaultTools()`
+- Add `shell` tool registration: `this.tools.set("shell", this.shellTool.bind(this))`
+- Remove `readFileTool` and `writeFileTool` method implementations
+- Remove `resolvePath` method if no longer needed (or adapt for shell tool validation)
+- Update file header comment to reflect shell tool instead of read_file/write_file
+
+### Task S1.4: Add Shell Tool Tests
+**File**: `src/services/__tests__/tool-host.test.ts`
+**Dependencies**: Task S1.3
+**Description**: Create tests for shell tool functionality.
+**Acceptance Criteria**:
+- Test reading file: `cat file.txt` command
+- Test writing file: `echo "content" > file.txt` then verify file exists
+- Test listing files: `ls -la` command
+- Test custom cwd parameter
+- Test sandbox path validation (reject paths outside sandbox)
+- Test invalid command handling
+- Test command with non-zero exit code
+- Test stdout and stderr capture
+- All tests pass with `npm test`
+
+---
+
+## Phase 2: Update Dependent Services
+
+### Task S2.1: Update Generator Service Content Extraction
+**File**: `src/services/generator-service.ts`
+**Dependencies**: Task S1.3
+**Description**: Update generator service to extract content from shell tool responses.
+**Acceptance Criteria**:
+- Remove `read_file` response handling (content extraction logic)
+- Add `shell` tool response handling:
+  - Extract `stdout` from shell tool responses
+  - Include `stderr` in context if non-empty (for debugging)
+  - Handle read operations (e.g., `cat file.txt` outputs to stdout)
+- Update comments to reflect shell tool usage
+- Test that shell tool stdout is correctly extracted and used in prompts
+
+### Task S2.2: Add Generator Service Tests
+**File**: `src/services/__tests__/generator-service.test.ts`
+**Dependencies**: Task S2.1
+**Description**: Test generator service handles shell tool responses correctly.
+**Acceptance Criteria**:
+- Test that shell tool stdout is extracted correctly
+- Test that stderr is handled appropriately (included if non-empty)
+- Test that read operations (cat) produce expected content in prompts
+- All tests pass with `npm test`
+
+---
+
+## Phase 3: Update Planner and Documentation
+
+### Task S3.1: Update Planner Prompt - Remove Old Tools
+**File**: `src/agents/prompts/planner.ts`
+**Dependencies**: Task S1.3
+**Description**: Remove read_file and write_file from planner prompt tool list.
+**Acceptance Criteria**:
+- Remove `read_file` and `write_file` from available tools list
+- Update tool list to show: `shell`, `http_get`, `http_search`
+- Update "DO NOT invent tool names" warning to reflect new tool list
+- Remove examples that use read_file/write_file
+
+### Task S3.2: Update Planner Prompt - Document Shell Tool
+**File**: `src/agents/prompts/planner.ts`
+**Dependencies**: Task S3.1
+**Description**: Add comprehensive documentation for shell tool.
+**Acceptance Criteria**:
+- Add `shell` tool documentation section with:
+  - Purpose: Execute shell commands for file operations, process management, etc.
+  - Arguments: `command` (required), `cwd` (optional)
+  - Response format: `{ stdout, stderr, exitCode, command, cwd }`
+  - Common use cases:
+    - Read file: `cat path/to/file.txt`
+    - Write file: `echo "content" > path/to/file.txt` or heredoc syntax
+    - List files: `ls -la`, `ls -la directory/`
+    - Check processes: `ps aux`, `pgrep process_name`
+    - Search files: `grep "pattern" file.txt`, `find . -name "*.txt"`
+  - Security note: All file operations restricted to sandbox directory
+- Add examples showing shell tool usage for file operations
+- Update "For file operations" section to use shell tool
+
+### Task S3.3: Update Config Documentation
+**File**: `src/shared/config.ts`
+**Dependencies**: Task S1.3
+**Description**: Update config comments to reflect shell tool usage.
+**Acceptance Criteria**:
+- Update `ToolHostConfig` interface comment:
+  - Change from: `/** Directory allowed for read_file/write_file. Paths outside are rejected. */`
+  - Change to: `/** Directory allowed for shell tool file operations. Paths outside are rejected. */`
+- TypeScript compilation succeeds with no errors
+
+---
+
+## Phase 4: Update External Documentation
+
+### Task S4.1: Update README.md
+**File**: `README.md`
+**Dependencies**: Task S3.2
+**Description**: Update README to reflect shell tool instead of read_file/write_file.
+**Acceptance Criteria**:
+- Update services list: Replace `read_file, write_file` with `shell` tool
+- Document shell tool capabilities and common use cases
+- Add example shell commands for file operations
+- Update any references to old tools
+
+### Task S4.2: Update AI-Agent.md
+**File**: `AI-Agent.md`
+**Dependencies**: Task S3.2
+**Description**: Update AI-Agent.md to reflect shell tool.
+**Acceptance Criteria**:
+- Update tool-host.ts description: Replace `read_file, write_file` with `shell`
+- Update tool capabilities list
+- Update any architecture diagrams or descriptions
+
+---
+
+## Phase 5: Testing and Verification
+
+### Task S5.1: Manual Testing - File Operations
+**Dependencies**: Task S1.4, Task S2.2
+**Description**: Manually test file read/write operations using shell tool.
+**Acceptance Criteria**:
+- Test reading file: Execute `cat test.txt` and verify stdout contains file contents
+- Test writing file: Execute `echo "test content" > test.txt` and verify file created
+- Test appending: Execute `echo "more content" >> test.txt` and verify appended
+- Test listing: Execute `ls -la` and verify directory listing in stdout
+- Test nested directories: Execute `ls -la subdir/` and verify works correctly
+- Verify all operations respect sandbox directory
+
+### Task S5.2: Manual Testing - Sandbox Enforcement
+**Dependencies**: Task S1.4
+**Description**: Test that sandbox restrictions are properly enforced.
+**Acceptance Criteria**:
+- Try to access file outside sandbox: `cat /etc/passwd` (if sandbox is not root)
+- Verify command is rejected or fails appropriately
+- Try to change directory outside sandbox: `cd / && pwd`
+- Verify sandbox restrictions are enforced
+- Try relative path traversal: `cat ../../etc/passwd`
+- Verify path traversal is blocked
+- Test that operations within sandbox work correctly
+
+### Task S5.3: Manual Testing - Process Management
+**Dependencies**: Task S1.4
+**Description**: Test shell tool with process management commands.
+**Acceptance Criteria**:
+- Execute `ps aux | head -5` and verify output shows process list
+- Execute `pgrep node` and verify output shows Node.js process IDs
+- Execute `echo $PATH` and verify environment variables are accessible
+- Test command chaining: `ls -la | grep ".txt"`
+- Verify stdout/stderr are captured correctly
+
+### Task S5.4: Manual Testing - Error Handling
+**Dependencies**: Task S1.4
+**Description**: Test error handling for various failure scenarios.
+**Acceptance Criteria**:
+- Execute invalid command: `nonexistentcommand`
+- Verify stderr contains error message
+- Verify exit code is non-zero
+- Verify structured error response
+- Test command that fails: `cat nonexistentfile.txt`
+- Verify stderr contains file not found error
+- Verify exit code reflects failure
+- Test timeout handling (if implemented)
+
+### Task S5.5: End-to-End Integration Test
+**Dependencies**: All previous tasks
+**Description**: Test complete flow from planner to executor using shell tool.
+**Acceptance Criteria**:
+- Send task via Telegram: "Read the file test.txt and summarize it"
+- Verify planner generates plan using shell tool (`cat test.txt`)
+- Verify executor executes shell tool correctly
+- Verify generator service extracts stdout and uses it in prompt
+- Verify final response includes file content summary
+- Test write operation: "Write 'Hello World' to hello.txt"
+- Verify file is created correctly
+- Verify response confirms file creation
