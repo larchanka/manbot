@@ -2,15 +2,6 @@
 
 ## To Do
 
-### S1-04 Add Shell Tool Tests
-  - tags: [todo]
-  - defaultExpanded: false
-    ```md
-    Create comprehensive tests for shell tool functionality including file operations, validation, and error handling.
-    
-    Source: S1-04_SHELL_TOOL_TESTS.md
-    ```
-
 ### S2-01 Update Generator Service Content Extraction
   - tags: [todo]
   - defaultExpanded: false
@@ -120,6 +111,15 @@
     ```
 
 ## In Progress
+
+### S1-04 Add Shell Tool Tests
+  - tags: [in-progress]
+  - defaultExpanded: false
+    ```md
+    Create comprehensive tests for shell tool functionality including file operations, validation, and error handling.
+    
+    Source: S1-04_SHELL_TOOL_TESTS.md
+    ```
 
 ## Done
 

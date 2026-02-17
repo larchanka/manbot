@@ -224,6 +224,9 @@ export class ToolHost extends BaseProcess {
     if (typeof command !== "string") {
       throw new Error("shell requires command (string)");
     }
+    if (command.trim() === "") {
+      throw new Error("shell requires command (string)");
+    }
 
     // Use provided cwd or default to sandboxDir
     const cwd = typeof args.cwd === "string" ? args.cwd : this.sandboxDir;

@@ -1,11 +1,14 @@
 /**
- * Integration tests for Tool Host HTTP Get tool with browser fallback.
+ * Integration tests for Tool Host HTTP Get tool with browser fallback and Shell tool.
  */
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { ToolHost } from "../tool-host.js";
 import { createServer } from "node:http";
 import { AddressInfo } from "node:net";
+import { mkdir, writeFile, readFile, rm } from "node:fs/promises";
+import { join } from "node:path";
+import { existsSync } from "node:fs";
 
 describe("ToolHost http_get", () => {
   let toolHost: ToolHost;
@@ -239,5 +242,333 @@ describe("ToolHost http_get", () => {
         expect(error).toBeDefined();
       }
     }, 30000);
+  });
+});
+
+describe("ToolHost shell", () => {
+  let toolHost: ToolHost;
+  let testSandboxDir: string;
+
+  beforeEach(async () => {
+    // Create a temporary sandbox directory for tests
+    testSandboxDir = join(process.cwd(), "test-sandbox-" + Date.now());
+    await mkdir(testSandboxDir, { recursive: true });
+    toolHost = new ToolHost({ sandboxDir: testSandboxDir });
+  });
+
+  afterEach(async () => {
+    if (toolHost) {
+      // Clean up browser service if it was created
+      const browserService = (toolHost as any).browserService;
+      if (browserService) {
+        await browserService.close().catch(() => {});
+      }
+    }
+    // Clean up test sandbox directory
+    if (testSandboxDir && existsSync(testSandboxDir)) {
+      await rm(testSandboxDir, { recursive: true, force: true }).catch(() => {});
+    }
+  });
+
+  describe("file operations", () => {
+    it("reads a file using cat command", async () => {
+      const testFile = join(testSandboxDir, "test-read.txt");
+      const testContent = "Hello, World!\nThis is a test file.";
+      await writeFile(testFile, testContent, "utf-8");
+
+      const result = await (toolHost as any).shellTool({
+        command: `cat test-read.txt`,
+        cwd: testSandboxDir,
+      });
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toBe(testContent);
+      expect(result.stderr).toBe("");
+      expect(result.command).toBe(`cat test-read.txt`);
+      expect(result.cwd).toBe(testSandboxDir);
+    });
+
+    it("writes a file using echo and redirection", async () => {
+      const testFile = join(testSandboxDir, "test-write.txt");
+      const testContent = "Written by shell tool";
+
+      const result = await (toolHost as any).shellTool({
+        command: `echo "${testContent}" > test-write.txt`,
+        cwd: testSandboxDir,
+      });
+
+      expect(result.exitCode).toBe(0);
+      
+      // Verify file was created and contains correct content
+      const fileExists = existsSync(testFile);
+      expect(fileExists).toBe(true);
+      
+      if (fileExists) {
+        const content = await readFile(testFile, "utf-8");
+        expect(content.trim()).toBe(testContent);
+      }
+    });
+
+    it("lists files using ls command", async () => {
+      // Create some test files
+      await writeFile(join(testSandboxDir, "file1.txt"), "content1", "utf-8");
+      await writeFile(join(testSandboxDir, "file2.txt"), "content2", "utf-8");
+
+      const result = await (toolHost as any).shellTool({
+        command: "ls -1",
+        cwd: testSandboxDir,
+      });
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("file1.txt");
+      expect(result.stdout).toContain("file2.txt");
+      expect(result.stderr).toBe("");
+    });
+
+    it("lists files with details using ls -la", async () => {
+      await writeFile(join(testSandboxDir, "test-ls.txt"), "content", "utf-8");
+
+      const result = await (toolHost as any).shellTool({
+        command: "ls -la test-ls.txt",
+        cwd: testSandboxDir,
+      });
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("test-ls.txt");
+    });
+  });
+
+  describe("custom cwd parameter", () => {
+    it("uses custom cwd when provided", async () => {
+      const customDir = join(testSandboxDir, "custom-dir");
+      await mkdir(customDir, { recursive: true });
+      await writeFile(join(customDir, "custom-file.txt"), "custom content", "utf-8");
+
+      const result = await (toolHost as any).shellTool({
+        command: "cat custom-file.txt",
+        cwd: customDir,
+      });
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toBe("custom content");
+      expect(result.cwd).toBe(customDir);
+    });
+
+    it("defaults to sandboxDir when cwd is not provided", async () => {
+      await writeFile(join(testSandboxDir, "default-file.txt"), "default content", "utf-8");
+
+      const result = await (toolHost as any).shellTool({
+        command: "cat default-file.txt",
+      });
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toBe("default content");
+      expect(result.cwd).toBe(testSandboxDir);
+    });
+  });
+
+  describe("sandbox path validation", () => {
+    it("rejects paths outside sandbox directory", async () => {
+      const outsidePath = join(process.cwd(), "outside-sandbox");
+
+      await expect(
+        (toolHost as any).shellTool({
+          command: "echo test",
+          cwd: outsidePath,
+        })
+      ).rejects.toThrow(/outside sandbox directory/);
+    });
+
+    it("rejects path traversal attempts in cwd", async () => {
+      await expect(
+        (toolHost as any).shellTool({
+          command: "echo test",
+          cwd: "../",
+        })
+      ).rejects.toThrow(/Path traversal detected/);
+    });
+
+    it("rejects path traversal attempts in command string", async () => {
+      await expect(
+        (toolHost as any).shellTool({
+          command: "cat ../etc/passwd",
+          cwd: testSandboxDir,
+        })
+      ).rejects.toThrow(/Path traversal detected in command string/);
+    });
+
+    it("allows valid paths within sandbox", async () => {
+      const subDir = join(testSandboxDir, "subdir");
+      await mkdir(subDir, { recursive: true });
+      await writeFile(join(subDir, "test.txt"), "content", "utf-8");
+
+      const result = await (toolHost as any).shellTool({
+        command: "cat test.txt",
+        cwd: subDir,
+      });
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toBe("content");
+    });
+  });
+
+  describe("invalid command handling", () => {
+    it("handles non-existent command gracefully", async () => {
+      const result = await (toolHost as any).shellTool({
+        command: "nonexistent-command-12345",
+        cwd: testSandboxDir,
+      });
+
+      expect(result.exitCode).not.toBe(0);
+      expect(result.stderr).toBeTruthy();
+      expect(result.command).toBe("nonexistent-command-12345");
+    });
+
+    it("handles missing command parameter", async () => {
+      await expect(
+        (toolHost as any).shellTool({
+          cwd: testSandboxDir,
+        })
+      ).rejects.toThrow(/shell requires command/);
+    });
+  });
+
+  describe("command exit codes", () => {
+    it("returns exit code 0 for successful commands", async () => {
+      const result = await (toolHost as any).shellTool({
+        command: "echo success",
+        cwd: testSandboxDir,
+      });
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("success");
+    });
+
+    it("returns non-zero exit code for failed commands", async () => {
+      const result = await (toolHost as any).shellTool({
+        command: "false", // false command always exits with code 1
+        cwd: testSandboxDir,
+      });
+
+      expect(result.exitCode).toBe(1);
+    });
+
+    it("handles commands that exit with specific codes", async () => {
+      // Use a command that exits with code 2
+      const result = await (toolHost as any).shellTool({
+        command: "exit 2",
+        cwd: testSandboxDir,
+      });
+
+      expect(result.exitCode).toBe(2);
+    });
+  });
+
+  describe("stdout and stderr capture", () => {
+    it("captures stdout correctly", async () => {
+      const result = await (toolHost as any).shellTool({
+        command: "echo 'stdout message'",
+        cwd: testSandboxDir,
+      });
+
+      expect(result.stdout).toContain("stdout message");
+      expect(result.stderr).toBe("");
+    });
+
+    it("captures stderr correctly", async () => {
+      const result = await (toolHost as any).shellTool({
+        command: "echo 'error message' >&2",
+        cwd: testSandboxDir,
+      });
+
+      expect(result.stderr).toContain("error message");
+    });
+
+    it("captures both stdout and stderr", async () => {
+      const result = await (toolHost as any).shellTool({
+        command: "echo 'stdout' && echo 'stderr' >&2",
+        cwd: testSandboxDir,
+      });
+
+      expect(result.stdout).toContain("stdout");
+      expect(result.stderr).toContain("stderr");
+    });
+
+    it("handles empty stdout and stderr", async () => {
+      const result = await (toolHost as any).shellTool({
+        command: "true", // true command produces no output
+        cwd: testSandboxDir,
+      });
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toBe("");
+      expect(result.stderr).toBe("");
+    });
+  });
+
+  describe("response format", () => {
+    it("includes all required fields in response", async () => {
+      const result = await (toolHost as any).shellTool({
+        command: "echo test",
+        cwd: testSandboxDir,
+      });
+
+      expect(result).toHaveProperty("stdout");
+      expect(result).toHaveProperty("stderr");
+      expect(result).toHaveProperty("exitCode");
+      expect(result).toHaveProperty("command");
+      expect(result).toHaveProperty("cwd");
+
+      expect(typeof result.stdout).toBe("string");
+      expect(typeof result.stderr).toBe("string");
+      expect(typeof result.exitCode).toBe("number");
+      expect(typeof result.command).toBe("string");
+      expect(typeof result.cwd).toBe("string");
+    });
+
+    it("includes command and cwd in response", async () => {
+      const command = "echo 'test command'";
+      const cwd = testSandboxDir;
+
+      const result = await (toolHost as any).shellTool({
+        command,
+        cwd,
+      });
+
+      expect(result.command).toBe(command);
+      expect(result.cwd).toBe(cwd);
+    });
+  });
+
+  describe("edge cases", () => {
+    it("handles commands with special characters", async () => {
+      const result = await (toolHost as any).shellTool({
+        command: "echo 'Hello, World! $PATH'",
+        cwd: testSandboxDir,
+      });
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("Hello, World!");
+    });
+
+    it("handles multi-line commands", async () => {
+      const result = await (toolHost as any).shellTool({
+        command: "echo 'line1' && echo 'line2'",
+        cwd: testSandboxDir,
+      });
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("line1");
+      expect(result.stdout).toContain("line2");
+    });
+
+    it("handles empty command string", async () => {
+      await expect(
+        (toolHost as any).shellTool({
+          command: "",
+          cwd: testSandboxDir,
+        })
+      ).rejects.toThrow(/shell requires command/);
+    });
   });
 });
