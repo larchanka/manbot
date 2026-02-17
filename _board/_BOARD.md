@@ -2,7 +2,7 @@
 
 ## To Do
 
-### P11-03 Update Cron Manager Event Payload
+### P11-04 Add Cron Manager Integration Tests
 - tags: [todo, reminder-system, phase-1, testing]
 - defaultExpanded: false
   ```md
@@ -112,8 +112,18 @@
 
 ## In Progress
 
+### P11-03 Update Cron Manager Event Payload
+- tags: [in-progress, reminder-system, phase-1]
+- defaultExpanded: false
+  ```md
+  Modify CronManager.runJob() to emit structured reminder data in event.cron.completed.
+
+  Source: P11-03_CRON_EVENT_PAYLOAD.md
+  ```
+
+## Done
 ### P11-02 Add Time Parser Tests
-- tags: [in-progress, reminder-system, phase-1, testing]
+- tags: [done, reminder-system, phase-1, testing]
 - defaultExpanded: false
   ```md
   Create unit tests for the time parser service.
@@ -121,7 +131,6 @@
   Source: P11-02_TIME_PARSER_TESTS.md
   ```
 
-## Done
 ### P11-01 Create Time Parser Service
 - tags: [done, reminder-system, phase-1]
 - defaultExpanded: false

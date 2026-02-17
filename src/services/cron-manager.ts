@@ -75,12 +75,23 @@ export class CronManager extends BaseProcess {
     this.emitEvent("event.cron.started", { scheduleId: row.id, taskType: row.task_type, timestamp: now });
     try {
       const payload = row.payload ? JSON.parse(row.payload) : {};
-      this.emitEvent("event.cron.completed", {
+      
+      // Extract reminder-specific fields if present (for backward compatibility)
+      const reminderPayload: Record<string, unknown> = {
         scheduleId: row.id,
         taskType: row.task_type,
         payload,
         timestamp: Date.now(),
-      });
+      };
+      
+      // If this is a reminder task, extract structured fields
+      if (row.task_type === "reminder" || payload.chatId || payload.reminderMessage) {
+        reminderPayload.chatId = payload.chatId;
+        reminderPayload.reminderMessage = payload.reminderMessage;
+        reminderPayload.userId = payload.userId;
+      }
+      
+      this.emitEvent("event.cron.completed", reminderPayload);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       this.emitEvent("event.cron.failed", {
