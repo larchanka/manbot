@@ -3,16 +3,16 @@
 ## To Do
 
 ## In Progress
+
+## Done
 ### P10-06 Model Selection Verification
-- tags: [in-progress]
+- tags: [done]
 - defaultExpanded: false
   ```md
   Conduct a verification run to ensure that the complexity mapping works as expected after the changes in P10-04 and P10-05.
 
   Source: P10-06_MODEL_SELECTION_VERIFICATION.md
   ```
-
-## Done
 ### P10-04 Improved Model Selection Fallback
 - tags: [done]
 - defaultExpanded: false
