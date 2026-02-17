@@ -31,6 +31,8 @@ export interface RagConfig {
   embedModel: string;
   /** SQLite database path for RAG document storage. */
   dbPath: string;
+  /** Embedding vector dimension (must match embed model, e.g. 768 for nomic-embed-text). Used for sqlite-vss. */
+  embeddingDimensions: number;
 }
 
 export interface ToolHostConfig {
@@ -79,6 +81,7 @@ const DEFAULT_CONFIG: AppConfig = {
   rag: {
     embedModel: "nomic-embed-text",
     dbPath: "data/rag.sqlite",
+    embeddingDimensions: 768,
   },
   toolHost: {
     sandboxDir: process.cwd(),
@@ -127,6 +130,7 @@ function mergeEnv(config: AppConfig): AppConfig {
     rag: {
       embedModel: process.env.RAG_EMBED_MODEL ?? config.rag.embedModel,
       dbPath: process.env.RAG_DB ?? config.rag.dbPath,
+      embeddingDimensions: Number(process.env.RAG_EMBEDDING_DIMENSIONS) || config.rag.embeddingDimensions,
     },
     toolHost: {
       sandboxDir: process.env.TOOL_SANDBOX_DIR ?? config.toolHost.sandboxDir,

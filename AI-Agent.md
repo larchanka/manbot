@@ -24,6 +24,8 @@ AI-Agent/
 │   └── TECH.md                 # Stack and dependencies
 ├── src/
 │   ├── index.ts                # Platform entry (placeholder)
+│   ├── __tests__/
+│   │   └── archiving.test.ts   # Integration test: conversation archiving flow
 │   ├── core/
 │   │   └── orchestrator.ts     # Core Orchestrator: spawns processes, routes messages, task pipeline
 │   ├── agents/
@@ -32,7 +34,8 @@ AI-Agent/
 │   │   ├── critic-agent.ts    # Reflection: PASS/REVISE on draft output
 │   │   └── prompts/
 │   │       ├── planner.ts     # Planner system prompt and builder
-│   │       └── critic.ts      # Critic system prompt and builder
+│   │       ├── critic.ts      # Critic system prompt and builder
+│   │       └── summarizer.ts  # Summarizer prompt for memory extraction (archiving)
 │   ├── adapters/
 │   │   └── telegram-adapter.ts # Telegram bot → protocol; task.create, telegram.send/progress
 │   ├── services/
@@ -41,7 +44,7 @@ AI-Agent/
 │   │   ├── generator-service.ts # node.execute generate_text (model-router process)
 │   │   ├── task-memory.ts      # SQLite: tasks, nodes, edges, reflections
 │   │   ├── logger-service.ts   # event.* → pino file log
-│   │   ├── rag-service.ts     # Embeddings + vector store; memory.semantic.*, node.execute semantic_search
+│   │   ├── rag-service.ts     # Embeddings + SQLite; sqlite-vss KNN when available, else dot-product; memory.semantic.*, node.execute semantic_search
 │   │   ├── tool-host.ts        # read_file, write_file, http_get; sandbox; tool.execute / node.execute tool
 │   │   └── cron-manager.ts    # node-cron + SQLite schedules; event.cron.* to Logger
 │   └── shared/
@@ -51,8 +54,9 @@ AI-Agent/
 │       ├── graph-utils.ts      # DAG validation, getDependencyMap, getReadyNodes
 │       └── __tests__/
 │           └── graph-utils.test.ts
-└── src/services/__tests__/
-    └── task-memory.test.ts
+├── src/services/__tests__/
+│   ├── task-memory.test.ts
+│   └── rag-service.test.ts
 ```
 
 (Test and build output dirs such as `dist/`, `node_modules/`, `logs/`, `data/` are omitted.)
@@ -71,11 +75,11 @@ AI-Agent/
 
 - **Envelope** (Zod in `protocol.ts`): `id`, `timestamp`, `from`, `to`, `type`, `version`, `payload`.
 - **Request/response**: Request has a unique `id`; response/error uses `correlationId: request.id`.
-- **Types**: `plan.create`, `plan.execute`, `task.create`, `task.update`, `task.get`, `task.appendReflection`, `task.complete`, `task.fail`, `node.execute`, `reflection.evaluate`, `telegram.send`, `telegram.progress`, `memory.semantic.insert`, `memory.semantic.search`, `tool.execute`, `cron.schedule.*`, `event.*`.
+- **Types**: `plan.create`, `plan.execute`, `task.create`, `task.update`, `task.get`, `task.getByConversationId`, `task.appendReflection`, `task.complete`, `task.fail`, `chat.new`, `node.execute`, `reflection.evaluate`, `telegram.send`, `telegram.progress`, `memory.semantic.insert`, `memory.semantic.search`, `tool.execute`, `cron.schedule.*`, `event.*`.
 
 ### Shared layer
 
-- **config.ts**: Loads `config.json` (path from `CONFIG_PATH` or default), merges with env, exports `getConfig()`. Used by all services/adapters for Ollama URL, Telegram token/allow-list, DB paths, logger paths, RAG embed model, tool sandbox, cron DB, model router names.
+- **config.ts**: Loads `config.json` (path from `CONFIG_PATH` or default), merges with env, exports `getConfig()`. Used by all services/adapters for Ollama URL, Telegram token/allow-list, DB paths (task memory, RAG, cron, logger), RAG embed model and `rag.dbPath`, tool sandbox, model router names.
 - **protocol.ts**: Envelope and response/error/event schemas; `parseEnvelope`, `parseResponse`, etc.
 - **base-process.ts**: `BaseProcess` extends EventEmitter; readline on stdin, `handleEnvelope(line)` → emit `"message"`; `send(envelope)` writes JSONL to stdout. Subclasses override `handleEnvelope` and call `send` for responses.
 - **graph-utils.ts**: `CapabilityGraph`, `CapabilityNode`, `validateGraph`, `getDependencyMap`, `getReadyNodes` for DAG execution order.
@@ -90,20 +94,20 @@ AI-Agent/
 
 - **Ollama Adapter**: HTTP to Ollama `baseUrl` (from config); `generate`, `chat`, `embed`; timeout and retries.
 - **Model Router**: Maps small/medium/large to Ollama model names (from config).
-- **Generator Service**: Handles `node.execute` with `type: "generate_text"`; builds prompt from context (goal, deps, optional critic feedback); calls Ollama; responds with `{ text, ... }`.
-- **Task Memory**: SQLite store; handles `task.create`, `task.update`, `task.get`, `task.appendReflection`, `task.complete`, `task.fail`.
+- **Generator Service**: Handles `node.execute` with `type: "generate_text"` or `type: "summarize"`; for `summarize`, uses summarizer system prompt and `input.chatHistory`; builds prompt from context (goal, deps, optional critic feedback); calls Ollama; responds with `{ text, ... }`.
+- **Task Memory**: SQLite store; `conversation_id` on tasks; handles `task.create`, `task.update`, `task.get`, `task.getByConversationId`, `task.appendReflection`, `task.complete`, `task.fail`.
 - **Logger**: Subscribes to `event.*`; writes structured log (pino) to `logDir/logFile` from config.
-- **RAG Service**: Ollama embed; in-memory vector store; `memory.semantic.insert`, `memory.semantic.search`; `node.execute` for `semantic_search` returns snippets for downstream nodes.
+- **RAG Service**: Ollama embed; SQLite-backed document store; **sqlite-vss** for KNN vector search when extension loads (macOS/Linux x64), else in-DB dot-product; configurable `rag.embeddingDimensions` (768); `memory.semantic.insert`, `memory.semantic.search`; `node.execute` for `semantic_search` returns snippets for downstream nodes.
 - **Tool Host**: Registry of tools (read_file, write_file, http_get); sandbox dir from config; `tool.execute` and `node.execute` for type `tool`; permission errors for paths outside sandbox.
 - **Cron Manager**: SQLite schedule table; node-cron; `cron.schedule.add/list/remove`; emits `event.cron.started/completed/failed` to Logger.
 
 ### Adapters
 
-- **Telegram Adapter**: Telegram bot (token from config); allow-list from config; normalizes messages to protocol; sends `task.create` to core; handles `telegram.send`, `telegram.progress`, and response payloads with `chatId`/`text`; commands `/start`, `/task`, `/help`.
+- **Telegram Adapter**: Telegram bot (token from config); allow-list from config; normalizes messages to protocol; sends `task.create` to core (with `conversationId` from session map); sends `chat.new` on `/new`; handles `telegram.send`, `telegram.progress`, and response payloads with `chatId`/`text`; commands `/start`, `/task`, `/new`, `/help`.
 
 ### Core
 
-- **Orchestrator**: Spawns all processes (task-memory, logger, planner, executor, critic-agent, telegram-adapter, model-router, rag-service, tool-host, cron-manager); multiplexes stdout → route by `to`; resolves pending requests by `correlationId`; implements task pipeline for `task.create` from Telegram: plan.create → task.create → plan.execute → telegram.send with result.
+- **Orchestrator**: Spawns all processes (task-memory, logger, planner, executor, critic-agent, telegram-adapter, model-router, rag-service, tool-host, cron-manager); multiplexes stdout → route by `to`; resolves pending requests by `correlationId`; implements task pipeline for `task.create` from Telegram: plan.create → task.create (with conversationId) → plan.execute → telegram.send with result; on `chat.new`: runArchivingPipeline (getTasksByConversationId → format history → summarize → memory.semantic.insert → telegram.send "Archived").
 
 ### Data flow (high level)
 
@@ -116,5 +120,7 @@ AI-Agent/
 7. Executor → Core: response with aggregated result.
 8. Core → Telegram Adapter: `telegram.send` (chatId, text).
 9. User sees reply in Telegram.
+
+**Archiving (on `/new`)**: Telegram sends `chat.new` (chatId, old conversationId). Core fetches tasks by conversationId, formats history, calls model-router `summarize`, inserts summary into RAG, sends "Archived" to user.
 
 All configurable behavior (Ollama URL, Telegram token/allow-list, DB paths, logger paths, RAG model, sandbox, cron DB, model names) is driven by **config.json** and environment overrides via **config.ts**.

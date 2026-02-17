@@ -1,14 +1,14 @@
 /**
  * RAG Service: semantic memory via embeddings and similarity search.
- * Uses Ollama for embeddings; SQLite for persistent embedding storage.
- * P4-03: _board/TASKS/P4-03_RAG_SERVICE.md
- * P6-01: _board/TASKS/P6-01_RAG_SQLITE_PERSISTENCE.md
+ * Uses Ollama for embeddings; SQLite for persistent storage.
+ * P6-01: SQLite persistence. P7-01: sqlite-vss for scalable KNN with fallback to dot-product.
  */
 
 import { randomUUID } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import Database from "better-sqlite3";
+import * as sqliteVss from "sqlite-vss";
 import { BaseProcess } from "../shared/base-process.js";
 import type { Envelope } from "../shared/protocol.js";
 import { PROTOCOL_VERSION } from "../shared/protocol.js";
@@ -37,31 +37,98 @@ function bufferToEmbedding(buf: Buffer): number[] {
   return Array.from(f64);
 }
 
-/** SQLite-backed store for RAG documents. */
+function dotProduct(a: number[], b: number[]): number {
+  let sum = 0;
+  const len = Math.min(a.length, b.length);
+  for (let i = 0; i < len; i++) sum += a[i]! * b[i]!;
+  return sum;
+}
+
+/** L2 distance to score: higher = more similar. */
+function distanceToScore(distance: number): number {
+  return 1 / (1 + Math.max(0, distance));
+}
+
+/** SQLite-backed store for RAG documents. Uses sqlite-vss for KNN when available, else dot-product full scan. */
 export class RAGStore {
   private db: Database.Database;
+  private useVss: boolean;
+  private readonly embeddingDimensions: number;
+  private readonly vssTableName = "vss_rag_embedding";
 
-  constructor(dbPath: string) {
+  constructor(dbPath: string, embeddingDimensions = 768) {
     mkdirSync(dirname(dbPath), { recursive: true });
     this.db = new Database(dbPath);
+    this.embeddingDimensions = embeddingDimensions;
     this.db.exec(RAG_SCHEMA);
+    let vssLoaded = false;
+    try {
+      sqliteVss.load(this.db);
+      this.db.exec(
+        `CREATE VIRTUAL TABLE IF NOT EXISTS ${this.vssTableName} USING vss0( embedding(${this.embeddingDimensions}) )`,
+      );
+      vssLoaded = true;
+    } catch {
+      // Extension unavailable (e.g. unsupported platform); use fallback
+    }
+    this.useVss = vssLoaded;
   }
 
   close(): void {
     this.db.close();
   }
 
+  /** Whether sqlite-vss is active (KNN search). */
+  isVssEnabled(): boolean {
+    return this.useVss;
+  }
+
   insert(id: string, content: string, metadata: Record<string, unknown>, embedding: number[]): void {
     const metaJson = JSON.stringify(metadata);
     const blob = embeddingToBuffer(embedding);
-    this.db
-      .prepare(
-        `INSERT INTO rag_documents (id, content, metadata, embedding) VALUES (?, ?, ?, ?)`,
-      )
-      .run(id, content, metaJson, blob);
+    const run = (): void => {
+      this.db
+        .prepare(
+          `INSERT INTO rag_documents (id, content, metadata, embedding) VALUES (?, ?, ?, ?)`,
+        )
+        .run(id, content, metaJson, blob);
+      if (this.useVss) {
+        const rowid = this.db.prepare("SELECT last_insert_rowid()").pluck().get() as number;
+        const embeddingJson = JSON.stringify(embedding);
+        this.db.prepare(`INSERT INTO ${this.vssTableName}(rowid, embedding) VALUES (?, ?)`).run(rowid, embeddingJson);
+      }
+    };
+    this.db.transaction(run)();
   }
 
   search(queryEmbedding: number[], limit: number): Array<{ content: string; metadata: Record<string, unknown>; score: number }> {
+    const k = Math.max(1, Math.floor(limit));
+    if (this.useVss) {
+      const hasRows = (this.db.prepare(`SELECT 1 FROM ${this.vssTableName} LIMIT 1`).get() as unknown) != null;
+      if (!hasRows) return [];
+      const queryJson = JSON.stringify(queryEmbedding);
+      const vssRows = this.db
+        .prepare(
+          `SELECT rowid, distance FROM ${this.vssTableName} WHERE vss_search(embedding, ?) LIMIT ?`,
+        )
+        .all(queryJson, k) as Array<{ rowid: number; distance: number }>;
+      if (vssRows.length === 0) return [];
+      const rowids = vssRows.map((r) => r.rowid);
+      const order = new Map(rowids.map((r, i) => [r, i]));
+      const placeholders = rowids.map(() => "?").join(",");
+      const docs = this.db
+        .prepare(
+          `SELECT rowid, content, metadata FROM rag_documents WHERE rowid IN (${placeholders})`,
+        )
+        .all(...rowids) as Array<{ rowid: number; content: string; metadata: string }>;
+      docs.sort((a, b) => (order.get(a.rowid) ?? 0) - (order.get(b.rowid) ?? 0));
+      const distanceByRowid = new Map(vssRows.map((r) => [r.rowid, r.distance]));
+      return docs.map((d) => ({
+        content: d.content,
+        metadata: (JSON.parse(d.metadata || "{}") ?? {}) as Record<string, unknown>,
+        score: distanceToScore(distanceByRowid.get(d.rowid) ?? 0),
+      }));
+    }
     const rows = this.db.prepare(`SELECT id, content, metadata, embedding FROM rag_documents`).all() as Array<{
       id: string;
       content: string;
@@ -95,12 +162,13 @@ export class RAGService extends BaseProcess {
   private readonly embedModel: string;
   private readonly store: RAGStore;
 
-  constructor(options?: { ollama?: OllamaAdapter; embedModel?: string; dbPath?: string }) {
+  constructor(options?: { ollama?: OllamaAdapter; embedModel?: string; dbPath?: string; embeddingDimensions?: number }) {
     super({ processName: PROCESS_NAME });
     this.ollama = options?.ollama ?? new OllamaAdapter();
     this.embedModel = options?.embedModel ?? getConfig().rag.embedModel;
     const dbPath = options?.dbPath ?? getConfig().rag.dbPath;
-    this.store = new RAGStore(dbPath);
+    const embeddingDimensions = options?.embeddingDimensions ?? getConfig().rag.embeddingDimensions;
+    this.store = new RAGStore(dbPath, embeddingDimensions);
   }
 
   /** Embed and store a document */
@@ -194,13 +262,6 @@ export class RAGService extends BaseProcess {
       payload: { code, message, details: {} },
     });
   }
-}
-
-function dotProduct(a: number[], b: number[]): number {
-  let sum = 0;
-  const len = Math.min(a.length, b.length);
-  for (let i = 0; i < len; i++) sum += a[i]! * b[i]!;
-  return sum;
 }
 
 function main(): void {

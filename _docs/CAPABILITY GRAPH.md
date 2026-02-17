@@ -63,6 +63,11 @@ interface CapabilityNode {
 
 ---
 
+## Node types (model-router / Generator)
+
+- **generate_text** — LLM generation; input: `modelClass`, optional `prompt`, context from dependencies.
+- **summarize** — Memory extraction from chat history; input: `chatHistory` (text). Uses dedicated summarizer system prompt. Used by Orchestrator for conversation archiving.
+
 ## Graph Rules
 
 - Graph must be acyclic.

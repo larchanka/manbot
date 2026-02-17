@@ -37,13 +37,13 @@
 - [ ] **P4-06**: Implement `Cron Manager` for background maintenance and scheduled tasks.
 
 ## Phase 6: Conversation Management
-- [ ] **P6-01**: Update `RAGService` to use `SQLite` for persistent embedding storage.
-- [ ] **P6-02**: Update `TaskMemory` schema to include `conversation_id` in `tasks` table.
-- [ ] **P6-03**: Update `Telegram Adapter` to handle `/new` command and track session IDs.
-- [ ] **P6-04**: Add `Summarizer Agent` or specialized prompt for extracting important info from chat history.
-- [ ] **P6-05**: Implement `chat.new` orchestration flow in `Orchestrator`:
-    - Fetch tasks for old `conversation_id`.
-    - Run summary/extraction.
-    - Store result in `RAGService`.
-- [ ] **P6-06**: Write integration tests for the full archiving cycle.
+- [x] **P6-01**: Update `RAGService` to use `SQLite` for persistent embedding storage.
+- [x] **P6-02**: Update `TaskMemory` schema to include `conversation_id` in `tasks` table.
+- [x] **P6-03**: Update `Telegram Adapter` to handle `/new` command and track session IDs.
+- [x] **P6-04**: Add summarizer prompt and `summarize` node (GeneratorService) for memory extraction from chat history.
+- [x] **P6-05**: Implement `chat.new` orchestration flow in `Orchestrator`: fetch tasks, summarize, store in RAG, notify Telegram.
+- [x] **P6-06**: Write integration tests for the full archiving cycle (`src/__tests__/archiving.test.ts`).
+
+## Phase 7: RAG Scalability
+- [x] **P7-01**: RAG vector search with sqlite-vss: KNN via vss0 virtual table; fallback to dot-product when extension unavailable; config `rag.embeddingDimensions` (default 768).
 

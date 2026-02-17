@@ -48,24 +48,25 @@ This plan outlines the step-by-step implementation of the local multi-agent AI r
 
 ---
 
-### Phase 6: Conversation Management
-- **[UPDATE] RAG Service Persistence**: Update `RAGService` to persist semantic memory to an SQLite-based store instead of in-memory only.
-- **[UPDATE] Task Memory Schema**: Add `conversation_id` to `tasks` table in `TaskMemory` to group tasks into chat sessions.
-- **[UPDATE] Telegram Adapter Commands**: Implement `/new` command to trigger conversation archiving and session reset.
-- **[UPDATE] Orchestrator Archiving Flow**: Implement logic to handle `chat.new` events:
-    - Get history of the current conversation.
-    - specialized "Memory Agent" node to summarize and extract key info.
-    - Store the extracted info in `RAGService`.
-    - Reset the `conversation_id` in `Telegram Adapter` state.
+### Phase 6: Conversation Management (implemented)
+- **[DONE] RAG Service Persistence**: `RAGService` persists to SQLite (`rag_documents` table, configurable `rag.dbPath`).
+- **[DONE] Task Memory Schema**: `conversation_id` added to `tasks` table; `task.getByConversationId` for history.
+- **[DONE] Telegram Adapter**: `/new` command; session map `chatId` → `conversationId`; sends `chat.new` to Core with old conversationId.
+- **[DONE] Orchestrator Archiving Flow**: On `chat.new`, fetches tasks by conversationId, formats history, runs `summarize` node (model-router), stores summary in RAG, notifies user via Telegram.
 
 ## Verification Plan
 
 ### Automated Tests
-- Integration test for `RAGService` persistence (verify data survives restart).
-- Unit test for `/new` command parsing in `Telegram Adapter`.
-- Integration test for Orchestrator's archiving flow (mock LLM response for summary).
+- Integration test for `RAGService` persistence (verify data survives restart). ✓
+- Unit test for conversation_id and `getTasksByConversationId`. ✓
+- Integration test for archiving flow: task history → mock summary → RAG insert → SQLite record. ✓ (`src/__tests__/archiving.test.ts`)
 
 ### Manual Verification
 - Send messages to Telegram bot, then send `/new`.
 - Verify bot responds that previous conversation is archived.
-- Send a follow-up question that might benefit from memory (if context injection is implemented) or check the RAG database manually.
+- Check RAG database or semantic search for stored summary.
+
+---
+
+### Phase 7: RAG Scalability (sqlite-vss) (implemented)
+- **[DONE] RAG Vector Search with sqlite-vss**: sqlite-vss extension used for KNN when available; `rag_documents` table unchanged; vss0 virtual table `vss_rag_embedding` for embeddings; fallback to in-DB dot-product when extension unavailable; `rag.embeddingDimensions` (default 768).

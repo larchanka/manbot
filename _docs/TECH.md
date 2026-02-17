@@ -34,15 +34,16 @@
 ## Embeddings
 
 - Ollama embedding models
-- FAISS (via Python service or node binding)
+- RAG: SQLite-backed document store; **sqlite-vss** for scalable KNN vector search when available (macOS x64/arm64, Linux x64); fallback to in-DB dot-product on other platforms. Configurable `rag.embeddingDimensions` (default 768).
 
 ---
 
 ## Databases
 
 - SQLite (better-sqlite3)
-  - Task memory
-  - Structured memory
+  - Task memory (with `conversation_id` for session grouping)
+  - RAG documents (`rag.dbPath`)
+  - Structured memory (cron, etc.)
 
 ---
 

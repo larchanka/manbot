@@ -115,9 +115,13 @@ interface Envelope<T = any> {
 - `task.create`
 - `task.update`
 - `task.get`
+- `task.getByConversationId`
 - `task.appendReflection`
 - `task.complete`
 - `task.fail`
+
+### Chat / Session
+- `chat.new` (event: session reset; payload: chatId, conversationId)
 
 ### Memory
 - `memory.semantic.search`

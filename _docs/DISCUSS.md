@@ -48,8 +48,7 @@
 ---
 
 ## 8. Backup Strategy
-- Snapshot SQLite?
-- Snapshot FAISS?
+- Snapshot SQLite (task memory, RAG, cron)?
 - Log rotation policy?
 
 ---

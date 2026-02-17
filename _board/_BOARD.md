@@ -6,6 +6,15 @@
 
 ## Done
 
+### P7-01 RAG Vector Search with sqlite-vss
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Use sqlite-vss for scalable vector similarity search; fallback to in-DB dot-product when extension unavailable.
+    
+    Source: P7-01_RAG_SQLITE_VSS.md
+    ```
+
 ### P6-06 End-to-End Archiving Integration Test
   - tags: [done]
   - defaultExpanded: false

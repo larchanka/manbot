@@ -7,8 +7,9 @@ A multi-process AI platform with type-safe IPC and capability-graph execution. U
 - **Multi-agent pipeline**: Planner → Task Memory → Executor → Critic (optional revision loop)
 - **Capability graph (DAG)**: Nodes for `generate_text`, `semantic_search`, `reflect`, `tool`; parallel execution where dependencies allow
 - **Type-safe IPC**: JSONL over stdin/stdout with Zod-validated envelopes
-- **Services**: Task Memory (SQLite), Logger, RAG (embeddings + in-memory vector store), Tool Host (read_file, write_file, http_get), Cron Manager
-- **Telegram adapter**: Commands `/start`, `/task`, `/help`; optional allow-list of user IDs
+- **Services**: Task Memory (SQLite, with `conversation_id` for session grouping), Logger, RAG (embeddings + SQLite; vector search via **sqlite-vss** when available, fallback to in-DB dot-product), Tool Host (read_file, write_file, http_get), Cron Manager
+- **Telegram adapter**: Commands `/start`, `/task`, `/new`, `/help`; session tracking and conversation archiving; optional allow-list of user IDs
+- **Conversation archiving**: `/new` resets the session, summarizes the previous conversation via a dedicated summarizer prompt, and stores the summary in RAG for later retrieval
 
 ## Requirements
 
@@ -43,6 +44,8 @@ ollama pull mistral
    - **telegram.allowedUserIds** — Comma-separated Telegram user IDs; leave empty to allow all
    - **ollama.baseUrl** — Ollama API URL (default `http://127.0.0.1:11434`)
    - **rag.embedModel** — Embedding model for RAG (default `nomic-embed-text`)
+   - **rag.dbPath** — SQLite path for RAG document storage (default `data/rag.sqlite`)
+   - **rag.embeddingDimensions** — Vector dimension for sqlite-vss (default 768 for nomic-embed-text)
    - **modelRouter** — Ollama model names for small/medium/large
    - **toolHost.sandboxDir** — Directory allowed for file tools (default: cwd)
 
@@ -52,7 +55,7 @@ Environment variables override `config.json`. Supported env vars:
 - `TELEGRAM_BOT_TOKEN`, `TELEGRAM_ALLOWED_USER_IDS`
 - `OLLAMA_BASE_URL`, `OLLAMA_TIMEOUT_MS`, `OLLAMA_RETRIES`
 - `TASK_MEMORY_DB`, `CRON_DB`, `LOG_DIR`, `LOG_FILE`
-- `RAG_EMBED_MODEL`, `TOOL_SANDBOX_DIR`
+- `RAG_EMBED_MODEL`, `RAG_DB`, `RAG_EMBEDDING_DIMENSIONS`, `TOOL_SANDBOX_DIR`
 - `MODEL_ROUTER_SMALL`, `MODEL_ROUTER_MEDIUM`, `MODEL_ROUTER_LARGE`
 
 `config.json` is gitignored; do not commit secrets.
@@ -95,12 +98,14 @@ Other services (task-memory, logger, planner, executor, critic-agent, rag-servic
 npm test
 ```
 
+The suite includes unit tests for Task Memory, RAG Store, and graph utils, plus an integration test for the conversation archiving flow (`src/__tests__/archiving.test.ts`).
+
 ## Project layout
 
 - **src/core/** — Core Orchestrator (process spawning, message routing, task pipeline)
-- **src/agents/** — Planner, Executor, Critic; **prompts/** for system prompts
+- **src/agents/** — Planner, Executor, Critic; **prompts/** for system prompts (planner, critic, summarizer)
 - **src/adapters/** — Telegram adapter
-- **src/services/** — Task Memory, Logger, Ollama adapter, Model Router, Generator, RAG, Tool Host, Cron Manager
+- **src/services/** — Task Memory, Logger, Ollama adapter, Model Router, Generator (generate_text + summarize), RAG (SQLite), Tool Host, Cron Manager
 - **src/shared/** — Protocol (Zod schemas), BaseProcess, graph-utils, config
 - **_docs/** — Architecture and protocol specs
 - **_board/** — Task board and task specs

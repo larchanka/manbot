@@ -78,19 +78,21 @@ Supports:
 ---
 
 ### RAG Service
-- FAISS vector index
-- Embedding storage
-- Semantic retrieval
+- SQLite-backed document store (`rag_documents`: id, content, metadata, embedding BLOB)
+- Configurable DB path via `rag.dbPath` and vector dimension via `rag.embeddingDimensions` (default 768)
+- **sqlite-vss**: When the extension loads (supported platforms: macOS x64/arm64, Linux x64), uses a vss0 virtual table for fast KNN search; otherwise falls back to in-DB dot-product scoring
+- Used for long-term semantic memory and archived conversation summaries
 
 ---
 
 ### Task Memory Service (SQLite)
 Stores:
-- Task definitions
+- Task definitions (with `conversation_id` for session grouping)
 - Execution state
 - Intermediate results
 - Reflections
 - Status flags
+- Query by `conversation_id` for archiving and history
 
 ---
 
@@ -125,6 +127,15 @@ Stores:
 - Receives user messages
 - Normalizes payload
 - Sends to Core
+- Session tracking: `chatId` → `conversationId` map
+- `/new` command: sends `chat.new` to Core (old conversationId), rotates to new session, notifies user
+
+---
+
+### Summarizer (Generator / model-router)
+- Node type `summarize`: extracts persistent memory from chat history
+- Dedicated system prompt (identity, preferences, entities, context)
+- Used by Orchestrator archiving pipeline
 
 ---
 
@@ -140,11 +151,17 @@ Stores:
 1. Telegram → Core
 2. Core → Planner
 3. Planner → Execution Plan
-4. Core → Task Memory (create)
+4. Core → Task Memory (create, with `conversationId` from adapter)
 5. Executor → Services
 6. Critic → Evaluate
 7. Executor (if revision)
 8. Memory Update
 9. Logger events
 10. Response to Telegram
+
+### Archiving (on `/new`)
+
+1. Telegram Adapter → Core: `chat.new` (chatId, conversationId = old session)
+2. Core: get tasks by `conversationId`, format history, call model-router `summarize`, insert summary into RAG
+3. Core → Telegram Adapter: "Archived. Conversation summary has been stored..."
 

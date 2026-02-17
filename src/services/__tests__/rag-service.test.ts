@@ -28,7 +28,7 @@ describe("RAGStore", () => {
   beforeEach(() => {
     mkdirSync(TEST_DIR, { recursive: true });
     dbPath = freshDbPath();
-    store = new RAGStore(dbPath);
+    store = new RAGStore(dbPath, 4); // 4-dim vectors for tests (vss table dimension must match)
   });
 
   afterEach(() => {
@@ -59,7 +59,8 @@ describe("RAGStore", () => {
       expect(results[0]?.content).toBe(content);
       expect(results[0]?.metadata).toEqual(metadata);
       expect(typeof results[0]?.score).toBe("number");
-      expect(results[0]?.score).toBeGreaterThan(0.9);
+      // With vss: L2 distance -> score 1/(1+d); with dot-product: score in [0,1]. Both higher = more similar
+      expect(results[0]?.score).toBeGreaterThan(0.5);
     });
 
     it("returns top-k by score", () => {
@@ -86,7 +87,7 @@ describe("RAGStore", () => {
       store.insert(id, content, metadata, embedding);
       store.close();
 
-      const store2 = new RAGStore(dbPath);
+      const store2 = new RAGStore(dbPath, 4);
       const results = store2.search(embedding, 5);
       store2.close();
 

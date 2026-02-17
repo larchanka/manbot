@@ -14,7 +14,7 @@ It supports:
 - Task-level isolated memory
 - Layered memory system
 - Local LLM inference via Ollama
-- RAG via FAISS
+- RAG via SQLite-backed document store; sqlite-vss for scalable vector search when available (fallback: dot-product)
 - Structured persistence via SQLite
 - Tool execution via MCP-compatible tool host
 - Telegram interface
@@ -57,10 +57,10 @@ All agents operate independently and communicate via structured protocol.
 Memory is layered:
 
 1. Short-Term Conversation Memory
-2. Task Memory (isolated per execution)
-3. Semantic Memory (vector via FAISS)
+2. Task Memory (isolated per execution; grouped by `conversation_id`)
+3. Semantic Memory (RAG: SQLite + embeddings; archived conversation summaries)
 4. Structured Memory (SQLite)
-5. Long-Term Knowledge (RAG indexed documents)
+5. Long-Term Knowledge (RAG indexed documents and summaries)
 
 Each memory layer has a clearly defined purpose and scope.
 

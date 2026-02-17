@@ -35,7 +35,7 @@ describe("Archiving pipeline integration", () => {
     taskDbPath = freshDbPath("tasks");
     ragDbPath = freshDbPath("rag");
     taskStore = new TaskMemoryStore(taskDbPath);
-    ragStore = new RAGStore(ragDbPath);
+    ragStore = new RAGStore(ragDbPath, 4); // 4-dim for test vectors
   });
 
   afterEach(() => {
