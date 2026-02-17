@@ -2,15 +2,6 @@
 
 ## To Do
 
-### S4-02 Update AI-Agent.md
-  - tags: [todo]
-  - defaultExpanded: false
-    ```md
-    Update AI-Agent.md to reflect shell tool in tool-host.ts description and tool capabilities list.
-    
-    Source: S4-02_UPDATE_AI_AGENT_MD.md
-    ```
-
 ### S5-01 Manual Testing - File Operations
   - tags: [todo]
   - defaultExpanded: false
@@ -58,16 +49,25 @@
 
 ## In Progress
 
-### S4-01 Update README.md
+### S4-02 Update AI-Agent.md
   - tags: [in-progress]
+  - defaultExpanded: false
+    ```md
+    Update AI-Agent.md to reflect shell tool in tool-host.ts description and tool capabilities list.
+    
+    Source: S4-02_UPDATE_AI_AGENT_MD.md
+    ```
+
+## Done
+
+### S4-01 Update README.md
+  - tags: [done]
   - defaultExpanded: false
     ```md
     Update README to reflect shell tool instead of read_file/write_file in services list and documentation.
     
     Source: S4-01_UPDATE_README.md
     ```
-
-## Done
 
 ### S3-03 Update Config Documentation
   - tags: [done]
