@@ -123,6 +123,17 @@ export class BrowserService extends BaseProcess {
         timezoneId: "America/New_York",
         // Disable automation indicators
         ignoreHTTPSErrors: true,
+        // Realistic browser headers
+        extraHTTPHeaders: {
+          "Accept-Language": "en-US,en;q=0.9",
+          "Accept-Encoding": "gzip, deflate, br",
+          "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+          "Upgrade-Insecure-Requests": "1",
+          "Sec-Fetch-Dest": "document",
+          "Sec-Fetch-Mode": "navigate",
+          "Sec-Fetch-Site": "none",
+          "Cache-Control": "max-age=0",
+        },
       });
 
       // Only store context if reuseContext is enabled
@@ -138,11 +149,64 @@ export class BrowserService extends BaseProcess {
       // Set up timeout
       page.setDefaultTimeout(timeout);
 
+      // Disable automation flags via page context
+      await page.addInitScript(() => {
+        // Remove webdriver flag
+        Object.defineProperty(navigator, "webdriver", {
+          get: () => false,
+        });
+        
+        // Override plugins
+        Object.defineProperty(navigator, "plugins", {
+          get: () => [1, 2, 3, 4, 5],
+        });
+        
+        // Override languages
+        Object.defineProperty(navigator, "languages", {
+          get: () => ["en-US", "en"],
+        });
+      });
+
+      // Random delay before navigation (100-500ms)
+      const preNavDelay = Math.floor(Math.random() * 400) + 100;
+      await page.waitForTimeout(preNavDelay);
+
       // Navigate to URL and wait for network idle
       const response = await page.goto(url, {
         waitUntil: "networkidle",
         timeout: timeout,
       });
+
+      // Wait for network idle (already done, but ensure content is loaded)
+      await page.waitForLoadState("networkidle");
+
+      // Add realistic mouse movement to random coordinates
+      const viewportSize = page.viewportSize();
+      if (viewportSize) {
+        const randomX = Math.floor(Math.random() * viewportSize.width);
+        const randomY = Math.floor(Math.random() * viewportSize.height);
+        await page.mouse.move(randomX, randomY, { steps: Math.floor(Math.random() * 10) + 5 });
+      }
+
+      // Random scroll behavior for long pages
+      const contentHeight = await page.evaluate(() => document.body.scrollHeight);
+      const viewportHeight = viewportSize?.height ?? 1080;
+      
+      if (contentHeight > viewportHeight) {
+        // Scroll to random position (0 to max scroll)
+        const maxScroll = contentHeight - viewportHeight;
+        const scrollPosition = Math.floor(Math.random() * maxScroll);
+        await page.evaluate((pos) => {
+          window.scrollTo({ top: pos, behavior: "smooth" });
+        }, scrollPosition);
+        
+        // Wait for scroll animation
+        await page.waitForTimeout(Math.floor(Math.random() * 300) + 200);
+      }
+
+      // Random delay before content extraction (100-300ms)
+      const preExtractDelay = Math.floor(Math.random() * 200) + 100;
+      await page.waitForTimeout(preExtractDelay);
 
       // Get final URL (after redirects)
       const finalUrl = page.url();
@@ -201,6 +265,14 @@ export class BrowserService extends BaseProcess {
           "--disable-setuid-sandbox",
           "--disable-blink-features=AutomationControlled",
           "--disable-dev-shm-usage",
+          // Disable automation flags
+          "--disable-automation",
+          "--disable-infobars",
+          "--disable-notifications",
+          "--disable-popup-blocking",
+          // Realistic browser behavior
+          "--lang=en-US",
+          "--disable-extensions",
         ],
       });
 
