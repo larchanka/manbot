@@ -147,6 +147,7 @@ export class Orchestrator {
   private handleCoreMessage(fromProcess: string, envelope: Envelope): void {
     const type = envelope.type;
     const payload = envelope.payload as Record<string, unknown>;
+    ConsoleLogger.info("core", `handleCoreMessage: type=${type}, fromProcess=${fromProcess}`);
     if (type === "chat.new" && fromProcess === "telegram-adapter") {
       const chatId = payload.chatId as number | undefined;
       const conversationId = payload.conversationId as string | undefined;
