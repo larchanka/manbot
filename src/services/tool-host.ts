@@ -1,5 +1,5 @@
 /**
- * Tool Host: secure sandbox for tool execution (read_file, write_file, http_get).
+ * Tool Host: secure sandbox for tool execution (read_file, write_file, http_get, http_search).
  * Enforces sandbox directory for file tools; MCP-compatible tool definition and execution.
  * P4-05: _board/TASKS/P4-05_TOOL_HOST.md
  */
@@ -48,6 +48,7 @@ export class ToolHost extends BaseProcess {
     this.tools.set("read_file", this.readFileTool.bind(this));
     this.tools.set("write_file", this.writeFileTool.bind(this));
     this.tools.set("http_get", this.httpGetTool.bind(this));
+    this.tools.set("http_search", this.httpSearchTool.bind(this));
   }
 
   private resolvePath(relativePath: string): { path: string; allowed: boolean } {
@@ -137,6 +138,46 @@ export class ToolHost extends BaseProcess {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       throw new Error(`HTTP GET failed (${method}): ${message}`);
+    }
+  }
+
+  private async httpSearchTool(args: Record<string, unknown>): Promise<unknown> {
+    const query = args.query ?? args.q;
+    if (typeof query !== "string") throw new Error("http_search requires query (string)");
+    
+    // Build DuckDuckGo search URL
+    const searchUrl = `https://duckduckgo.com/search?q=${encodeURIComponent(query)}`;
+    
+    const startTime = Date.now();
+    
+    try {
+      // DuckDuckGo is an SPA, so we always use browser
+      const browserService = this.getBrowserService();
+      const result = await browserService.fetchWithBrowser(searchUrl);
+      
+      const responseTime = Date.now() - startTime;
+      let body = result.body;
+      
+      // Convert HTML to Markdown (DuckDuckGo returns HTML)
+      const isHTML = result.contentType.includes("text/html") || body.trim().startsWith("<!DOCTYPE") || body.trim().startsWith("<html");
+      if (isHTML) {
+        body = htmlToMarkdown(body);
+      }
+      
+      return {
+        status: result.status,
+        body,
+        contentType: result.contentType,
+        finalUrl: result.finalUrl,
+        method: result.method,
+        usedMethod: "browser",
+        responseTimeMs: responseTime,
+        query,
+        searchUrl,
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`HTTP search failed: ${message}`);
     }
   }
 

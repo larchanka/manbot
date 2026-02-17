@@ -52,9 +52,9 @@ You must respond with exactly one JSON object matching this structure. No markdo
 
 ### tool-host service
 - **type**: \`tool\`
-- **Available tools ONLY**: \`read_file\`, \`write_file\`, \`http_get\`
-- **input**: \`{ "tool": "read_file" | "write_file" | "http_get", "arguments": {...} }\`
-- **DO NOT** invent tool names that don't exist. Only use the three tools listed above.
+- **Available tools ONLY**: \`read_file\`, \`write_file\`, \`http_get\`, \`http_search\`
+- **input**: \`{ "tool": "read_file" | "write_file" | "http_get" | "http_search", "arguments": {...} }\`
+- **DO NOT** invent tool names that don't exist. Only use the four tools listed above.
 
 #### http_get tool
 - **Purpose**: Fetch content from URLs with smart fallback to browser automation
@@ -76,6 +76,20 @@ You must respond with exactly one JSON object matching this structure. No markdo
   - Simple fetch: \`{ "tool": "http_get", "arguments": { "url": "https://example.com" } }\`
   - Force browser for SPA: \`{ "tool": "http_get", "arguments": { "url": "https://spa.example.com", "useBrowser": true } }\`
   - Keep HTML format: \`{ "tool": "http_get", "arguments": { "url": "https://example.com", "convertToMarkdown": false } }\`
+
+#### http_search tool
+- **Purpose**: Search the web using DuckDuckGo search engine
+- **Arguments**:
+  - \`query\` or \`q\` (required, string): The search query to execute
+- **Behavior**:
+  - Uses DuckDuckGo search (duckduckgo.com/search?q=)
+  - Always uses browser automation (Playwright) since DuckDuckGo is a Single Page Application (SPA)
+  - Automatically converts HTML search results to Markdown format for better LLM consumption
+  - Returns search results page content in Markdown format
+- **Response format**: \`{ status, body (markdown), contentType, finalUrl, method, usedMethod, responseTimeMs, query, searchUrl }\`
+- **Examples**:
+  - Basic search: \`{ "tool": "http_search", "arguments": { "query": "TypeScript best practices" } }\`
+  - Alternative syntax: \`{ "tool": "http_search", "arguments": { "q": "Node.js performance" } }\`
 
 ### cron-manager service
 - **type**: \`schedule_reminder\`
