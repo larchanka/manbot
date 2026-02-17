@@ -50,6 +50,7 @@ export function htmlToMarkdown(html: string, options?: ConversionOptions): strin
     bulletListMarker: "-", // Use - for unordered lists
     emDelimiter: "*", // Use * for emphasis
     strongDelimiter: "**", // Use ** for bold
+    linkStyle: "inlined", // Use inline links [text](url)
   });
 
   // Remove unwanted elements that don't contribute to content
@@ -74,7 +75,8 @@ export function htmlToMarkdown(html: string, options?: ConversionOptions): strin
   turndown.addRule("preserveLinks", {
     filter: "a",
     replacement: (content, node) => {
-      const href = (node as HTMLElement).getAttribute("href");
+      const element = node as unknown as HTMLElement;
+      const href = element.getAttribute?.("href") || (element as any).href || "";
       const text = content.trim();
       if (href && text) {
         return `[${text}](${href})`;
@@ -86,10 +88,11 @@ export function htmlToMarkdown(html: string, options?: ConversionOptions): strin
   // Preserve images with alt text
   turndown.addRule("preserveImages", {
     filter: "img",
-    replacement: (node) => {
-      const img = node as unknown as HTMLElement;
-      const alt = img.getAttribute("alt") || "";
-      const src = img.getAttribute("src") || "";
+    replacement: (content, node) => {
+      const element = node as unknown as HTMLElement;
+      // Try multiple ways to get attributes (Turndown may pass different node types)
+      const alt = element.getAttribute?.("alt") || (element as any).alt || "";
+      const src = element.getAttribute?.("src") || (element as any).src || "";
       if (src) {
         return `![${alt}](${src})`;
       }
