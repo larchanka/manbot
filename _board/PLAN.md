@@ -222,3 +222,191 @@ Add browser service configuration to the main config.
    - Test with timeout (very slow site)
    - Test with network error
    - Verify that error messages are clear and helpful
+
+---
+
+# Replace read_file and write_file with shell Tool Implementation Plan
+
+## Overview
+
+Replace the existing `read_file` and `write_file` tools with a unified `shell` tool that can execute shell commands. This provides more flexibility and power, allowing the system to perform any filesystem operation, process management, and other system-level tasks through a single interface.
+
+The `shell` tool will:
+1. Execute shell commands in a sandboxed environment
+2. Support read operations (e.g., `cat file.txt`, `ls -la`)
+3. Support write operations (e.g., `echo "content" > file.txt`)
+4. Support any other shell operations (e.g., `ps aux`, `grep`, `find`)
+5. Maintain security through sandbox directory restrictions
+6. Return structured output (stdout, stderr, exit code)
+
+## Security Considerations
+
+> [!IMPORTANT]
+> **Sandbox Enforcement**
+> 
+> The shell tool will execute commands with strict sandbox restrictions:
+> - All file operations must be within the configured sandbox directory
+> - Commands that attempt to access paths outside the sandbox will be rejected
+> - Command validation may be implemented to block dangerous operations (optional)
+
+## Proposed Changes
+
+### Component 1: Shell Tool Implementation
+
+Replace `readFileTool` and `writeFileTool` with a single `shellTool` that executes shell commands.
+
+#### [MODIFY] [tool-host.ts](file:///Users/mikhaillarchanka/Projects/AI-Agent/src/services/tool-host.ts)
+
+- Remove `readFileTool` and `writeFileTool` implementations
+- Add `shellTool` implementation that:
+  - Accepts `command` (required, string): The shell command to execute
+  - Accepts `cwd` (optional, string): Working directory (defaults to sandboxDir)
+  - Validates that any file paths in the command are within sandbox directory
+  - Executes command using Node.js `child_process.exec` or `spawn`
+  - Returns structured response:
+    ```typescript
+    {
+      stdout: string,
+      stderr: string,
+      exitCode: number,
+      command: string,
+      cwd: string
+    }
+    ```
+- Update `registerDefaultTools()` to register `shell` instead of `read_file` and `write_file`
+- Maintain sandbox validation logic (reuse or adapt `resolvePath`)
+
+### Component 2: Command Validation and Sandbox Enforcement
+
+Implement security measures to ensure commands operate within the sandbox.
+
+#### [MODIFY] [tool-host.ts](file:///Users/mikhaillarchanka/Projects/AI-Agent/src/services/tool-host.ts)
+
+- Add `validateCommand(command: string, cwd: string): { allowed: boolean, reason?: string }` method
+- Validate that:
+  - `cwd` is within sandbox directory
+  - File paths in the command (if detectable) are within sandbox (optional - may be complex)
+  - Block dangerous commands if needed (e.g., `rm -rf /`, `> /dev/sda`) - optional
+- Return clear error messages when validation fails
+
+### Component 3: Update Generator Service
+
+Update the generator service to handle shell tool responses instead of read_file responses.
+
+#### [MODIFY] [generator-service.ts](file:///Users/mikhaillarchanka/Projects/AI-Agent/src/services/generator-service.ts)
+
+- Update content extraction logic:
+  - Remove `read_file` response handling (content extraction)
+  - Add `shell` tool response handling:
+    - Extract `stdout` from shell tool responses
+    - Handle `stderr` appropriately (include in context if non-empty)
+    - Handle read operations (e.g., `cat file.txt` outputs to stdout)
+
+### Component 4: Update Planner Prompt
+
+Update planner prompt to document the new `shell` tool and deprecated `read_file`/`write_file` tools.
+
+#### [MODIFY] [planner.ts](file:///Users/mikhaillarchanka/Projects/AI-Agent/src/agents/prompts/planner.ts)
+
+- Update tool list: Remove `read_file` and `write_file`, add `shell`
+- Document `shell` tool:
+  - **Purpose**: Execute shell commands for file operations, process management, etc.
+  - **Arguments**:
+    - `command` (required, string): Shell command to execute (e.g., `cat file.txt`, `ls -la`, `echo "content" > file.txt`)
+    - `cwd` (optional, string): Working directory (defaults to sandbox directory)
+  - **Common use cases**:
+    - Read file: `cat path/to/file.txt`
+    - Write file: `echo "content" > path/to/file.txt` or `cat > path/to/file.txt << 'EOF'\ncontent\nEOF`
+    - List files: `ls -la`, `ls -la directory/`
+    - Check processes: `ps aux`, `pgrep process_name`
+    - Search files: `grep "pattern" file.txt`, `find . -name "*.txt"`
+  - **Response format**:
+    - `stdout`: Standard output from command
+    - `stderr`: Error output from command
+    - `exitCode`: Exit code (0 = success)
+    - `command`: The executed command
+    - `cwd`: Working directory used
+  - **Security**: All file operations are restricted to sandbox directory
+- Update examples to use `shell` tool instead of `read_file`/`write_file`
+
+### Component 5: Update Configuration Documentation
+
+Update config documentation to reflect shell tool usage.
+
+#### [MODIFY] [config.ts](file:///Users/mikhaillarchanka/Projects/AI-Agent/src/shared/config.ts)
+
+- Update `ToolHostConfig` interface comment:
+  - Change from: `/** Directory allowed for read_file/write_file. Paths outside are rejected. */`
+  - Change to: `/** Directory allowed for shell tool file operations. Paths outside are rejected. */`
+
+### Component 6: Update Documentation Files
+
+Update README and other documentation files to reflect the change.
+
+#### [MODIFY] [README.md](file:///Users/mikhaillarchanka/Projects/AI-Agent/README.md)
+
+- Update services list: Replace `read_file, write_file` with `shell` tool
+- Document shell tool capabilities
+
+#### [MODIFY] [AI-Agent.md](file:///Users/mikhaillarchanka/Projects/AI-Agent/AI-Agent.md)
+
+- Update tool-host.ts description: Replace `read_file, write_file` with `shell`
+- Update tool capabilities list
+
+## Migration Strategy
+
+1. **Backward Compatibility**: Consider maintaining `read_file` and `write_file` as deprecated wrappers that call `shell` tool internally (optional)
+2. **Testing**: Test common file operations (read, write, list) using shell commands
+3. **Documentation**: Update all references to old tools
+
+## Verification Plan
+
+### Automated Tests
+
+1. **Unit test for shell tool**
+   ```bash
+   npm test src/services/__tests__/tool-host.test.ts
+   ```
+   - Test reading file: `cat file.txt`
+   - Test writing file: `echo "content" > file.txt` then verify
+   - Test listing files: `ls -la`
+   - Test invalid command
+   - Test sandbox path validation
+   - Test command with custom cwd
+
+2. **Integration test for generator service**
+   ```bash
+   npm test src/services/__tests__/generator-service.test.ts
+   ```
+   - Test that shell tool stdout is extracted correctly
+   - Test that stderr is handled appropriately
+
+### Manual Verification
+
+1. **Test file read operation**
+   - Execute shell command: `cat test.txt`
+   - Verify stdout contains file contents
+   - Verify response structure
+
+2. **Test file write operation**
+   - Execute shell command: `echo "test content" > test.txt`
+   - Verify file was created with correct content
+   - Verify exit code is 0
+
+3. **Test sandbox enforcement**
+   - Try to access file outside sandbox: `cat /etc/passwd` (if sandbox is not root)
+   - Verify command is rejected or fails appropriately
+   - Try to change directory outside sandbox: `cd / && pwd`
+   - Verify sandbox restrictions are enforced
+
+4. **Test process management**
+   - Execute: `ps aux | head -5`
+   - Verify output shows process list
+   - Execute: `pgrep node`
+   - Verify output shows Node.js process IDs
+
+5. **Test error handling**
+   - Execute invalid command: `nonexistentcommand`
+   - Verify stderr contains error message
+   - Verify exit code is non-zero
+   - Verify structured error response
