@@ -2,15 +2,6 @@
 
 ## To Do
 
-### S2-02 Add Generator Service Tests
-  - tags: [todo]
-  - defaultExpanded: false
-    ```md
-    Test that generator service correctly handles shell tool responses and extracts content for prompts.
-    
-    Source: S2-02_GENERATOR_SERVICE_TESTS.md
-    ```
-
 ### S3-01 Update Planner Prompt - Remove Old Tools
   - tags: [todo]
   - defaultExpanded: false
@@ -103,16 +94,25 @@
 
 ## In Progress
 
-### S2-01 Update Generator Service Content Extraction
+### S2-02 Add Generator Service Tests
   - tags: [in-progress]
+  - defaultExpanded: false
+    ```md
+    Test that generator service correctly handles shell tool responses and extracts content for prompts.
+    
+    Source: S2-02_GENERATOR_SERVICE_TESTS.md
+    ```
+
+## Done
+
+### S2-01 Update Generator Service Content Extraction
+  - tags: [done]
   - defaultExpanded: false
     ```md
     Update generator service to extract content from shell tool responses instead of read_file responses.
     
     Source: S2-01_UPDATE_GENERATOR_SERVICE.md
     ```
-
-## Done
 
 ### S1-04 Add Shell Tool Tests
   - tags: [done]
