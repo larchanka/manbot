@@ -63,6 +63,60 @@ export class ToolHost extends BaseProcess {
     return { path: full, allowed };
   }
 
+  /**
+   * Validate that a command and its working directory are safe to execute.
+   * Ensures commands operate within sandbox directory restrictions and prevents path traversal attacks.
+   * 
+   * @param command - The shell command to validate
+   * @param cwd - The working directory for the command
+   * @returns Validation result with allowed status and optional reason for rejection
+   */
+  private validateCommand(command: string, cwd: string): { allowed: boolean; reason?: string } {
+    // Normalize and resolve the cwd path
+    const resolvedCwd = resolve(cwd);
+    const normalizedSandboxDir = resolve(this.sandboxDir);
+
+    // Check if cwd is empty or invalid
+    if (!cwd || cwd.trim() === "") {
+      return { allowed: false, reason: "Working directory cannot be empty" };
+    }
+
+    // Check for path traversal attempts in cwd
+    if (cwd.includes("..")) {
+      return { allowed: false, reason: "Path traversal detected: working directory contains '..'" };
+    }
+
+    // Ensure resolved cwd starts with sandbox directory
+    if (!resolvedCwd.startsWith(normalizedSandboxDir)) {
+      return {
+        allowed: false,
+        reason: `Working directory '${resolvedCwd}' is outside sandbox directory '${normalizedSandboxDir}'`,
+      };
+    }
+
+    // Additional check: ensure no path traversal after resolution
+    // This catches cases like /sandbox/../etc where resolve might normalize it
+    const relativePath = resolvedCwd.slice(normalizedSandboxDir.length);
+    if (relativePath.includes("..")) {
+      return {
+        allowed: false,
+        reason: "Path traversal detected in resolved working directory path",
+      };
+    }
+
+    // Check command string for obvious path traversal attempts
+    // Note: This is a basic check; command parsing is complex and may have false positives
+    // But it helps catch obvious attacks like "cd ../etc && cat passwd"
+    if (command.includes("../") || command.includes("..\\")) {
+      return {
+        allowed: false,
+        reason: "Path traversal detected in command string",
+      };
+    }
+
+    return { allowed: true };
+  }
+
   private async readFileTool(args: Record<string, unknown>): Promise<unknown> {
     const pathArg = args.path ?? args.file;
     if (typeof pathArg !== "string") throw new Error("read_file requires path (string)");
@@ -193,7 +247,7 @@ export class ToolHost extends BaseProcess {
    * @param args.command - Required. The shell command to execute
    * @param args.cwd - Optional. Working directory for command execution. Defaults to sandboxDir from config
    * @returns Structured response with stdout, stderr, exitCode, command, and cwd
-   * @throws Error if command is missing or execution fails critically (e.g., timeout)
+   * @throws Error if command is missing, validation fails, or execution fails critically (e.g., timeout)
    */
   private async shellTool(args: Record<string, unknown>): Promise<unknown> {
     const command = args.command;
@@ -202,14 +256,23 @@ export class ToolHost extends BaseProcess {
     }
 
     // Use provided cwd or default to sandboxDir
-    const cwd = typeof args.cwd === "string" ? resolve(args.cwd) : this.sandboxDir;
+    const cwd = typeof args.cwd === "string" ? args.cwd : this.sandboxDir;
+    
+    // Validate command and cwd before execution
+    const validation = this.validateCommand(command, cwd);
+    if (!validation.allowed) {
+      throw new Error(`Command validation failed: ${validation.reason}`);
+    }
+    
+    // Resolve cwd after validation
+    const resolvedCwd = resolve(cwd);
     
     // Use executor timeout as a reasonable default (10 minutes), or 30 seconds as a fallback
     const timeoutMs = getConfig().executor.nodeTimeoutMs || 30_000;
     
     try {
       const { stdout, stderr } = await execAsync(command, {
-        cwd,
+        cwd: resolvedCwd,
         timeout: timeoutMs,
         maxBuffer: 10 * 1024 * 1024, // 10MB max buffer
       });
@@ -220,7 +283,7 @@ export class ToolHost extends BaseProcess {
         stderr: stderr || "",
         exitCode: 0,
         command,
-        cwd,
+        cwd: resolvedCwd,
       };
     } catch (error: unknown) {
       // execAsync rejects on non-zero exit codes or execution errors
@@ -273,7 +336,7 @@ export class ToolHost extends BaseProcess {
         stderr,
         exitCode,
         command,
-        cwd,
+        cwd: resolvedCwd,
       };
     }
   }

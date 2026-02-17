@@ -2,15 +2,6 @@
 
 ## To Do
 
-### S1-02 Add Command Validation
-  - tags: [todo]
-  - defaultExpanded: false
-    ```md
-    Add validation to ensure commands operate within sandbox directory restrictions and prevent path traversal attacks.
-    
-    Source: S1-02_COMMAND_VALIDATION.md
-    ```
-
 ### S1-03 Replace read_file and write_file Registration
   - tags: [todo]
   - defaultExpanded: false
@@ -138,6 +129,15 @@
     ```
 
 ## In Progress
+
+### S1-02 Add Command Validation
+  - tags: [in-progress]
+  - defaultExpanded: false
+    ```md
+    Add validation to ensure commands operate within sandbox directory restrictions and prevent path traversal attacks.
+    
+    Source: S1-02_COMMAND_VALIDATION.md
+    ```
 
 ## Done
 
