@@ -2,9 +2,6 @@
 
 ## To Do
 
-### P12-03 Add Browser Service Configuration
-- Source: P12-03_BROWSER_CONFIG.md
-
 ### P12-04 Update Config TypeScript Types
 - Source: P12-04_CONFIG_TYPES.md
 
@@ -49,10 +46,13 @@
 
 ## In Progress
 
-### P12-02 Install Playwright Browsers
-- Source: P12-02_INSTALL_BROWSERS.md
+### P12-03 Add Browser Service Configuration
+- Source: P12-03_BROWSER_CONFIG.md
 
 ## Done
+
+### P12-02 Install Playwright Browsers
+- Source: P12-02_INSTALL_BROWSERS.md
 
 ### P12-01 Add Required Dependencies
 - Source: P12-01_ADD_DEPENDENCIES.md
