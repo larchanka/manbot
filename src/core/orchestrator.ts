@@ -236,7 +236,7 @@ export class Orchestrator {
     };
     this.sendAndWait(taskMemory, "task.create", taskCreatePayload).catch(() => { });
     this.sendToTelegram(chatId, "Planning complete. Execution started...", true);
-    const execReq = this.sendAndWait(executor, "plan.execute", { taskId, plan, goal });
+    const execReq = this.sendAndWait(executor, "plan.execute", { taskId, plan, goal, chatId, userId });
     let execEnv: Envelope;
     try {
       execEnv = await execReq;

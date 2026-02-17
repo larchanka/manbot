@@ -30,6 +30,8 @@ interface PlanExecutePayload {
   taskId: string;
   plan: CapabilityGraph;
   goal?: string;
+  chatId?: number;
+  userId?: number;
 }
 
 interface NodeExecutePayload {
@@ -67,7 +69,7 @@ export class ExecutorAgent extends BaseProcess {
 
     const payload = envelope.payload as Record<string, unknown>;
     const p = payload as unknown as PlanExecutePayload;
-    const { taskId, plan, goal } = p;
+    const { taskId, plan, goal, chatId, userId } = p;
     if (!taskId || !plan?.nodes) {
       this.sendError(envelope, "INVALID_PAYLOAD", "plan.execute requires taskId and plan with nodes");
       return;
@@ -79,7 +81,7 @@ export class ExecutorAgent extends BaseProcess {
       return;
     }
 
-    this.runExecutionLoop(envelope, taskId, plan, typeof goal === "string" ? goal : "").catch((err) => {
+    this.runExecutionLoop(envelope, taskId, plan, typeof goal === "string" ? goal : "", chatId, userId).catch((err) => {
       let msg: string;
       let details: Record<string, unknown> | undefined;
       if (err && typeof err === "object" && "payload" in err) {
@@ -103,6 +105,8 @@ export class ExecutorAgent extends BaseProcess {
     taskId: string,
     plan: CapabilityGraph,
     goal: string,
+    chatId?: number,
+    userId?: number,
   ): Promise<void> {
     const dependencyMap = getDependencyMap(plan);
     const completedIds = new Set<string>();
@@ -133,6 +137,9 @@ export class ExecutorAgent extends BaseProcess {
         // Include plan complexity in context for model selection fallback
         const planComplexity = plan.complexity ?? "medium";
         context["_complexity"] = planComplexity;
+        // Include chatId and userId for reminder scheduling
+        if (chatId !== undefined) context["chatId"] = chatId;
+        if (userId !== undefined) context["userId"] = userId;
         try {
           const result = await this.dispatchNode(taskId, node, context);
           return { nodeId, result };
@@ -358,8 +365,7 @@ export class ExecutorAgent extends BaseProcess {
     return new Promise((resolve, reject) => {
       const id = randomUUID();
       const nodeTimeoutMs = getConfig().executor.nodeTimeoutMs;
-      // DEBUG: Log the timeout value to verify configuration
-      console.log(`[executor] Dispatching node ${node.id} with timeout ${nodeTimeoutMs}ms`);
+      // Note: Don't use console.log here as it goes to stdout and breaks JSON parsing
 
       const payload: NodeExecutePayload = {
         taskId,
