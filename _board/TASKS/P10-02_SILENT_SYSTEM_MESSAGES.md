@@ -1,15 +1,14 @@
 # Task: P10-02 Silent system messages in Telegram
 
 ## Description
-The user wants to silence certain system messages in the Telegram adapter, such as "task created" notifications and other administrative status updates that might clutter the conversation.
+The user wants to send certain system messages (like "task created") to Telegram but without sound (using `disable_notification: true`), rather than not sending them at all. This provides feedback without being intrusive.
 
 ## Requirements
-- Identify all intermediate system messages sent to Telegram (e.g., in `orchestrator.ts` and `telegram-adapter.ts`).
-- Add a configuration option or parameter to `sendToTelegram` to make certain messages "silent" or optional.
-- Ensure only essential final results or critical errors are sent to the user by default.
-- (Optional) Implement a "verbose" mode that can be toggled via a command if the user wants to see progress.
+- Update `telegram-adapter.ts` to handle the `silent` flag by passing `disable_notification: true` to Telegram API instead of skipping the message.
+- Restore intermediate system messages (e.g., "Task created", "Planning...") in `orchestrator.ts` or `telegram-adapter.ts` but mark them as `silent: true`.
+- Ensure only the final result is sent with sound (normal message).
 
 ## Definition of Done
-- "Task created" and other non-essential system messages are no longer sent to the user in Telegram.
-- The core conversation flow feels cleaner and less cluttered by technical status updates.
-- Critical errors and final task results are still delivered correctly.
+- "Task created" and other system messages are delivered to Telegram without sound.
+- Final task results are still delivered with sound (standard behavior).
+- IPC between Core and Telegram Adapter correctly carries the `silent` flag.
