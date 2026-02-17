@@ -7,7 +7,7 @@
 import { randomUUID } from "node:crypto";
 import { chromium } from "playwright-extra";
 import StealthPlugin = require("puppeteer-extra-plugin-stealth");
-import type { Browser, BrowserContext, Page } from "playwright";
+import type { Browser, BrowserContext } from "playwright";
 import { BaseProcess } from "../shared/base-process.js";
 import type { Envelope } from "../shared/protocol.js";
 import { PROTOCOL_VERSION } from "../shared/protocol.js";

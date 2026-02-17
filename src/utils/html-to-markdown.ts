@@ -88,7 +88,7 @@ export function htmlToMarkdown(html: string, options?: ConversionOptions): strin
   // Preserve images with alt text
   turndown.addRule("preserveImages", {
     filter: "img",
-    replacement: (content, node) => {
+    replacement: (_content, node) => {
       const element = node as unknown as HTMLElement;
       // Try multiple ways to get attributes (Turndown may pass different node types)
       const alt = element.getAttribute?.("alt") || (element as any).alt || "";

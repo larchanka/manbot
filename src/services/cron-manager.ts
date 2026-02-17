@@ -220,6 +220,17 @@ export class CronManager extends BaseProcess {
       payload: { code, message, details: {} },
     });
   }
+
+  /**
+   * Closes the cron manager and stops all scheduled jobs.
+   */
+  close(): void {
+    for (const [id, job] of this.jobs.entries()) {
+      job.stop();
+      this.jobs.delete(id);
+    }
+    this.db.close();
+  }
 }
 
 function main(): void {
