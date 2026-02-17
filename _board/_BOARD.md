@@ -2,7 +2,7 @@
 
 ## To Do
 
-### P11-02 Add Time Parser Tests
+### P11-03 Update Cron Manager Event Payload
 - tags: [todo, reminder-system, phase-1, testing]
 - defaultExpanded: false
   ```md
@@ -112,16 +112,24 @@
 
 ## In Progress
 
+### P11-02 Add Time Parser Tests
+- tags: [in-progress, reminder-system, phase-1, testing]
+- defaultExpanded: false
+  ```md
+  Create unit tests for the time parser service.
+
+  Source: P11-02_TIME_PARSER_TESTS.md
+  ```
+
+## Done
 ### P11-01 Create Time Parser Service
-- tags: [in-progress, reminder-system, phase-1]
+- tags: [done, reminder-system, phase-1]
 - defaultExpanded: false
   ```md
   Create a service that converts natural language time expressions into cron expressions using the LLM.
 
   Source: P11-01_TIME_PARSER_SERVICE.md
   ```
-
-## Done
 ### P10-06 Model Selection Verification
 - tags: [done]
 - defaultExpanded: false
