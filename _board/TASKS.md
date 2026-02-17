@@ -47,3 +47,6 @@
 ## Phase 7: RAG Scalability
 - [x] **P7-01**: RAG vector search with sqlite-vss: KNN via vss0 virtual table; fallback to dot-product when extension unavailable; config `rag.embeddingDimensions` (default 768).
 
+## Phase 9: Logging & Observability
+- [ ] **P9-01**: Implement colorized console logging for IPC traffic in Orchestrator using `@larchanka/colors-js`.
+

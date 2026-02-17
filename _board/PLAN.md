@@ -70,3 +70,8 @@ This plan outlines the step-by-step implementation of the local multi-agent AI r
 
 ### Phase 7: RAG Scalability (sqlite-vss) (implemented)
 - **[DONE] RAG Vector Search with sqlite-vss**: sqlite-vss extension used for KNN when available; `rag_documents` table unchanged; vss0 virtual table `vss_rag_embedding` for embeddings; fallback to in-DB dot-product when extension unavailable; `rag.embeddingDimensions` (default 768).
+
+---
+
+### Phase 9: Logging & Observability
+- **[NEW] Console Logging**: Implement colorized, human-readable console logging for all IPC communication and system events. Use `@larchanka/colors-js` for highlighting.

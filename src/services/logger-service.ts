@@ -9,6 +9,7 @@ import pino from "pino";
 import { BaseProcess } from "../shared/base-process.js";
 import type { Envelope } from "../shared/protocol.js";
 import { getConfig } from "../shared/config.js";
+import { ConsoleLogger } from "../utils/console-logger.js";
 
 function createLogger(): pino.Logger {
   const { logDir, logFile } = getConfig().logger;
@@ -40,6 +41,7 @@ export class LoggerService extends BaseProcess {
     if (!envelope.type.startsWith("event.")) {
       return;
     }
+    // Write to file (structured JSON logging)
     this.log.info({
       from: envelope.from,
       to: envelope.to,
@@ -49,6 +51,8 @@ export class LoggerService extends BaseProcess {
       correlationId: envelope.correlationId,
       payload: envelope.payload,
     });
+    // Also output to console with structured formatting
+    ConsoleLogger.info("logger", `Event: ${envelope.type}`, envelope);
   }
 }
 

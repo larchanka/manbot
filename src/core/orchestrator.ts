@@ -11,6 +11,7 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { envelopeSchema } from "../shared/protocol.js";
 import type { Envelope } from "../shared/protocol.js";
+import { ConsoleLogger } from "../utils/console-logger.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, "..", "..");
@@ -51,15 +52,18 @@ export class Orchestrator {
     const stdin = child.stdin!;
     const rl = createInterface({ input: child.stdout!, terminal: false });
     rl.on("line", (line: string) => this.handleLine(name, line));
-    child.stderr?.on("data", (data: Buffer) => process.stderr.write(`[${name}] ${data}`));
+    child.stderr?.on("data", (data: Buffer) => {
+      ConsoleLogger.processStderr(name, data);
+    });
     child.on("error", (err) => {
-      process.stderr.write(`[${name}] process error: ${err.message}\n`);
+      ConsoleLogger.processEvent(name, "error", err);
     });
     child.on("exit", (code, signal) => {
-      process.stderr.write(`[${name}] exit code=${code} signal=${signal}\n`);
+      ConsoleLogger.processEvent(name, "exit", code ?? signal ?? undefined);
     });
     const entry: ChildEntry = { process: child, name, stdin };
     this.children.set(name, entry);
+    ConsoleLogger.processEvent(name, "spawn");
     return entry;
   }
 
@@ -69,6 +73,10 @@ export class Orchestrator {
     try {
       const raw = JSON.parse(trimmed) as unknown;
       const envelope = envelopeSchema.parse(raw) as Envelope;
+      
+      // Log incoming IPC message
+      ConsoleLogger.ipc("core", "←", envelope);
+      
       const to = envelope.to;
       const cid = envelope.correlationId ?? envelope.id;
       const pendingEntry = cid ? this.pending.get(cid) : undefined;
@@ -85,9 +93,12 @@ export class Orchestrator {
       const target = this.children.get(to);
       if (target?.stdin.writable) {
         target.stdin.write(trimmed + "\n");
+        // Log outgoing IPC message
+        ConsoleLogger.ipc("core", "→", envelope);
       }
     } catch {
-      // skip malformed
+      // skip malformed - log as debug
+      ConsoleLogger.debug("core", `Malformed JSON line from ${fromProcess}: ${trimmed.substring(0, 100)}`);
     }
   }
 
@@ -99,7 +110,7 @@ export class Orchestrator {
       const conversationId = payload.conversationId as string | undefined;
       if (chatId != null && conversationId != null) {
         this.runArchivingPipeline(chatId, conversationId).catch((err) => {
-          process.stderr.write(`Orchestrator archiving error: ${err}\n`);
+          ConsoleLogger.error("core", "Archiving pipeline error", err instanceof Error ? err : String(err), envelope);
           this.sendToTelegram(chatId, `Archiving failed: ${err instanceof Error ? err.message : String(err)}`);
         });
       }
@@ -112,7 +123,7 @@ export class Orchestrator {
       if (goal != null && chatId != null) {
         const conversationId = payload.conversationId as string | undefined;
         this.runTaskPipeline(chatId, userId ?? 0, goal, conversationId).catch((err) => {
-          process.stderr.write(`Orchestrator pipeline error: ${err}\n`);
+          ConsoleLogger.error("core", "Task pipeline error", err instanceof Error ? err : String(err), envelope);
           this.sendToTelegram(chatId, `Error: ${err instanceof Error ? err.message : String(err)}`);
         });
       }
@@ -248,6 +259,8 @@ export class Orchestrator {
       payload: { chatId, text },
     };
     telegram.stdin.write(JSON.stringify(envelope) + "\n");
+    // Log outgoing message to telegram
+    ConsoleLogger.ipc("core", "→", envelope);
   }
 
   private sendAndWait(target: ChildEntry, type: string, payload: unknown): Promise<Envelope> {
@@ -264,6 +277,8 @@ export class Orchestrator {
       };
       this.pending.set(id, { resolve, reject });
       target.stdin.write(JSON.stringify(envelope) + "\n");
+      // Log outgoing request
+      ConsoleLogger.ipc("core", "→", envelope);
     });
   }
 
