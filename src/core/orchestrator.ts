@@ -82,8 +82,13 @@ export class Orchestrator {
       const pendingEntry = cid ? this.pending.get(cid) : undefined;
       if (pendingEntry && (envelope.type === "response" || envelope.type === "error")) {
         this.pending.delete(cid!);
-        if (envelope.type === "error") pendingEntry.reject(envelope);
-        else pendingEntry.resolve(envelope);
+        if (envelope.type === "error") {
+          // Log detailed error before rejecting
+          ConsoleLogger.error("core", "Node execution error received", undefined, envelope);
+          pendingEntry.reject(envelope);
+        } else {
+          pendingEntry.resolve(envelope);
+        }
         return;
       }
       if (to === "core") {

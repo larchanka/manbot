@@ -180,7 +180,39 @@ export class ConsoleLogger {
     const directionSymbol = direction === "→" ? colors.green("→") : colors.purple("←");
     const envelopeStr = formatEnvelope(envelope);
     
-    const output = `${timestamp} ${levelStr} ${processStr} ${directionSymbol} ${envelopeStr}`;
+    let output = `${timestamp} ${levelStr} ${processStr} ${directionSymbol} ${envelopeStr}`;
+    
+    // For error envelopes, display full payload details
+    if (envelope.type === "error") {
+      const payload = envelope.payload as { code?: string; message?: string; details?: Record<string, unknown> };
+      const code = payload?.code ?? "UNKNOWN";
+      const message = payload?.message ?? "Unknown error";
+      const details = payload?.details ?? {};
+      
+      output += `\n  ${colors.red(`ERROR CODE: ${code}`)}`;
+      output += `\n  ${colors.red(`MESSAGE: ${message}`)}`;
+      
+      if (Object.keys(details).length > 0) {
+        output += `\n  ${colors.yellow("DETAILS:")}`;
+        for (const [key, value] of Object.entries(details)) {
+          if (key === "stack" && typeof value === "string") {
+            // Format stack trace specially
+            output += `\n    ${colors.gray(key)}:`;
+            const stackLines = value.split("\n");
+            for (const line of stackLines) {
+              output += `\n      ${colors.gray(line)}`;
+            }
+          } else if (key === "nodeInput" && typeof value === "object" && value !== null) {
+            // Format node input nicely
+            output += `\n    ${colors.purple(key)}: ${JSON.stringify(value, null, 2).split("\n").join("\n      ")}`;
+          } else {
+            const valueStr = typeof value === "object" ? JSON.stringify(value, null, 2) : String(value);
+            output += `\n    ${colors.purple(key)}: ${valueStr}`;
+          }
+        }
+      }
+    }
+    
     process.stderr.write(output + "\n");
   }
 

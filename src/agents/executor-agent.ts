@@ -79,8 +79,21 @@ export class ExecutorAgent extends BaseProcess {
     }
 
     this.runExecutionLoop(envelope, taskId, plan, typeof goal === "string" ? goal : "").catch((err) => {
-      const msg = err instanceof Error ? err.message : String(err);
-      this.sendError(envelope, "EXECUTOR_ERROR", msg);
+      let msg: string;
+      let details: Record<string, unknown> | undefined;
+      if (err && typeof err === "object" && "payload" in err) {
+        // It's an error envelope
+        const errEnv = err as Envelope;
+        const payload = errEnv.payload as { message?: string; code?: string; details?: Record<string, unknown> };
+        msg = payload?.message ?? "Executor error";
+        details = payload?.details as Record<string, unknown> | undefined;
+      } else {
+        msg = err instanceof Error ? err.message : String(err);
+        if (err instanceof Error && err.stack) {
+          details = { stack: err.stack };
+        }
+      }
+      this.sendError(envelope, "EXECUTOR_ERROR", msg, details);
     });
   }
 
@@ -131,11 +144,32 @@ export class ExecutorAgent extends BaseProcess {
           this.sendTaskUpdate(taskId, r.nodeId, "completed", r.result);
           completedIds.add(r.nodeId);
         } else {
-          const err = r.err as Envelope & { payload?: { message?: string } };
+          const err = r.err as Envelope & { payload?: { message?: string; code?: string; details?: Record<string, unknown> } };
+          const node = nodeMap.get(r.nodeId);
           const message = err.payload?.message ?? "Node execution failed";
+          const errorCode = err.payload?.code ?? "NODE_FAILED";
+          
+          // Extract error details including stack trace if available
+          const errorDetails: Record<string, unknown> = {
+            nodeId: r.nodeId,
+            ...(node && {
+              nodeType: node.type,
+              nodeService: node.service,
+              nodeInput: node.input ?? {},
+            }),
+            ...(err.payload?.details && typeof err.payload.details === "object" ? err.payload.details : {}),
+          };
+          
+          // If the error envelope has a stack trace or original error, include it
+          if (err.payload?.details && typeof err.payload.details === "object") {
+            const details = err.payload.details as Record<string, unknown>;
+            if (details.stack) errorDetails.stack = details.stack;
+            if (details.error) errorDetails.originalError = details.error;
+          }
+          
           this.sendTaskUpdate(taskId, r.nodeId, "failed");
           this.sendTaskFail(taskId, message);
-          this.sendError(request, "NODE_FAILED", message);
+          this.sendError(request, errorCode, message, errorDetails);
           return;
         }
       }
@@ -285,9 +319,23 @@ export class ExecutorAgent extends BaseProcess {
           const pl = env.payload as { status?: string; result?: unknown };
           resolve(pl.result);
         },
-        reject: (err) => {
+        reject: (errEnvelope) => {
           clearTimeout(timeout);
-          reject(err);
+          // Enhance error envelope with node context before rejecting
+          const enhancedError: Envelope = {
+            ...(errEnvelope as Envelope),
+            payload: {
+              ...((errEnvelope as Envelope).payload as Record<string, unknown>),
+              details: {
+                ...(((errEnvelope as Envelope).payload as Record<string, unknown>)?.details as Record<string, unknown> || {}),
+                nodeId: node.id,
+                nodeType: node.type,
+                nodeService: node.service,
+                nodeInput: node.input ?? {},
+              },
+            },
+          };
+          reject(enhancedError);
         },
       });
     });
@@ -361,7 +409,7 @@ export class ExecutorAgent extends BaseProcess {
     });
   }
 
-  private sendError(request: Envelope, code: string, message: string): void {
+  private sendError(request: Envelope, code: string, message: string, details?: Record<string, unknown>): void {
     this.send({
       id: randomUUID(),
       correlationId: request.id,
@@ -370,7 +418,7 @@ export class ExecutorAgent extends BaseProcess {
       type: "error",
       version: PROTOCOL_VERSION,
       timestamp: Date.now(),
-      payload: { code, message, details: {} },
+      payload: { code, message, details: details ?? {} },
     });
   }
 }
