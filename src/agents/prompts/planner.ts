@@ -59,9 +59,9 @@ You must respond with exactly one JSON object matching this structure. No markdo
 
 ### tool-host service
 - **type**: \`tool\`
-- **Available tools ONLY**: \`read_file\`, \`write_file\`, \`http_get\`, \`http_search\`
-- **input**: \`{ "tool": "read_file" | "write_file" | "http_get" | "http_search", "arguments": {...} }\`
-- **DO NOT** invent tool names that don't exist. Only use the four tools listed above.
+- **Available tools ONLY**: \`shell\`, \`http_get\`, \`http_search\`
+- **input**: \`{ "tool": "shell" | "http_get" | "http_search", "arguments": {...} }\`
+- **DO NOT** invent tool names that don't exist. Only use the three tools listed above.
 
 #### http_get tool
 - **Purpose**: Fetch content from URLs with smart fallback to browser automation
@@ -98,7 +98,7 @@ You must respond with exactly one JSON object matching this structure. No markdo
 - **Do NOT use** when:
   - User provides a specific URL (use \`http_get\` instead)
   - Information is already available in conversation context or stored memory
-  - User asks to read/write files (use \`read_file\`/\`write_file\` instead)
+  - User asks to read/write files (use \`shell\` tool with cat/echo commands instead)
 - **Use \`semantic_search\` instead** when:
   - User asks to search stored knowledge/memory without mentioning "web" or "online"
   - User wants to search archived conversations or stored documents
@@ -139,12 +139,12 @@ You must respond with exactly one JSON object matching this structure. No markdo
 ## Important Guidelines
 - **For mathematical calculations**: Use \`generate_text\` with \`model-router\` service. DO NOT create tools like "calculate_average", "math", or "calculator".
 - **For code generation**: Use \`generate_text\` with \`model-router\` service. DO NOT create tools like "generate_javascript", "write_code", or "code_generator".
-- **For file operations**: Use \`tool\` type with \`tool-host\` service and tool name \`read_file\` or \`write_file\`.
+- **For file operations**: Use \`tool\` type with \`tool-host\` service and tool name \`shell\` with commands like \`cat file.txt\` (read) or \`echo "content" > file.txt\` (write).
 - **For HTTP requests**: Use \`tool\` type with \`tool-host\` service and tool name \`http_get\`. Use \`useBrowser: true\` when fetching SPAs or sites with bot detection. HTML responses are automatically converted to Markdown for better readability.
 - **For URL summarization**: When user asks to summarize a URL or web page, create a two-step plan: (1) fetch the URL content using \`http_get\` tool (use \`useBrowser: true\` if it's a SPA or protected site), (2) summarize the fetched content using \`generate_text\` with model-router. The summarize node should depend on the fetch node. The fetched content will be in Markdown format by default, making it easier to summarize.
 - **For reminders**: When user requests a reminder, create a two-step plan: (1) parse time expression to cron using \`generate_text\` with a prompt that extracts the time part and converts it to cron format, (2) schedule reminder using \`schedule_reminder\` with cron-manager, including the extracted reminderMessage in the node input. The reminderMessage should be the action/item the user wants to be reminded about (e.g., "drink water", "call John", "posting to social networks").
 - **For web search**: When user explicitly asks to "search the web", "use web search", "look up online", etc., use \`http_search\` tool with \`tool-host\` service. Do NOT use \`semantic_search\` for web search requests.
-- Only use tools that exist: \`read_file\`, \`write_file\`, \`http_get\`, \`http_search\`. Never invent new tool names.
+- Only use tools that exist: \`shell\`, \`http_get\`, \`http_search\`. Never invent new tool names.
 
 - Output only valid JSON. No trailing commas, no comments.`;
 

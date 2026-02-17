@@ -2,15 +2,6 @@
 
 ## To Do
 
-### S3-01 Update Planner Prompt - Remove Old Tools
-  - tags: [todo]
-  - defaultExpanded: false
-    ```md
-    Remove read_file and write_file from planner prompt tool list and update references to use shell tool.
-    
-    Source: S3-01_REMOVE_OLD_TOOLS_FROM_PLANNER.md
-    ```
-
 ### S3-02 Update Planner Prompt - Document Shell Tool
   - tags: [todo]
   - defaultExpanded: false
@@ -94,16 +85,25 @@
 
 ## In Progress
 
-### S2-02 Add Generator Service Tests
+### S3-01 Update Planner Prompt - Remove Old Tools
   - tags: [in-progress]
+  - defaultExpanded: false
+    ```md
+    Remove read_file and write_file from planner prompt tool list and update references to use shell tool.
+    
+    Source: S3-01_REMOVE_OLD_TOOLS_FROM_PLANNER.md
+    ```
+
+## Done
+
+### S2-02 Add Generator Service Tests
+  - tags: [done]
   - defaultExpanded: false
     ```md
     Test that generator service correctly handles shell tool responses and extracts content for prompts.
     
     Source: S2-02_GENERATOR_SERVICE_TESTS.md
     ```
-
-## Done
 
 ### S2-01 Update Generator Service Content Extraction
   - tags: [done]

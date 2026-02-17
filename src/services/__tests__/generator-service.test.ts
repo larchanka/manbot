@@ -14,8 +14,6 @@ describe("GeneratorService shell tool response handling", () => {
   let generatorService: GeneratorService;
   let mockOllama: OllamaAdapter;
   let mockModelRouter: ModelRouter;
-  let capturedEnvelope: Envelope | null = null;
-  let capturedPrompt: string | null = null;
 
   beforeEach(() => {
     // Mock OllamaAdapter
@@ -45,12 +43,6 @@ describe("GeneratorService shell tool response handling", () => {
       modelRouter: mockModelRouter,
     });
 
-    // Capture sent messages to inspect prompts
-    const originalSend = generatorService.send.bind(generatorService);
-    generatorService.send = vi.fn((envelope: Envelope) => {
-      capturedEnvelope = envelope;
-      originalSend(envelope);
-    });
   });
 
   describe("shell tool stdout extraction", () => {
@@ -84,14 +76,15 @@ describe("GeneratorService shell tool response handling", () => {
         },
       };
 
-      generatorService.handleEnvelope(envelope);
+      (generatorService as any).handleEnvelope(envelope);
 
       // Wait for async processing
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       expect(mockOllama.generate).toHaveBeenCalled();
       const callArgs = (mockOllama.generate as ReturnType<typeof vi.fn>).mock.calls[0];
-      const prompt = callArgs[0] as string;
+      expect(callArgs).toBeDefined();
+      const prompt = callArgs![0] as string;
 
       expect(prompt).toContain("File content from cat command");
       expect(prompt).toContain("Summarize the file content");
@@ -127,14 +120,15 @@ describe("GeneratorService shell tool response handling", () => {
         },
       };
 
-      generatorService.handleEnvelope(envelope);
+      (generatorService as any).handleEnvelope(envelope);
 
       // Wait for async processing
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       expect(mockOllama.generate).toHaveBeenCalled();
       const callArgs = (mockOllama.generate as ReturnType<typeof vi.fn>).mock.calls[0];
-      const prompt = callArgs[0] as string;
+      expect(callArgs).toBeDefined();
+      const prompt = callArgs![0] as string;
 
       expect(prompt).toContain("Main output");
       expect(prompt).toContain("[stderr: Warning: file not found]");
@@ -170,14 +164,15 @@ describe("GeneratorService shell tool response handling", () => {
         },
       };
 
-      generatorService.handleEnvelope(envelope);
+      (generatorService as any).handleEnvelope(envelope);
 
       // Wait for async processing
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       expect(mockOllama.generate).toHaveBeenCalled();
       const callArgs = (mockOllama.generate as ReturnType<typeof vi.fn>).mock.calls[0];
-      const prompt = callArgs[0] as string;
+      expect(callArgs).toBeDefined();
+      const prompt = callArgs![0] as string;
 
       // Empty stdout should not break the prompt
       expect(prompt).toContain("Process this");
@@ -222,14 +217,15 @@ describe("GeneratorService shell tool response handling", () => {
         },
       };
 
-      generatorService.handleEnvelope(envelope);
+      (generatorService as any).handleEnvelope(envelope);
 
       // Wait for async processing
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       expect(mockOllama.generate).toHaveBeenCalled();
       const callArgs = (mockOllama.generate as ReturnType<typeof vi.fn>).mock.calls[0];
-      const prompt = callArgs[0] as string;
+      expect(callArgs).toBeDefined();
+      const prompt = callArgs![0] as string;
 
       expect(prompt).toContain("First file content");
       expect(prompt).toContain("Second file content");
@@ -264,14 +260,15 @@ describe("GeneratorService shell tool response handling", () => {
         },
       };
 
-      generatorService.handleEnvelope(envelope);
+      (generatorService as any).handleEnvelope(envelope);
 
       // Wait for async processing
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       expect(mockOllama.generate).toHaveBeenCalled();
       const callArgs = (mockOllama.generate as ReturnType<typeof vi.fn>).mock.calls[0];
-      const prompt = callArgs[0] as string;
+      expect(callArgs).toBeDefined();
+      const prompt = callArgs![0] as string;
 
       expect(prompt).toContain("User goal: Analyze the configuration");
       expect(prompt).toContain("Configuration file content");
@@ -307,14 +304,15 @@ describe("GeneratorService shell tool response handling", () => {
         },
       };
 
-      generatorService.handleEnvelope(envelope);
+      (generatorService as any).handleEnvelope(envelope);
 
       // Wait for async processing
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       expect(mockOllama.generate).toHaveBeenCalled();
       const callArgs = (mockOllama.generate as ReturnType<typeof vi.fn>).mock.calls[0];
-      const prompt = callArgs[0] as string;
+      expect(callArgs).toBeDefined();
+      const prompt = callArgs![0] as string;
 
       expect(prompt).toContain("Output content");
       expect(prompt).not.toContain("[stderr:");
@@ -361,14 +359,15 @@ describe("GeneratorService shell tool response handling", () => {
         },
       };
 
-      generatorService.handleEnvelope(envelope);
+      (generatorService as any).handleEnvelope(envelope);
 
       // Wait for async processing
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       expect(mockOllama.generate).toHaveBeenCalled();
       const callArgs = (mockOllama.generate as ReturnType<typeof vi.fn>).mock.calls[0];
-      const prompt = callArgs[0] as string;
+      expect(callArgs).toBeDefined();
+      const prompt = callArgs![0] as string;
 
       expect(prompt).toContain("Local file content");
       expect(prompt).toContain("Web page content");
