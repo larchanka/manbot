@@ -133,9 +133,9 @@ const DEFAULT_CONFIG: AppConfig = {
     dbPath: "data/cron.sqlite",
   },
   modelRouter: {
-    small: "llama3:8b",
-    medium: "mistral",
-    large: "mixtral",
+    small: "qwen3:0.6b",
+    medium: "qwen3:1.7b",
+    large: "qwen3:4b",
     plannerComplexity: "medium",
   },
   executor: {
