@@ -15,6 +15,7 @@ import { PROTOCOL_VERSION } from "../shared/protocol.js";
 import { responsePayloadSchema } from "../shared/protocol.js";
 import { getConfig } from "../shared/config.js";
 import { OllamaAdapter } from "./ollama-adapter.js";
+import { ConsoleLogger } from "../utils/console-logger.js";
 
 const PROCESS_NAME = "rag-service";
 
@@ -173,16 +174,21 @@ export class RAGService extends BaseProcess {
 
   /** Embed and store a document */
   async addDocument(content: string, metadata: Record<string, unknown> = {}): Promise<string> {
-    const { embedding } = await this.ollama.embed(content, this.embedModel);
+    ConsoleLogger.debug(PROCESS_NAME, `Embedding document: ${content.substring(0, 50)}...`);
+    const { embedding } = await this.ollama.embed(content, this.embedModel, { timeoutMs: 60000 });
     const id = randomUUID();
     this.store.insert(id, content, metadata, embedding);
+    ConsoleLogger.info(PROCESS_NAME, `Stored document ${id.substring(0, 8)}`);
     return id;
   }
 
   /** Return relevant snippets by semantic similarity (cosine via dot product for L2-normalized vectors) */
   async search(query: string, limit = 5): Promise<Array<{ content: string; metadata: Record<string, unknown>; score: number }>> {
-    const { embedding: queryEmbed } = await this.ollama.embed(query, this.embedModel);
-    return this.store.search(queryEmbed, limit);
+    ConsoleLogger.debug(PROCESS_NAME, `Searching RAG: "${query}"`);
+    const { embedding: queryEmbed } = await this.ollama.embed(query, this.embedModel, { timeoutMs: 30000 });
+    const results = this.store.search(queryEmbed, limit);
+    ConsoleLogger.info(PROCESS_NAME, `Found ${results.length} results for query`);
+    return results;
   }
 
   protected override handleEnvelope(envelope: Envelope): void {
