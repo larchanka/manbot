@@ -61,7 +61,7 @@ Executor processes nodes sequentially or parallel when possible.
 
 Separation of memory scopes:
 
-Conversation → Task → Semantic → Structured → Long-term
+Conversation → Session (Short-term) → Task → Semantic (RAG) → Structured → Long-term
 
 Prevents context contamination.
 

@@ -39,7 +39,8 @@
     "headless": true,
     "timeout": 30000,
     "enableStealth": true,
-    "reuseContext": true
+    "reuseContext": true,
+    "userDataDir": "data/browser"
   },
   "modelManager": {
     "smallModelKeepAlive": "10m",
