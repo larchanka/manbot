@@ -54,6 +54,7 @@ export interface TelegramSendPayload {
 export interface TelegramProgressPayload {
   chatId: number;
   text: string;
+  parseMode?: "HTML" | "Markdown" | "MarkdownV2";
 }
 
 /** Parse allow-list from config: comma-separated Telegram user IDs. Empty = allow all. */
@@ -247,7 +248,7 @@ function main(): void {
         // Escape text if using MarkdownV2 parse mode
         const text = pl.parseMode === "MarkdownV2" ? escapeMarkdownV2(pl.text) : pl.text;
         const opts: TelegramBot.SendMessageOptions = {
-          ...(pl.parseMode != null && { parse_mode: pl.parseMode }),
+          parse_mode: pl.parseMode ?? "Markdown",
           ...(pl.silent === true && { disable_notification: true }),
         };
         sendToUser(pl.chatId, text, opts);
@@ -259,7 +260,11 @@ function main(): void {
     if (envelope.type === "telegram.progress") {
       const pl = envelope.payload as TelegramProgressPayload;
       if (typeof pl.chatId === "number" && typeof pl.text === "string") {
-        sendToUser(pl.chatId, pl.text);
+        const text = pl.parseMode === "MarkdownV2" ? escapeMarkdownV2(pl.text) : pl.text;
+        const opts: TelegramBot.SendMessageOptions = {
+          parse_mode: pl.parseMode ?? "Markdown",
+        };
+        sendToUser(pl.chatId, text, opts);
       }
       return;
     }
@@ -268,9 +273,13 @@ function main(): void {
     if (envelope.type === "response") {
       const pl = envelope.payload as { status: string; result?: unknown };
       if (pl.status === "success" && pl.result && typeof pl.result === "object") {
-        const r = pl.result as { chatId?: number; text?: string; reminders?: unknown[]; message?: string };
+        const r = pl.result as { chatId?: number; text?: string; reminders?: unknown[]; message?: string; parseMode?: "HTML" | "Markdown" | "MarkdownV2" };
         if (typeof r.chatId === "number" && typeof r.text === "string") {
-          sendToUser(r.chatId, r.text);
+          const text = r.parseMode === "MarkdownV2" ? escapeMarkdownV2(r.text) : r.text;
+          const opts: TelegramBot.SendMessageOptions = {
+            parse_mode: r.parseMode ?? "Markdown",
+          };
+          sendToUser(r.chatId, text, opts);
         } else if (typeof r.chatId === "number" && r.reminders) {
           // Handle reminder list response
           const reminders = r.reminders as Array<{ id: string; cronExpr: string; reminderMessage?: string }>;

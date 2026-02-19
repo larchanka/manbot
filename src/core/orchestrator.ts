@@ -551,7 +551,7 @@ export class Orchestrator {
     return chunks;
   }
 
-  private sendToTelegram(chatId: number, text: string, silent?: boolean): void {
+  private sendToTelegram(chatId: number, text: string, silent?: boolean, parseMode?: "HTML" | "Markdown" | "MarkdownV2"): void {
     const telegram = this.children.get("telegram-adapter");
     if (!telegram?.stdin.writable) return;
 
@@ -579,7 +579,7 @@ export class Orchestrator {
         to: "telegram-adapter",
         type: "telegram.send",
         version: "1.0",
-        payload: { chatId, text: messageText, silent },
+        payload: { chatId, text: messageText, silent, parseMode },
       };
       telegram.stdin.write(JSON.stringify(envelope) + "\n");
       ConsoleLogger.ipc("core", "→", envelope);
