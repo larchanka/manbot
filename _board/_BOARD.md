@@ -1,5 +1,79 @@
 # My Project Board
 
+## To Do
+
+### M1-01 Enhance OllamaAdapter with Warmup Support
+  - tags: [todo]
+  - defaultExpanded: false
+    ```md
+    Add a warmup method to OllamaAdapter that uses the /api/chat endpoint with a minimal prompt and supports the keep_alive parameter.
+    
+    Source: M1-01_OLLAMA_WARMUP.md
+    ```
+
+### M1-02 Add Model Manager Configuration
+  - tags: [todo]
+  - defaultExpanded: false
+    ```md
+    Add configuration settings for the model manager, including keep-alive durations and warmup prompts.
+    
+    Source: M1-02_CONFIG.md
+    ```
+
+### M1-03 Implement ModelManagerService Core
+  - tags: [todo]
+  - defaultExpanded: false
+    ```md
+    Create the ModelManagerService to manage tiered model lifecycles and ensure model availability.
+    
+    Source: M1-03_MODEL_MANAGER_CORE.md
+    ```
+
+### M1-04 Unit Tests for ModelManagerService
+  - tags: [todo]
+  - defaultExpanded: false
+    ```md
+    Create comprehensive unit tests for the ModelManagerService.
+    
+    Source: M1-04_MODEL_MANAGER_TESTS.md
+    ```
+
+### M2-01 Integrate ModelManager into GeneratorService
+  - tags: [todo]
+  - defaultExpanded: false
+    ```md
+    Update GeneratorService to call the ModelManagerService before performing any inference.
+    
+    Source: M2-01_GENERATOR_INTEGRATION.md
+    ```
+
+### M2-02 Implement Startup Prewarming in Orchestrator
+  - tags: [todo]
+  - defaultExpanded: false
+    ```md
+    Trigger the prewarming of small and medium models during application startup.
+    
+    Source: M2-02_STARTUP_PREWARMING.md
+    ```
+
+### M2-03 Integration Testing for Inference Flow
+  - tags: [todo]
+  - defaultExpanded: false
+    ```md
+    Integration test to verify that inference requests correctly trigger model loading.
+    
+    Source: M2-03_INTEGRATION_TESTS.md
+    ```
+
+### M2-04 Manual Verification and Documentation
+  - tags: [todo]
+  - defaultExpanded: false
+    ```md
+    Perform manual verification of model states and update project documentation.
+    
+    Source: M2-04_MANUAL_VERIFICATION.md
+    ```
+
 ## In Progress
 
 ## Done
