@@ -3,15 +3,6 @@
 ## To Do
 
 
-### M1-04 Unit Tests for ModelManagerService
-  - tags: [todo]
-  - defaultExpanded: false
-    ```md
-    Create comprehensive unit tests for the ModelManagerService.
-    
-    Source: M1-04_MODEL_MANAGER_TESTS.md
-    ```
-
 ### M2-01 Integrate ModelManager into GeneratorService
   - tags: [todo]
   - defaultExpanded: false
@@ -50,16 +41,34 @@
 
 ## In Progress
 
-### M1-03 Implement ModelManagerService Core
+### M2-01 Integrate ModelManager into GeneratorService
   - tags: [in-progress]
   - defaultExpanded: true
+    ```md
+    Update GeneratorService to call the ModelManagerService before performing any inference.
+
+    Source: M2-01_GENERATOR_INTEGRATION.md
+    ```
+
+## Done
+
+### M1-04 Unit Tests for ModelManagerService
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Create comprehensive unit tests for the ModelManagerService.
+
+    Source: M1-04_MODEL_MANAGER_TESTS.md
+    ```
+
+### M1-03 Implement ModelManagerService Core
+  - tags: [done]
+  - defaultExpanded: false
     ```md
     Create the ModelManagerService to manage tiered model lifecycles and ensure model availability.
 
     Source: M1-03_MODEL_MANAGER_CORE.md
     ```
-
-## Done
 
 ### M1-02 Add Model Manager Configuration
   - tags: [done]

@@ -4,7 +4,7 @@
  * and sequential prewarming behaviour.
  */
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { ModelManagerService } from "../model-manager.js";
 import type { OllamaAdapter } from "../ollama-adapter.js";
 import type { ModelRouter } from "../model-router.js";
@@ -21,26 +21,25 @@ vi.mock("../../shared/config.js", () => ({
     }),
 }));
 
-function createMocks() {
-    const warmup = vi.fn<[string, string | number], Promise<void>>().mockResolvedValue(undefined);
-    const mockOllama = { warmup } as unknown as OllamaAdapter;
+function makeWarmup(impl?: (model: string, keepAlive: string | number) => Promise<void>) {
+    return vi.fn(impl ?? ((_model: string, _keepAlive: string | number): Promise<void> => Promise.resolve()));
+}
 
-    const getModel = vi.fn((tier: string) => {
-        const map: Record<string, string> = {
-            small: "llama3:8b",
-            medium: "mistral",
-            large: "mixtral",
-        };
-        return map[tier] ?? "unknown";
-    });
-    const mockRouter = { getModel } as unknown as ModelRouter;
+function makeRouter(map: Record<string, string> = { small: "llama3:8b", medium: "mistral", large: "mixtral" }) {
+    return { getModel: vi.fn((tier: string) => map[tier] ?? "unknown") } as unknown as ModelRouter;
+}
+
+function createMocks() {
+    const warmup = makeWarmup();
+    const mockOllama = { warmup } as unknown as OllamaAdapter;
+    const mockRouter = makeRouter();
 
     const service = new ModelManagerService({
         ollama: mockOllama,
         modelRouter: mockRouter,
     });
 
-    return { service, warmup, getModel };
+    return { service, warmup, mockOllama, mockRouter };
 }
 
 // ---------------------------------------------------------------------------
@@ -81,13 +80,9 @@ describe("ensureModelLoaded – concurrency deduplication", () => {
             resolveWarmup = res;
         });
 
-        const warmup = vi.fn<[string, string | number], Promise<void>>().mockReturnValue(pending);
+        const warmup = vi.fn((_model: string, _keepAlive: string | number): Promise<void> => pending);
         const mockOllama = { warmup } as unknown as OllamaAdapter;
-        const mockRouter = {
-            getModel: vi.fn(() => "llama3:8b"),
-        } as unknown as ModelRouter;
-
-        const service = new ModelManagerService({ ollama: mockOllama, modelRouter: mockRouter });
+        const service = new ModelManagerService({ ollama: mockOllama, modelRouter: makeRouter() });
 
         // Start three concurrent calls.
         const p1 = service.ensureModelLoaded("small");
@@ -134,31 +129,23 @@ describe("ensureModelLoaded – concurrency deduplication", () => {
 
 describe("ensureModelLoaded – error propagation", () => {
     it("rejects when warmup fails", async () => {
-        const warmup = vi.fn<[string, string | number], Promise<void>>().mockRejectedValue(
-            new Error("network error"),
+        const warmup = vi.fn((_model: string, _keepAlive: string | number): Promise<void> =>
+            Promise.reject(new Error("network error")),
         );
         const mockOllama = { warmup } as unknown as OllamaAdapter;
-        const mockRouter = {
-            getModel: vi.fn(() => "llama3:8b"),
-        } as unknown as ModelRouter;
-
-        const service = new ModelManagerService({ ollama: mockOllama, modelRouter: mockRouter });
+        const service = new ModelManagerService({ ollama: mockOllama, modelRouter: makeRouter() });
         await expect(service.ensureModelLoaded("small")).rejects.toThrow("network error");
     });
 
     it("clears the in-flight entry even when warmup fails", async () => {
         let callCount = 0;
-        const warmup = vi.fn<[string, string | number], Promise<void>>().mockImplementation(() => {
+        const warmup = vi.fn((_model: string, _keepAlive: string | number): Promise<void> => {
             callCount++;
             if (callCount === 1) return Promise.reject(new Error("transient error"));
             return Promise.resolve();
         });
         const mockOllama = { warmup } as unknown as OllamaAdapter;
-        const mockRouter = {
-            getModel: vi.fn(() => "llama3:8b"),
-        } as unknown as ModelRouter;
-
-        const service = new ModelManagerService({ ollama: mockOllama, modelRouter: mockRouter });
+        const service = new ModelManagerService({ ollama: mockOllama, modelRouter: makeRouter() });
 
         await expect(service.ensureModelLoaded("small")).rejects.toThrow("transient error");
         // After initial failure, a retry should succeed.
@@ -174,21 +161,12 @@ describe("ensureModelLoaded – error propagation", () => {
 describe("prewarmModels", () => {
     it("warms up small before medium, in order", async () => {
         const callOrder: string[] = [];
-        const warmup = vi.fn<[string, string | number], Promise<void>>().mockImplementation(
-            (model) => {
-                callOrder.push(model);
-                return Promise.resolve();
-            },
-        );
+        const warmup = vi.fn((model: string, _keepAlive: string | number): Promise<void> => {
+            callOrder.push(model);
+            return Promise.resolve();
+        });
         const mockOllama = { warmup } as unknown as OllamaAdapter;
-        const mockRouter = {
-            getModel: vi.fn((tier: string) => {
-                const map: Record<string, string> = { small: "llama3:8b", medium: "mistral", large: "mixtral" };
-                return map[tier];
-            }),
-        } as unknown as ModelRouter;
-
-        const service = new ModelManagerService({ ollama: mockOllama, modelRouter: mockRouter });
+        const service = new ModelManagerService({ ollama: mockOllama, modelRouter: makeRouter() });
         await service.prewarmModels();
 
         expect(callOrder).toEqual(["llama3:8b", "mistral"]);
