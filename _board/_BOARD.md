@@ -3,15 +3,6 @@
 ## To Do
 
 
-### M1-03 Implement ModelManagerService Core
-  - tags: [todo]
-  - defaultExpanded: false
-    ```md
-    Create the ModelManagerService to manage tiered model lifecycles and ensure model availability.
-    
-    Source: M1-03_MODEL_MANAGER_CORE.md
-    ```
-
 ### M1-04 Unit Tests for ModelManagerService
   - tags: [todo]
   - defaultExpanded: false
@@ -59,16 +50,25 @@
 
 ## In Progress
 
-### M1-02 Add Model Manager Configuration
+### M1-03 Implement ModelManagerService Core
   - tags: [in-progress]
   - defaultExpanded: true
+    ```md
+    Create the ModelManagerService to manage tiered model lifecycles and ensure model availability.
+
+    Source: M1-03_MODEL_MANAGER_CORE.md
+    ```
+
+## Done
+
+### M1-02 Add Model Manager Configuration
+  - tags: [done]
+  - defaultExpanded: false
     ```md
     Add configuration settings for the model manager, including keep-alive durations and warmup prompts.
 
     Source: M1-02_CONFIG.md
     ```
-
-## Done
 
 ### M1-01 Enhance OllamaAdapter with Warmup Support
   - tags: [done]
@@ -78,7 +78,6 @@
 
     Source: M1-01_OLLAMA_WARMUP.md
     ```
-
 
 ### S5-05 End-to-End Integration Test
   - tags: [done]
