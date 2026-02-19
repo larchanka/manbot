@@ -40,5 +40,11 @@
     "timeout": 30000,
     "enableStealth": true,
     "reuseContext": true
+  },
+  "modelManager": {
+    "smallModelKeepAlive": "10m",
+    "mediumModelKeepAlive": "30m",
+    "largeModelKeepAlive": "60m",
+    "warmupPrompt": "hello"
   }
 }

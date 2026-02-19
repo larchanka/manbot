@@ -68,6 +68,26 @@ export interface BrowserServiceConfig {
   reuseContext: boolean;
 }
 
+export interface ModelManagerConfig {
+  /**
+   * How long to keep a small model in memory after the last request.
+   * Accepts an Ollama duration string (e.g. "5m") or a number of seconds.
+   */
+  smallModelKeepAlive: string | number;
+  /**
+   * How long to keep a medium model in memory after the last request.
+   */
+  mediumModelKeepAlive: string | number;
+  /**
+   * How long to keep a large model in memory after the last request.
+   */
+  largeModelKeepAlive: string | number;
+  /**
+   * Minimal prompt sent during warmup to ensure the model is loaded.
+   */
+  warmupPrompt: string;
+}
+
 export interface AppConfig {
   ollama: OllamaConfig;
   telegram: TelegramConfig;
@@ -79,6 +99,7 @@ export interface AppConfig {
   modelRouter: ModelRouterConfig;
   executor: ExecutorConfig;
   browserService: BrowserServiceConfig;
+  modelManager: ModelManagerConfig;
 }
 
 const DEFAULT_CONFIG: AppConfig = {
@@ -123,6 +144,12 @@ const DEFAULT_CONFIG: AppConfig = {
     timeout: 30_000, // 30 seconds default
     enableStealth: true,
     reuseContext: true,
+  },
+  modelManager: {
+    smallModelKeepAlive: "10m",
+    mediumModelKeepAlive: "30m",
+    largeModelKeepAlive: "60m",
+    warmupPrompt: "hello",
   },
 };
 
@@ -182,6 +209,12 @@ function mergeEnv(config: AppConfig): AppConfig {
       timeout: Number(process.env.BROWSER_SERVICE_TIMEOUT) || config.browserService.timeout,
       enableStealth: process.env.BROWSER_SERVICE_ENABLE_STEALTH === "false" ? false : config.browserService.enableStealth,
       reuseContext: process.env.BROWSER_SERVICE_REUSE_CONTEXT === "false" ? false : config.browserService.reuseContext,
+    },
+    modelManager: {
+      smallModelKeepAlive: process.env.MODEL_MANAGER_SMALL_KEEP_ALIVE ?? config.modelManager.smallModelKeepAlive,
+      mediumModelKeepAlive: process.env.MODEL_MANAGER_MEDIUM_KEEP_ALIVE ?? config.modelManager.mediumModelKeepAlive,
+      largeModelKeepAlive: process.env.MODEL_MANAGER_LARGE_KEEP_ALIVE ?? config.modelManager.largeModelKeepAlive,
+      warmupPrompt: process.env.MODEL_MANAGER_WARMUP_PROMPT ?? config.modelManager.warmupPrompt,
     },
   };
 }

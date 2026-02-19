@@ -2,14 +2,6 @@
 
 ## To Do
 
-### M1-02 Add Model Manager Configuration
-  - tags: [todo]
-  - defaultExpanded: false
-    ```md
-    Add configuration settings for the model manager, including keep-alive durations and warmup prompts.
-    
-    Source: M1-02_CONFIG.md
-    ```
 
 ### M1-03 Implement ModelManagerService Core
   - tags: [todo]
@@ -67,16 +59,26 @@
 
 ## In Progress
 
-### M1-01 Enhance OllamaAdapter with Warmup Support
+### M1-02 Add Model Manager Configuration
   - tags: [in-progress]
   - defaultExpanded: true
     ```md
-    Add a warmup method to OllamaAdapter that uses the /api/chat endpoint with a minimal prompt and supports the keep_alive parameter.
-    
-    Source: M1-01_OLLAMA_WARMUP.md
+    Add configuration settings for the model manager, including keep-alive durations and warmup prompts.
+
+    Source: M1-02_CONFIG.md
     ```
 
 ## Done
+
+### M1-01 Enhance OllamaAdapter with Warmup Support
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Add a warmup method to OllamaAdapter that uses the /api/chat endpoint with a minimal prompt and supports the keep_alive parameter.
+
+    Source: M1-01_OLLAMA_WARMUP.md
+    ```
+
 
 ### S5-05 End-to-End Integration Test
   - tags: [done]
