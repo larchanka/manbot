@@ -12,6 +12,7 @@ import { responsePayloadSchema } from "../shared/protocol.js";
 import { buildSummarizerPrompt, SUMMARIZER_SYSTEM_PROMPT } from "../agents/prompts/summarizer.js";
 import { OllamaAdapter } from "./ollama-adapter.js";
 import { ModelRouter } from "./model-router.js";
+import { ModelManagerService, type ModelTier } from "./model-manager.js";
 
 const NODE_EXECUTE = "node.execute";
 const PROCESS_NAME = "model-router";
@@ -28,11 +29,13 @@ interface NodeExecutePayload {
 export class GeneratorService extends BaseProcess {
   private readonly ollama: OllamaAdapter;
   private readonly modelRouter: ModelRouter;
+  private readonly modelManager: ModelManagerService | null;
 
-  constructor(options?: { ollama?: OllamaAdapter; modelRouter?: ModelRouter }) {
+  constructor(options?: { ollama?: OllamaAdapter; modelRouter?: ModelRouter; modelManager?: ModelManagerService }) {
     super({ processName: PROCESS_NAME });
     this.ollama = options?.ollama ?? new OllamaAdapter();
     this.modelRouter = options?.modelRouter ?? new ModelRouter();
+    this.modelManager = options?.modelManager ?? null;
   }
 
   protected override handleEnvelope(envelope: Envelope): void {
@@ -54,7 +57,13 @@ export class GeneratorService extends BaseProcess {
         const modelClass = (p.input?.modelClass as string) ??
           (p.context?._complexity as string) ??
           "medium";
-        const model = this.modelRouter.getModel(modelClass as "small" | "medium" | "large");
+        const tier = modelClass as ModelTier;
+        const model = this.modelRouter.getModel(tier);
+
+        // Ensure the model is loaded before inference.
+        if (this.modelManager) {
+          await this.modelManager.ensureModelLoaded(tier);
+        }
         const context = (p.context ?? {}) as Record<string, unknown>;
         const goal = context["_goal"] as string | undefined;
         let prompt: string;
