@@ -496,3 +496,25 @@ Configure and initialize the model management system.
     - Use `ollama ps` to verify models in memory.
     - Check startup logs for prewarming progress.
     - Verify large model unloads after inactivity.
+
+---
+
+# Phase P8: Natural Language Analysis of Tool Outputs
+
+## Overview
+
+Improve LLM outputs by ensuring that data gathered from tools (search, shell, web) is analyzed and presented as coherent text. This phase introduces a "Narrative Rule" for the planner and a dedicated analyzer service role.
+
+## Proposed Changes
+
+### Component 1: Analyzer Prompt
+- Create a specialized analyzer system prompt that forbids raw JSON in final outputs.
+- Implement a user prompt template that clearly separates "User Goal" from "Raw Tool Data".
+
+### Component 2: Planner "Narrative Rule"
+- Update the Planner Agent to always conclude research tasks with a `generate_text` node.
+- These nodes are tagged with `system_prompt: "analyzer"`.
+
+### Component 3: Targeted Deployment in Generator
+- The Generator Service detects the "analyzer" tag and applies the synthesis prompt.
+- This prevents breaking internal tool chains that require JSON.

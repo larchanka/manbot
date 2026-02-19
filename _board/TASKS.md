@@ -497,6 +497,28 @@
 - `ensureModelLoaded` called before `ollama.chat` and `ollama.generate`.
 - Works correctly with all model tiers.
 
+---
+
+# Phase P8: Natural Language Analysis of Tool Outputs
+
+## Overview
+
+Improve LLM outputs by ensuring that data gathered from tools (search, shell, web) is analyzed and presented as coherent text. This phase introduces a "Narrative Rule" for the planner and a dedicated analyzer service role.
+
+## Proposed Changes
+
+### Component 1: Analyzer Prompt
+- Create a specialized analyzer system prompt that forbids raw JSON in final outputs.
+- Implement a user prompt template that clearly separates "User Goal" from "Raw Tool Data".
+
+### Component 2: Planner "Narrative Rule"
+- Update the Planner Agent to always conclude research tasks with a `generate_text` node.
+- These nodes are tagged with `system_prompt: "analyzer"`.
+
+### Component 3: Targeted Deployment in Generator
+- The Generator Service detects the "analyzer" tag and applies the synthesis prompt.
+- This prevents breaking internal tool chains that require JSON.
+
 ### Task M2.2: Implement Startup Prewarming in Orchestrator
 **File**: `src/core/orchestrator.ts`
 **Dependencies**: Task M1.3
@@ -522,3 +544,23 @@
 - Verify models are loaded at startup using `ollama ps`.
 - Verify large model loads on demand and unloads after inactivity.
 - Update `README.md` or `AI-Agent.md` with model management details.
+
+---
+
+# Phase 8: Natural Language Analysis
+
+### Task 8.1: Implement Analyzer Prompt and Synthesis Logic
+**Files**: `src/agents/prompts/analyzer.ts`, `src/services/generator-service.ts`
+**Description**: Create the analyzer role and integrate it into the generator service.
+**Acceptance Criteria**:
+- `ANALYZER_SYSTEM_PROMPT` created.
+- `GeneratorService` swaps "analyzer" tag for full prompt.
+- `GeneratorService` uses analysis-specific user template.
+
+### Task 8.2: Planner Narrative Rule and Search Examples
+**File**: `src/agents/prompts/planner.ts`
+**Description**: Update the planner to ensure it always schedules an analysis node after data-gathering tools.
+**Acceptance Criteria**:
+- Narrative Rule added to system prompt.
+- Search & Answer few-shot example added.
+- All research plans end with a `generate_text` node tagged as "analyzer".

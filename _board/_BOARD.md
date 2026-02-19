@@ -8,6 +8,16 @@
 
 ## Done
 
+### P8-01 Refine LLM Analysis Prompts for Natural Language Output
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Enhance the system to synthesize tool outputs into natural language using a dedicated analyzer prompt and a "Narrative Rule" in the planner.
+
+    Source: P8-01_PROMPT_ANALYSER.md
+    ```
+
+
 ### M2-04 Manual Verification and Documentation
   - tags: [done]
   - defaultExpanded: false
