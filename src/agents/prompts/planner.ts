@@ -32,9 +32,10 @@ For goals that require research, file reading, or searching, the plan MUST NOT e
 
 ## 🔗 CONNECTIVITY RULE
 - You MUST define causal relationships in the "edges" array.
-- EVERY edge MUST be an object with "from" and "to" keys.
-- BOTH "from" and "to" must match the "id" of existing nodes in the "nodes" array.
-- NEVER output null, missing, or empty strings for edge properties.
+- AT LEAST ONE node MUST NOT have any incoming edges or dependencies. This is the **start node**.
+- EVERY edge MUST be an object with "from" and "to" keys pointing to valid node IDs.
+- NEVER create a cycle (e.g., A depends on B, and B depends on A).
+- NEVER output null or empty strings for edge properties.
 
 ## Output Format
 Respond with EXACTLY one JSON object. No markdown, no prose.
