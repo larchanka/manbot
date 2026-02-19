@@ -72,10 +72,12 @@ function getAllowedUserIds(): Set<number> | null {
 /**
  * Escape special characters for Telegram MarkdownV2 format.
  * According to Telegram API docs, these characters must be escaped: _ * [ ] ( ) ~ ` > # + - = | { } . !
+ * Inside (...) of a [link](url) only \ and ) must be escaped.
+ * We also escape \ globally as it's the escape character itself.
  */
 function escapeMarkdownV2(text: string): string {
   // Characters that need to be escaped in MarkdownV2
-  const specialChars = /([_*\[\]()~`>#+\-=|{}.!])/g;
+  const specialChars = /([\\_*\[\]()~`>#+\-=|{}.!])/g;
   return text.replace(specialChars, "\\$1");
 }
 
@@ -126,14 +128,26 @@ function main(): void {
   const bot = new TelegramBot(token, { polling: true });
   const base = new BaseProcess({ processName: PROCESS_NAME });
 
-  function sendToUser(
+  async function sendToUser(
     chatId: number,
     text: string,
-    options?: TelegramBot.SendMessageOptions
-  ): void {
-    bot.sendMessage(chatId, text, options).catch((err) => {
-      console.error("Telegram send error:", err);
-    });
+    options?: TelegramBot.SendMessageOptions,
+    originalText?: string
+  ): Promise<void> {
+    try {
+      await bot.sendMessage(chatId, text, options);
+    } catch (err: any) {
+      // If error is related to parsing entities, retry with plain text
+      if (err.response?.body?.description?.includes("can't parse entities")) {
+        console.warn(`Telegram fallback: Failed to parse entities, retrying as plain text. Error: ${err.response.body.description}`);
+        const fallbackText = originalText ?? text; // Use unescaped text if available
+        await bot.sendMessage(chatId, fallbackText, { ...options, parse_mode: undefined }).catch((innerErr) => {
+          console.error("Telegram critical send error (fallback failed):", innerErr);
+        });
+      } else {
+        console.error("Telegram send error:", err);
+      }
+    }
   }
 
   // Incoming Telegram message → auth, commands, or task creation
@@ -145,7 +159,7 @@ function main(): void {
 
     // Authentication: allow-list of Telegram user IDs (optional)
     if (allowedUserIds !== null && !allowedUserIds.has(from.id)) {
-      void bot.sendMessage(chatId, "You are not authorized to use this bot.");
+      sendToUser(chatId, "You are not authorized to use this bot.");
       return;
     }
 
@@ -246,12 +260,12 @@ function main(): void {
       const pl = envelope.payload as TelegramSendPayload;
       if (typeof pl.chatId === "number" && typeof pl.text === "string") {
         // Escape text ONLY if explicitly requested MarkdownV2
-        const text = pl.parseMode === "MarkdownV2" ? escapeMarkdownV2(pl.text) : pl.text;
+        const escapedText = pl.parseMode === "MarkdownV2" ? escapeMarkdownV2(pl.text) : pl.text;
         const opts: TelegramBot.SendMessageOptions = {
           parse_mode: pl.parseMode ?? "Markdown",
           ...(pl.silent === true && { disable_notification: true }),
         };
-        sendToUser(pl.chatId, text, opts);
+        sendToUser(pl.chatId, escapedText, opts, pl.text);
       }
       return;
     }
@@ -260,11 +274,11 @@ function main(): void {
     if (envelope.type === "telegram.progress") {
       const pl = envelope.payload as TelegramProgressPayload;
       if (typeof pl.chatId === "number" && typeof pl.text === "string") {
-        const text = pl.parseMode === "MarkdownV2" ? escapeMarkdownV2(pl.text) : pl.text;
+        const escapedText = pl.parseMode === "MarkdownV2" ? escapeMarkdownV2(pl.text) : pl.text;
         const opts: TelegramBot.SendMessageOptions = {
           parse_mode: pl.parseMode ?? "Markdown",
         };
-        sendToUser(pl.chatId, text, opts);
+        sendToUser(pl.chatId, escapedText, opts, pl.text);
       }
       return;
     }
@@ -275,11 +289,11 @@ function main(): void {
       if (pl.status === "success" && pl.result && typeof pl.result === "object") {
         const r = pl.result as { chatId?: number; text?: string; reminders?: unknown[]; message?: string; parseMode?: "HTML" | "Markdown" | "MarkdownV2" };
         if (typeof r.chatId === "number" && typeof r.text === "string") {
-          const text = r.parseMode === "MarkdownV2" ? escapeMarkdownV2(r.text) : r.text;
+          const escapedText = r.parseMode === "MarkdownV2" ? escapeMarkdownV2(r.text) : r.text;
           const opts: TelegramBot.SendMessageOptions = {
             parse_mode: r.parseMode ?? "Markdown",
           };
-          sendToUser(r.chatId, text, opts);
+          sendToUser(r.chatId, escapedText, opts, r.text);
         } else if (typeof r.chatId === "number" && r.reminders) {
           // Handle reminder list response
           const reminders = r.reminders as Array<{ id: string; cronExpr: string; reminderMessage?: string }>;
