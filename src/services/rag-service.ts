@@ -240,6 +240,10 @@ export class RAGService extends BaseProcess {
       });
       return;
     }
+
+    // Catch-all: respond with error for any unrecognized message type
+    // This prevents the executor from hanging forever waiting for a response
+    this.sendError(envelope, "UNSUPPORTED_TYPE", `rag-service does not handle type="${type}"`);
   }
 
   private sendResponse(request: Envelope, result: unknown): void {
