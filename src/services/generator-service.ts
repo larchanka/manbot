@@ -10,6 +10,7 @@ import type { Envelope } from "../shared/protocol.js";
 import { PROTOCOL_VERSION } from "../shared/protocol.js";
 import { responsePayloadSchema } from "../shared/protocol.js";
 import { buildSummarizerPrompt, SUMMARIZER_SYSTEM_PROMPT } from "../agents/prompts/summarizer.js";
+import { ANALYZER_SYSTEM_PROMPT, buildAnalyzerUserPrompt } from "../agents/prompts/analyzer.js";
 import { OllamaAdapter } from "./ollama-adapter.js";
 import { ModelRouter } from "./model-router.js";
 import { ModelManagerService, type ModelTier } from "./model-manager.js";
@@ -106,7 +107,11 @@ export class GeneratorService extends BaseProcess {
             prompt = p.input.prompt;
           }
           if (typeof p.input?.system_prompt === "string") {
-            systemPrompt = p.input.system_prompt;
+            systemPrompt = p.input.system_prompt === "analyzer" ? ANALYZER_SYSTEM_PROMPT : p.input.system_prompt;
+            // If it's an analyzer prompt, use the specialized user prompt builder
+            if (p.input.system_prompt === "analyzer") {
+              prompt = buildAnalyzerUserPrompt(goal ?? p.input.prompt as string, depOutputs.join("\n\n"));
+            }
           }
         } else if (goal && (context["_criticFeedback"] != null || context["_previousDraft"] != null)) {
           const feedback = context["_criticFeedback"] as string | undefined;

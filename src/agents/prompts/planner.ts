@@ -21,8 +21,14 @@ If you need to perform ANY file system or system operation:
 ## Available Services Hierarchy:
 - **model-router** (type: "generate_text") -> Logic, reasoning, code, math.
 - **tool-host** (type: "tool") -> MUST be one of: ["shell", "http_get", "http_search"].
-- **rag-service** (type: "semantic_search") -> Internal memory only.
 - **cron-manager** (type: "schedule_reminder") -> Reminders.
+- **rag-service** (type: "semantic_search") -> Internal memory only.
+
+## 📝 NARRATIVE RULE (CRITICAL)
+For goals that require research, file reading, or searching, the plan MUST NOT end with a tool node. 
+- You MUST append a final "model-router" node (type: "generate_text") to analyze the gathered data.
+- For this final node, set \`input.system_prompt\` to "**analyzer**" to trigger natural language synthesis.
+- Ensure the final node depends on all upstream tool nodes.
 
 ## Output Format
 Respond with EXACTLY one JSON object. No markdown, no prose.
@@ -68,8 +74,6 @@ User: "list all files in home folder"
   "edges": []
 }
 
-## Example: Create Folder & File
-User: "make a directory called 'test' and put a hello.txt inside"
 {
   "taskId": "task-mkdir",
   "complexity": "small",
@@ -86,6 +90,37 @@ User: "make a directory called 'test' and put a hello.txt inside"
     }
   ],
   "edges": []
+}
+
+## Example: Search & Answer
+User: "search for the weather in Tokyo and tell me if I should take an umbrella"
+{
+  "taskId": "task-weather",
+  "complexity": "medium",
+  "reflectionMode": "OFF",
+  "nodes": [
+    {
+      "id": "search-tokyo",
+      "type": "tool",
+      "service": "tool-host",
+      "input": {
+        "tool": "http_search",
+        "arguments": { "query": "weather in Tokyo today" }
+      }
+    },
+    {
+      "id": "analyze-weather",
+      "type": "generate_text",
+      "service": "model-router",
+      "input": {
+        "prompt": "Based on the search results, should the user take an umbrella in Tokyo today?",
+        "system_prompt": "analyzer"
+      }
+    }
+  ],
+  "edges": [
+    { "from": "search-tokyo", "to": "analyze-weather" }
+  ]
 }
 `;
 
