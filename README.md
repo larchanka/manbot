@@ -51,10 +51,14 @@ ollama pull mistral
    - **rag.embeddingDimensions** — Vector dimension for sqlite-vss (default 768 for nomic-embed-text)
    - **modelRouter** — Ollama model names for small/medium/large
    - **toolHost.sandboxDir** — Directory allowed for shell tool file operations (default: cwd)
-- **browserService.headless** — Run browser in headless mode (default: `true`)
-- **browserService.timeout** — Browser operation timeout in milliseconds (default: `30000`)
-- **browserService.enableStealth** — Enable stealth plugin for bot detection bypass (default: `true`)
-- **browserService.reuseContext** — Reuse browser context across requests (default: `true`)
+   - **browserService.headless** — Run browser in headless mode (default: `true`)
+   - **browserService.timeout** — Browser operation timeout in milliseconds (default: `30000`)
+   - **browserService.enableStealth** — Enable stealth plugin for bot detection bypass (default: `true`)
+   - **browserService.reuseContext** — Reuse browser context across requests (default: `true`)
+   - **modelManager.smallModelKeepAlive** — Keep-alive for small model (default: `"10m"`, Ollama duration string or seconds)
+   - **modelManager.mediumModelKeepAlive** — Keep-alive for medium model (default: `"30m"`)
+   - **modelManager.largeModelKeepAlive** — Keep-alive for large model after on-demand use (default: `"60m"`)
+   - **modelManager.warmupPrompt** — Minimal prompt sent during warmup (default: `"hello"`)
 
 Environment variables override `config.json`. Supported env vars:
 
@@ -65,6 +69,7 @@ Environment variables override `config.json`. Supported env vars:
 - `RAG_EMBED_MODEL`, `RAG_DB`, `RAG_EMBEDDING_DIMENSIONS`, `TOOL_SANDBOX_DIR`
 - `MODEL_ROUTER_SMALL`, `MODEL_ROUTER_MEDIUM`, `MODEL_ROUTER_LARGE`
 - `BROWSER_SERVICE_HEADLESS`, `BROWSER_SERVICE_TIMEOUT`, `BROWSER_SERVICE_ENABLE_STEALTH`, `BROWSER_SERVICE_REUSE_CONTEXT`
+- `MODEL_MANAGER_SMALL_KEEP_ALIVE`, `MODEL_MANAGER_MEDIUM_KEEP_ALIVE`, `MODEL_MANAGER_LARGE_KEEP_ALIVE`, `MODEL_MANAGER_WARMUP_PROMPT`
 
 `config.json` is gitignored; do not commit secrets.
 
@@ -179,6 +184,34 @@ Browser service settings can be configured in `config.json`:
 - `browserService.reuseContext`: Reuse browser context (default: `true`)
 
 See [Troubleshooting](#troubleshooting) for common issues and debugging tips.
+
+## Model Management
+
+The system includes a `ModelManagerService` that manages Ollama model lifecycles:
+
+- **Startup prewarming**: On startup, the Orchestrator pre-warms the **small** and **medium** models sequentially, so the first request is served without cold-start delay.
+- **On-demand loading**: The **large** model is loaded on demand when needed for a task.
+- **Keep-alive control**: Each tier has a configurable keep-alive duration (Ollama removes a model from VRAM after it has been idle for the configured time).
+- **Concurrency safety**: Concurrent warmup requests for the same model are deduplicated — only one `/api/chat` call is made regardless of how many parallel requests arrive.
+
+### Keep-alive defaults
+
+| Tier   | Default keep-alive | Behavior |
+|--------|--------------------|----------|
+| small  | `10m`              | Stays loaded for 10 minutes after last use |
+| medium | `30m`              | Stays loaded for 30 minutes after last use |
+| large  | `60m`              | Stays loaded for 60 minutes after last use |
+
+Set keep-alive to `-1` (the number) to keep a model loaded indefinitely until Ollama is restarted.
+
+### Monitoring model state
+
+```bash
+# Check which models are currently loaded in VRAM
+ollama ps
+```
+
+The prewarming start and completion are logged by the Orchestrator (`core` prefix in logs).
 
 ## Project layout
 
