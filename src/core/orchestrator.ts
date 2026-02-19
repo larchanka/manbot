@@ -13,6 +13,9 @@ import { envelopeSchema } from "../shared/protocol.js";
 import type { Envelope } from "../shared/protocol.js";
 import { ConsoleLogger } from "../utils/console-logger.js";
 import { getConfig } from "../shared/config.js";
+import { OllamaAdapter } from "../services/ollama-adapter.js";
+import { ModelRouter } from "../services/model-router.js";
+import { ModelManagerService } from "../services/model-manager.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, "..", "..");
@@ -43,6 +46,13 @@ type PendingReject = (env: Envelope) => void;
 export class Orchestrator {
   private readonly children = new Map<string, ChildEntry>();
   private readonly pending = new Map<string, { resolve: PendingResolve; reject: PendingReject }>();
+  private readonly modelManager: ModelManagerService;
+
+  constructor() {
+    const ollama = new OllamaAdapter();
+    const modelRouter = new ModelRouter();
+    this.modelManager = new ModelManagerService({ ollama, modelRouter });
+  }
 
   private spawnProcess(name: string, scriptPath: string): ChildEntry {
     const child = spawn("node", [scriptPath], {
@@ -273,7 +283,7 @@ export class Orchestrator {
         nodes: nodes.map((n) => ({ id: n.id, type: n.type, service: n.service, input: n.input })),
         edges: edges.map((e) => ({ fromNode: e.from, toNode: e.to })),
       };
-      this.sendAndWait(taskMemory, "task.create", taskCreatePayload).catch(() => {});
+      this.sendAndWait(taskMemory, "task.create", taskCreatePayload).catch(() => { });
 
       this.sendToTelegram(chatId, "Planning complete. Execution started...", true);
       let execEnv: Envelope;
@@ -573,6 +583,13 @@ export class Orchestrator {
     for (const [name, scriptPath] of Object.entries(PROCESS_SCRIPTS)) {
       this.spawnProcess(name, scriptPath);
     }
+    // Non-blocking pre-warm of small and medium models.
+    ConsoleLogger.info("core", "Model prewarming started...");
+    this.modelManager.prewarmModels()
+      .then(() => ConsoleLogger.info("core", "Model prewarming complete."))
+      .catch((err: unknown) =>
+        ConsoleLogger.warn("core", `Model prewarming failed: ${err instanceof Error ? err.message : String(err)}`)
+      );
   }
 
   stop(): void {
