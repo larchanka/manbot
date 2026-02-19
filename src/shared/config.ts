@@ -66,6 +66,8 @@ export interface BrowserServiceConfig {
   enableStealth: boolean;
   /** Reuse browser context across requests (default: true). */
   reuseContext: boolean;
+  /** Directory to store browser user data (persistent cookies, etc). */
+  userDataDir?: string | undefined;
 }
 
 export interface ModelManagerConfig {
@@ -209,6 +211,7 @@ function mergeEnv(config: AppConfig): AppConfig {
       timeout: Number(process.env.BROWSER_SERVICE_TIMEOUT) || config.browserService.timeout,
       enableStealth: process.env.BROWSER_SERVICE_ENABLE_STEALTH === "false" ? false : config.browserService.enableStealth,
       reuseContext: process.env.BROWSER_SERVICE_REUSE_CONTEXT === "false" ? false : config.browserService.reuseContext,
+      userDataDir: process.env.BROWSER_SERVICE_USER_DATA_DIR ?? config.browserService.userDataDir,
     },
     modelManager: {
       smallModelKeepAlive: process.env.MODEL_MANAGER_SMALL_KEEP_ALIVE ?? config.modelManager.smallModelKeepAlive,

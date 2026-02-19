@@ -22,7 +22,9 @@ If you need to perform ANY file system or system operation:
 - **model-router** (type: "generate_text") -> Logic, reasoning, code, math.
 - **tool-host** (type: "tool") -> MUST be one of: ["shell", "http_get", "http_search"].
 - **cron-manager** (type: "schedule_reminder") -> Reminders.
-- **rag-service** (type: "semantic_search") -> Internal memory only.
+- **rag-service** (type: "semantic_search") -> Internal memory.
+    - \`input.query\`: Search query string.
+    - \`input.scope\`: "**session**" (default, current chat only) or "**global**" (search through ALL archived history).
 
 ## 📝 NARRATIVE RULE (CRITICAL)
 For goals that require research, file reading, or searching, the plan MUST NOT end with a tool node. 
@@ -136,6 +138,8 @@ export interface PlannerPromptOptions {
   previousError?: string;
   /** Optional JSON string of the previous plan that failed (for context). */
   previousPlanJson?: string;
+  /** Optional conversation history to provide context. */
+  conversationHistory?: string;
 }
 
 export function buildPlannerPrompt(userMessage: string, options?: PlannerPromptOptions): string {
@@ -146,6 +150,7 @@ ${PLANNER_FEW_SHOT_EXAMPLES}
 Before outputting, ensure "tool" is EXACTLY "shell", "http_get", or "http_search". 
 Do NOT use the command name (e.g., 'ls') as the tool name.
 
+${options?.conversationHistory ? `## Conversation History (Context):\n${options.conversationHistory}\n\n` : ""}
 User goal: ${userMessage}`;
 
   if (options?.previousError?.trim()) {

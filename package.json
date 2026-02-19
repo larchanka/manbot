@@ -14,7 +14,7 @@
     "start:telegram": "node dist/adapters/telegram-adapter.js",
     "dev:telegram": "tsx src/adapters/telegram-adapter.ts",
     "start:orchestrator": "node dist/core/orchestrator.js",
-    "dev:orchestrator": "tsx src/core/orchestrator.ts",
+    "dev:orchestrator": "tsx src/core/orchestrator.ts --no-cache",
     "start:generator": "node dist/services/generator-service.js",
     "test": "vitest run",
     "test:watch": "vitest"

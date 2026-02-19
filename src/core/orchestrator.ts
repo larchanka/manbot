@@ -223,6 +223,44 @@ export class Orchestrator {
     let lastError: string = "";
     let previousPlan: { nodes: unknown[]; edges?: unknown[] } | undefined;
 
+    // Fetch conversation history if conversationId is provided
+    let conversationHistory = "";
+    if (conversationId) {
+      try {
+        const tasksEnv = await this.sendAndWait(taskMemory, "task.getByConversationId", { conversationId });
+        const tasksPayload = tasksEnv.payload as { status?: string; result?: { tasks?: Array<{ id: string; goal: string; status: string }> } };
+        const tasks = tasksPayload.result?.tasks ?? [];
+
+        // Only take the last 5 tasks for context to avoid bloating the prompt
+        const lastTasks = tasks.slice(-5);
+        const historyParts: string[] = [];
+
+        for (const t of lastTasks) {
+          try {
+            const taskDetail = await this.sendAndWait(taskMemory, "task.get", { taskId: t.id });
+            const result = (taskDetail.payload as { result?: { nodes?: Array<{ output?: string }> } }).result;
+            const nodes = result?.nodes ?? [];
+            const lastOutput = nodes.filter((n) => n.output != null && n.output !== "").pop()?.output ?? "";
+            const resultText = typeof lastOutput === "string" ? lastOutput : JSON.stringify(lastOutput);
+            if (resultText) {
+              historyParts.push(`User: ${t.goal}\nAssistant: ${resultText.substring(0, 500)}${resultText.length > 500 ? "..." : ""}`);
+            }
+          } catch (err) {
+            ConsoleLogger.warn("core", `Failed to fetch details for task ${t.id} during history retrieval`);
+          }
+        }
+        conversationHistory = historyParts.join("\n\n");
+        ConsoleLogger.debug("core", `Fetched history for ${conversationId}: ${historyParts.length} tasks found.`);
+        if (conversationHistory) {
+          ConsoleLogger.debug("core", `Conversation history summary:\n${conversationHistory.substring(0, 200)}...`);
+        }
+      } catch (err) {
+        ConsoleLogger.warn("core", `Failed to fetch conversation history for ${conversationId}`);
+      }
+    } else {
+      ConsoleLogger.debug("core", "No conversationId provided, history fetch skipped.");
+    }
+
     for (let attempt = 0; attempt <= Orchestrator.MAX_PLAN_RETRIES; attempt++) {
       const taskId = randomUUID();
       const isRetry = attempt > 0;
@@ -235,6 +273,7 @@ export class Orchestrator {
       const planCreatePayload: Record<string, unknown> = {
         goal,
         complexity: plannerComplexity,
+        history: conversationHistory,
       };
       if (lastError) {
         planCreatePayload.previousError = lastError;
@@ -290,7 +329,7 @@ export class Orchestrator {
       this.sendToTelegram(chatId, "Planning complete. Execution started...", true);
       let execEnv: Envelope;
       try {
-        execEnv = await this.sendAndWait(executor, "plan.execute", { taskId, plan, goal, chatId, userId });
+        execEnv = await this.sendAndWait(executor, "plan.execute", { taskId, plan, goal, chatId, userId, conversationId });
       } catch (errEnv) {
         const err = errEnv as Envelope & { payload?: { message?: string; details?: Record<string, unknown> } };
         lastError = err.payload?.message ?? "Execution failed.";
@@ -341,7 +380,7 @@ export class Orchestrator {
           text = rawData;
         }
       }
-      this.sendToTelegram(chatId, text);
+      this.sendToTelegram(chatId, text, false, "Markdown");
       return;
     }
 

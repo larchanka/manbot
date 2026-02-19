@@ -129,20 +129,19 @@ export class ToolHost extends BaseProcess {
     const query = args.query ?? args.q;
     if (typeof query !== "string") throw new Error("http_search requires query (string)");
 
-    // Build DuckDuckGo search URL
-    const searchUrl = `https://duckduckgo.com/search?q=${encodeURIComponent(query)}`;
+    // Build Search URL (using the HTML endpoint which is more relaxed)
+    const searchUrl = "https://search.yahoo.com/search?p=" + query;
 
     const startTime = Date.now();
 
     try {
-      // DuckDuckGo is an SPA, so we always use browser
       const browserService = this.getBrowserService();
       const result = await browserService.fetchWithBrowser(searchUrl);
 
       const responseTime = Date.now() - startTime;
       let body = result.body;
 
-      // Convert HTML to Markdown (DuckDuckGo returns HTML)
+      // Convert HTML to Markdown (Search returns HTML)
       const isHTML = result.contentType.includes("text/html") || body.trim().startsWith("<!DOCTYPE") || body.trim().startsWith("<html");
       if (isHTML) {
         body = htmlToMarkdown(body);

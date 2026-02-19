@@ -23,6 +23,8 @@ interface PlanCreatePayload {
   previousError?: string;
   /** Optional previous plan that failed (object). Will be stringified for the prompt. */
   previousPlan?: Record<string, unknown>;
+  /** Optional conversation history for context. */
+  history?: string;
 }
 
 function extractJson(text: string): string {
@@ -66,10 +68,11 @@ export class PlannerAgent extends BaseProcess {
           p.previousPlan && typeof p.previousPlan === "object"
             ? JSON.stringify(p.previousPlan, null, 2)
             : undefined;
-        const promptOptions =
-          previousError ?? previousPlanJson
-            ? { ...(previousError && { previousError }), ...(previousPlanJson && { previousPlanJson }) }
-            : undefined;
+        const promptOptions = {
+          ...(previousError && { previousError }),
+          ...(previousPlanJson && { previousPlanJson }),
+          ...(p.history && { conversationHistory: p.history }),
+        };
         const prompt = buildPlannerPrompt(goal, promptOptions);
         const messages = [
           { role: "system" as const, content: "You output only valid JSON. No markdown, no explanation." },

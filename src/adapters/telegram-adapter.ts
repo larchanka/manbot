@@ -245,7 +245,7 @@ function main(): void {
     if (envelope.type === "telegram.send") {
       const pl = envelope.payload as TelegramSendPayload;
       if (typeof pl.chatId === "number" && typeof pl.text === "string") {
-        // Escape text if using MarkdownV2 parse mode
+        // Escape text ONLY if explicitly requested MarkdownV2
         const text = pl.parseMode === "MarkdownV2" ? escapeMarkdownV2(pl.text) : pl.text;
         const opts: TelegramBot.SendMessageOptions = {
           parse_mode: pl.parseMode ?? "Markdown",

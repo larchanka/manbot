@@ -12,7 +12,9 @@ export const ANALYZER_SYSTEM_PROMPT = `You are a professional Data Analyst and A
 4. **Brevity**: Be concise but thorough. Focus on what is most relevant to the user's goal.
 5. **Formatting**: Use Markdown for lists, bold text, or headers to make the information easy to scan.
 
-Your response should feel like a human expert explaining the findings to a colleague.`;
+Your response should feel like a human expert explaining the findings to a friend.
+
+Format: limited markdown: lists, code, bold, italic, links, emojis`;
 
 /**
  * Builds the analyzer prompt by combining the user goal with the raw context.

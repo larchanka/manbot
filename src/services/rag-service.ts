@@ -102,17 +102,32 @@ export class RAGStore {
     this.db.transaction(run)();
   }
 
-  search(queryEmbedding: number[], limit: number): Array<{ content: string; metadata: Record<string, unknown>; score: number }> {
+  search(queryEmbedding: number[], limit: number, filters?: { conversationId?: string | undefined }): Array<{ content: string; metadata: Record<string, unknown>; score: number }> {
     const k = Math.max(1, Math.floor(limit));
     if (this.useVss) {
       const hasRows = (this.db.prepare(`SELECT 1 FROM ${this.vssTableName} LIMIT 1`).get() as unknown) != null;
       if (!hasRows) return [];
       const queryJson = JSON.stringify(queryEmbedding);
-      const vssRows = this.db
-        .prepare(
-          `SELECT rowid, distance FROM ${this.vssTableName} WHERE vss_search(embedding, ?) LIMIT ?`,
-        )
-        .all(queryJson, k) as Array<{ rowid: number; distance: number }>;
+      // Use a CTE or subquery to filter if conversationId is provided
+      let vssRows: Array<{ rowid: number; distance: number }>;
+      if (filters?.conversationId) {
+        vssRows = this.db
+          .prepare(
+            `SELECT t.rowid, t.distance 
+             FROM ${this.vssTableName} t
+             JOIN rag_documents d ON d.rowid = t.rowid
+             WHERE vss_search(t.embedding, ?) 
+               AND json_extract(d.metadata, '$.conversationId') = ?
+             LIMIT ?`,
+          )
+          .all(queryJson, filters.conversationId, k) as Array<{ rowid: number; distance: number }>;
+      } else {
+        vssRows = this.db
+          .prepare(
+            `SELECT rowid, distance FROM ${this.vssTableName} WHERE vss_search(embedding, ?) LIMIT ?`,
+          )
+          .all(queryJson, k) as Array<{ rowid: number; distance: number }>;
+      }
       if (vssRows.length === 0) return [];
       const rowids = vssRows.map((r) => r.rowid);
       const order = new Map(rowids.map((r, i) => [r, i]));
@@ -137,14 +152,17 @@ export class RAGStore {
       embedding: Buffer;
     }>;
     if (rows.length === 0) return [];
-    const scored = rows.map((row) => {
+    let scored = rows.map((row) => {
       const embedding = bufferToEmbedding(row.embedding);
       const score = dotProduct(queryEmbedding, embedding);
       const metadata = (JSON.parse(row.metadata || "{}") ?? {}) as Record<string, unknown>;
       return { content: row.content, metadata, score };
     });
+    if (filters?.conversationId) {
+      scored = scored.filter((s) => s.metadata.conversationId === filters.conversationId);
+    }
     scored.sort((a, b) => b.score - a.score);
-    return scored.slice(0, limit);
+    return scored.slice(0, k);
   }
 }
 
@@ -183,10 +201,10 @@ export class RAGService extends BaseProcess {
   }
 
   /** Return relevant snippets by semantic similarity (cosine via dot product for L2-normalized vectors) */
-  async search(query: string, limit = 5): Promise<Array<{ content: string; metadata: Record<string, unknown>; score: number }>> {
-    ConsoleLogger.debug(PROCESS_NAME, `Searching RAG: "${query}"`);
+  async search(query: string, limit = 5, filters?: { conversationId?: string | undefined }): Promise<Array<{ content: string; metadata: Record<string, unknown>; score: number }>> {
+    ConsoleLogger.debug(PROCESS_NAME, `Searching RAG: "${query}"${filters?.conversationId ? ` (filter: ${filters.conversationId})` : ""}`);
     const { embedding: queryEmbed } = await this.ollama.embed(query, this.embedModel, { timeoutMs: 30000 });
-    const results = this.store.search(queryEmbed, limit);
+    const results = this.store.search(queryEmbed, limit, filters);
     ConsoleLogger.info(PROCESS_NAME, `Found ${results.length} results for query`);
     return results;
   }
@@ -201,7 +219,9 @@ export class RAGService extends BaseProcess {
       if (p.type !== "semantic_search") return;
       const query = (p.input?.query ?? "") as string;
       const limit = (typeof p.input?.limit === "number" ? p.input.limit : 5) as number;
-      this.search(query, limit).then((results) => {
+      const conversationId = p.input?.conversationId as string | undefined;
+
+      this.search(query, limit, { conversationId }).then((results) => {
         this.sendResponse(envelope, { results, snippets: results.map((r) => r.content) });
       }).catch((err) => {
         this.sendError(envelope, "RAG_SEARCH_ERROR", err instanceof Error ? err.message : String(err));
@@ -226,14 +246,16 @@ export class RAGService extends BaseProcess {
     }
 
     if (type === "memory.semantic.search") {
-      const p = payload as unknown as MemorySearchPayload;
+      const p = payload as unknown as MemorySearchPayload & { conversationId?: string };
       const query = p.query ?? "";
       const limit = typeof p.limit === "number" ? p.limit : 5;
+      const conversationId = p.conversationId;
+
       if (typeof query !== "string") {
         this.sendError(envelope, "INVALID_PAYLOAD", "memory.semantic.search requires query (string)");
         return;
       }
-      this.search(query, limit).then((results) => {
+      this.search(query, limit, { conversationId }).then((results) => {
         this.sendResponse(envelope, { results });
       }).catch((err) => {
         this.sendError(envelope, "RAG_SEARCH_ERROR", err instanceof Error ? err.message : String(err));

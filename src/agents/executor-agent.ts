@@ -60,6 +60,7 @@ interface PlanExecutePayload {
   goal?: string;
   chatId?: number;
   userId?: number;
+  conversationId?: string;
 }
 
 interface NodeExecutePayload {
@@ -109,7 +110,7 @@ export class ExecutorAgent extends BaseProcess {
       return;
     }
 
-    this.runExecutionLoop(envelope, taskId, plan, typeof goal === "string" ? goal : "", chatId, userId).catch((err) => {
+    this.runExecutionLoop(envelope, taskId, plan, typeof goal === "string" ? goal : "", chatId, userId, p.conversationId).catch((err) => {
       let msg: string;
       let details: Record<string, unknown> | undefined;
       if (err && typeof err === "object" && "payload" in err) {
@@ -135,6 +136,7 @@ export class ExecutorAgent extends BaseProcess {
     goal: string,
     chatId?: number,
     userId?: number,
+    conversationId?: string,
   ): Promise<void> {
     const dependencyMap = getDependencyMap(plan);
     const completedIds = new Set<string>();
@@ -168,6 +170,7 @@ export class ExecutorAgent extends BaseProcess {
         // Include chatId and userId for reminder scheduling
         if (chatId !== undefined) context["chatId"] = chatId;
         if (userId !== undefined) context["userId"] = userId;
+        if (conversationId !== undefined) context["conversationId"] = conversationId;
         try {
           const result = await this.dispatchNode(taskId, node, context);
           return { nodeId, result };
@@ -404,6 +407,16 @@ export class ExecutorAgent extends BaseProcess {
         input: node.input ?? {},
         ...(Object.keys(context).length > 0 && { context }),
       };
+
+      // Auto-inject conversationId into semantic_search input if it's in context but not in nodes's input
+      // UNLESS scope is explicitly "global"
+      if (node.type === "semantic_search" && context.conversationId) {
+        const scope = (payload.input.scope as string) ?? "session";
+        if (scope === "session" && !payload.input.conversationId) {
+          payload.input.conversationId = context.conversationId;
+        }
+      }
+
       this.send({
         id,
         timestamp: Date.now(),
@@ -493,14 +506,14 @@ export class ExecutorAgent extends BaseProcess {
 
     // Extract cronExpr from input or dependency output
     let cronExpr = nodeInput.cronExpr as string | undefined;
-    
+
     // Check if cronExpr is a placeholder string (should be ignored)
     const isPlaceholder = cronExpr && (
       cronExpr.includes("<output from") ||
       cronExpr.includes("<extract from") ||
       cronExpr.startsWith("<") && cronExpr.endsWith(">")
     );
-    
+
     if (!cronExpr || isPlaceholder) {
       // Check if cronExpr is in a dependency output (from parse-time node)
       const dependsOn = (nodeInput.dependsOn as string[] | undefined) ?? [];
@@ -513,7 +526,7 @@ export class ExecutorAgent extends BaseProcess {
           // 2. JSON string with cronExpr field
           // 3. JSON string with full parseTimeExpression result
           const trimmed = depOutput.trim();
-          
+
           // First, try parsing as JSON
           try {
             const parsed = JSON.parse(trimmed) as { cronExpr?: string; cron_expr?: string };
