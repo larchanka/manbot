@@ -7,6 +7,12 @@ import { getConfig } from "../shared/config.js";
 
 export interface GenerateOptions {
   timeoutMs?: number;
+  keep_alive?: string | number;
+}
+
+export interface ChatOptions {
+  timeoutMs?: number;
+  keep_alive?: string | number;
 }
 
 export interface GenerateResult {
@@ -68,7 +74,8 @@ export class OllamaAdapter {
   ): Promise<GenerateResult> {
     const timeoutMs = opts.timeoutMs ?? this.timeoutMs;
     const url = `${this.baseUrl}/api/generate`;
-    const body = { model, prompt, stream: false };
+    const body: Record<string, unknown> = { model, prompt, stream: false };
+    if (opts.keep_alive !== undefined) body.keep_alive = opts.keep_alive;
     const res = await this.fetchWithRetry(url, body, timeoutMs);
     const data = (await res.json()) as {
       response?: string;
@@ -91,11 +98,12 @@ export class OllamaAdapter {
   async chat(
     messages: ChatMessage[],
     model: string,
-    opts: { timeoutMs?: number } = {},
+    opts: ChatOptions = {},
   ): Promise<ChatResult> {
     const timeoutMs = opts.timeoutMs ?? this.timeoutMs;
     const url = `${this.baseUrl}/api/chat`;
-    const body = { model, messages, stream: false };
+    const body: Record<string, unknown> = { model, messages, stream: false };
+    if (opts.keep_alive !== undefined) body.keep_alive = opts.keep_alive;
     const res = await this.fetchWithRetry(url, body, timeoutMs);
     const data = (await res.json()) as {
       message?: { role: string; content: string };
@@ -131,16 +139,39 @@ export class OllamaAdapter {
   }
 
   /**
+   * Warm up a model by sending a minimal prompt, ensuring it is loaded into memory.
+   * The keep_alive parameter controls how long the model stays in memory after the call.
+   */
+  async warmup(model: string, keepAlive: string | number): Promise<void> {
+    const url = `${this.baseUrl}/api/chat`;
+    const body = {
+      model,
+      messages: [{ role: "user", content: "hello" }],
+      stream: false,
+      keep_alive: keepAlive,
+    };
+    try {
+      await this.fetchWithRetry(url, body, this.timeoutMs);
+    } catch (err) {
+      throw new Error(
+        `OllamaAdapter.warmup failed for model "${model}": ${err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+  }
+
+  /**
    * Stream chat response. Returns async iterator of chunks (NDJSON).
    */
   async *streamChat(
     messages: ChatMessage[],
     model: string,
-    opts: { timeoutMs?: number } = {},
+    opts: ChatOptions = {},
   ): AsyncGenerator<StreamChunk> {
     const timeoutMs = opts.timeoutMs ?? this.timeoutMs;
     const url = `${this.baseUrl}/api/chat`;
-    const body = { model, messages, stream: true };
+    const body: Record<string, unknown> = { model, messages, stream: true };
+    if (opts.keep_alive !== undefined) body.keep_alive = opts.keep_alive;
     const res = await this.fetchWithRetry(url, body, timeoutMs);
     if (!res.body) return;
     const reader = res.body.getReader();

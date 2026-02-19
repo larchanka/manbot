@@ -2,15 +2,6 @@
 
 ## To Do
 
-### M1-01 Enhance OllamaAdapter with Warmup Support
-  - tags: [todo]
-  - defaultExpanded: false
-    ```md
-    Add a warmup method to OllamaAdapter that uses the /api/chat endpoint with a minimal prompt and supports the keep_alive parameter.
-    
-    Source: M1-01_OLLAMA_WARMUP.md
-    ```
-
 ### M1-02 Add Model Manager Configuration
   - tags: [todo]
   - defaultExpanded: false
@@ -75,6 +66,15 @@
     ```
 
 ## In Progress
+
+### M1-01 Enhance OllamaAdapter with Warmup Support
+  - tags: [in-progress]
+  - defaultExpanded: true
+    ```md
+    Add a warmup method to OllamaAdapter that uses the /api/chat endpoint with a minimal prompt and supports the keep_alive parameter.
+    
+    Source: M1-01_OLLAMA_WARMUP.md
+    ```
 
 ## Done
 
