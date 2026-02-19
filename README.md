@@ -9,9 +9,9 @@ A multi-process AI platform with type-safe IPC and capability-graph execution. U
 - **Multi-agent pipeline**: Planner → Task Memory → Executor → Critic (optional revision loop)
 - **Capability graph (DAG)**: Nodes for `generate_text`, `semantic_search`, `reflect`, `tool`; parallel execution where dependencies allow
 - **Type-safe IPC**: JSONL over stdin/stdout with Zod-validated envelopes
-- **Services**: Task Memory (SQLite, with `conversation_id` for session grouping), Logger, RAG (embeddings + SQLite; vector search via **sqlite-vss** when available, fallback to in-DB dot-product), Tool Host (**shell tool** for file operations and system commands, **http_get with Playwright browser**, http_search), Cron Manager, Browser Service (Playwright with stealth capabilities)
-- **Telegram adapter**: Commands `/start`, `/task`, `/new`, `/help`; session tracking and conversation archiving; optional allow-list of user IDs
-- **Conversation archiving**: `/new` resets the session, summarizes the previous conversation via a dedicated summarizer prompt, and stores the summary in RAG for later retrieval
+- **Conversation Memory**: Short-term memory (last 5 tasks) is injected into the Planner for immediate session context; `/new` resets the session and archives the conversation.
+- **Session-Scoped RAG**: Memory searches are session-scoped by default to prevent context leakage after `/new`, with an optional `global` scope.
+- **Telegram adapter**: Commands `/start`, `/task`, `/new`, `/help`; session tracking and conversation archiving; robust message delivery with automatic plain-text fallback.
 - **Reminder System**: Schedule one-time or recurring reminders via natural language; cron-based scheduling with Telegram delivery
 
 ## Requirements
@@ -55,6 +55,7 @@ ollama pull mistral
    - **browserService.timeout** — Browser operation timeout in milliseconds (default: `30000`)
    - **browserService.enableStealth** — Enable stealth plugin for bot detection bypass (default: `true`)
    - **browserService.reuseContext** — Reuse browser context across requests (default: `true`)
+   - **browserService.userDataDir** — Directory to store browser user data (persistent cookies, logins, etc.; default: `undefined`)
    - **modelManager.smallModelKeepAlive** — Keep-alive for small model (default: `"10m"`, Ollama duration string or seconds)
    - **modelManager.mediumModelKeepAlive** — Keep-alive for medium model (default: `"30m"`)
    - **modelManager.largeModelKeepAlive** — Keep-alive for large model after on-demand use (default: `"60m"`)
@@ -68,7 +69,7 @@ Environment variables override `config.json`. Supported env vars:
 - `TASK_MEMORY_DB`, `CRON_DB`, `LOG_DIR`, `LOG_FILE`
 - `RAG_EMBED_MODEL`, `RAG_DB`, `RAG_EMBEDDING_DIMENSIONS`, `TOOL_SANDBOX_DIR`
 - `MODEL_ROUTER_SMALL`, `MODEL_ROUTER_MEDIUM`, `MODEL_ROUTER_LARGE`
-- `BROWSER_SERVICE_HEADLESS`, `BROWSER_SERVICE_TIMEOUT`, `BROWSER_SERVICE_ENABLE_STEALTH`, `BROWSER_SERVICE_REUSE_CONTEXT`
+- `BROWSER_SERVICE_HEADLESS`, `BROWSER_SERVICE_TIMEOUT`, `BROWSER_SERVICE_ENABLE_STEALTH`, `BROWSER_SERVICE_REUSE_CONTEXT`, `BROWSER_SERVICE_USER_DATA_DIR`
 - `MODEL_MANAGER_SMALL_KEEP_ALIVE`, `MODEL_MANAGER_MEDIUM_KEEP_ALIVE`, `MODEL_MANAGER_LARGE_KEEP_ALIVE`, `MODEL_MANAGER_WARMUP_PROMPT`
 
 `config.json` is gitignored; do not commit secrets.
@@ -142,6 +143,11 @@ The bot supports scheduling reminders using natural language:
 - Cancel a reminder: `/cancel_reminder <id>`
 
 The system uses LLM-powered time parsing to convert natural language expressions into cron expressions, which are then scheduled via the Cron Manager service. When a reminder fires, the bot sends a message back to the user via Telegram.
+
+### Message Reliability
+The Telegram adapter includes a robust delivery system:
+- **Automatic Escaping**: Handles MarkdownV2 special characters.
+- **Plain-text Fallback**: If a formatted message fails to send (due to complex entities), the adapter automatically retries as plain text to ensure the user always receives the information.
 
 ## HTTP Get Tool (Browser-based)
 
