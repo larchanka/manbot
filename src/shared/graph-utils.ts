@@ -71,11 +71,18 @@ export function validateGraph(dag: CapabilityGraph): ValidateGraphResult {
   }
   if (dag.edges) {
     for (const e of dag.edges) {
+      if (!e || typeof e !== "object" || !e.from || !e.to) {
+        errors.push(`Invalid edge object: ${JSON.stringify(e)}`);
+        continue;
+      }
       if (nodeIds.has(e.from) && nodeIds.has(e.to)) {
         if (!adj.get(e.from)?.includes(e.to)) {
           adj.get(e.from)?.push(e.to);
           inDegree.set(e.to, (inDegree.get(e.to) ?? 0) + 1);
         }
+      } else {
+        if (!nodeIds.has(e.from)) errors.push(`Edge references unknown from-node "${e.from}"`);
+        if (!nodeIds.has(e.to)) errors.push(`Edge references unknown to-node "${e.to}"`);
       }
     }
   }

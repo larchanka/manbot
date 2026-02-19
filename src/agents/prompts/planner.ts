@@ -30,6 +30,12 @@ For goals that require research, file reading, or searching, the plan MUST NOT e
 - For this final node, set \`input.system_prompt\` to "**analyzer**" to trigger natural language synthesis.
 - Ensure the final node depends on all upstream tool nodes.
 
+## 🔗 CONNECTIVITY RULE
+- You MUST define causal relationships in the "edges" array.
+- EVERY edge MUST be an object with "from" and "to" keys.
+- BOTH "from" and "to" must match the "id" of existing nodes in the "nodes" array.
+- NEVER output null, missing, or empty strings for edge properties.
+
 ## Output Format
 Respond with EXACTLY one JSON object. No markdown, no prose.
 
