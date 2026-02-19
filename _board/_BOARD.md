@@ -3,54 +3,47 @@
 ## To Do
 
 
-### M2-01 Integrate ModelManager into GeneratorService
-  - tags: [todo]
-  - defaultExpanded: false
-    ```md
-    Update GeneratorService to call the ModelManagerService before performing any inference.
-    
-    Source: M2-01_GENERATOR_INTEGRATION.md
-    ```
-
-### M2-02 Implement Startup Prewarming in Orchestrator
-  - tags: [todo]
-  - defaultExpanded: false
-    ```md
-    Trigger the prewarming of small and medium models during application startup.
-    
-    Source: M2-02_STARTUP_PREWARMING.md
-    ```
-
-### M2-03 Integration Testing for Inference Flow
-  - tags: [todo]
-  - defaultExpanded: false
-    ```md
-    Integration test to verify that inference requests correctly trigger model loading.
-    
-    Source: M2-03_INTEGRATION_TESTS.md
-    ```
-
-### M2-04 Manual Verification and Documentation
-  - tags: [todo]
-  - defaultExpanded: false
-    ```md
-    Perform manual verification of model states and update project documentation.
-    
-    Source: M2-04_MANUAL_VERIFICATION.md
-    ```
 
 ## In Progress
 
+## Done
+
+### M2-04 Manual Verification and Documentation
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Perform manual verification of model states and update project documentation.
+
+    Source: M2-04_MANUAL_VERIFICATION.md
+    Note: README.md updated with Model Management section, keep-alive table, and ollama ps monitoring guide.
+    ```
+
+### M2-03 Integration Testing for Inference Flow
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Integration test to verify that inference requests correctly trigger model loading.
+
+    Source: M2-03_INTEGRATION_TESTS.md
+    ```
+
+### M2-02 Implement Startup Prewarming in Orchestrator
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Trigger the prewarming of small and medium models during application startup.
+
+    Source: M2-02_STARTUP_PREWARMING.md
+    ```
+
 ### M2-01 Integrate ModelManager into GeneratorService
-  - tags: [in-progress]
-  - defaultExpanded: true
+  - tags: [done]
+  - defaultExpanded: false
     ```md
     Update GeneratorService to call the ModelManagerService before performing any inference.
 
     Source: M2-01_GENERATOR_INTEGRATION.md
     ```
-
-## Done
 
 ### M1-04 Unit Tests for ModelManagerService
   - tags: [done]
