@@ -438,3 +438,87 @@
 - Test write operation: "Write 'Hello World' to hello.txt"
 - Verify file is created correctly
 - Verify response confirms file creation
+
+---
+
+# Ollama Model Manager Tasks
+
+## Phase M1: Core Infrastructure
+
+### Task M1.1: Enhance OllamaAdapter with Warmup Support
+**File**: `src/services/ollama-adapter.ts`
+**Dependencies**: None
+**Description**: Add a `warmup` method to `OllamaAdapter` that uses the `/api/chat` endpoint with a minimal prompt and supports the `keep_alive` parameter.
+**Acceptance Criteria**:
+- `warmup(model: string, keepAlive: string | number): Promise<void>` implemented.
+- Uses `/api/chat` with `stream: false`.
+- `chat` and `generate` methods updated to accept `keep_alive` in options.
+- Error handling for warmup failures.
+
+### Task M1.2: Add Model Manager Configuration
+**Files**: `config.json`, `src/shared/config.ts`
+**Dependencies**: None
+**Description**: Add configuration settings for the model manager, including keep-alive durations and warmup prompts.
+**Acceptance Criteria**:
+- `modelManager` section added to `config.json`.
+- TypeScript types and validation added to `src/shared/config.ts`.
+- Settings include `largeModelKeepAlive` and `warmupPrompt`.
+
+### Task M1.3: Implement ModelManagerService Core
+**File**: `src/services/model-manager.ts`
+**Dependencies**: Task M1.1, Task M1.2
+**Description**: Create the `ModelManagerService` to manage tiered model lifecycles and ensure model availability.
+**Acceptance Criteria**:
+- `ModelManagerService` class created.
+- `ensureModelLoaded(tier: ModelTier)` implemented with concurrency safety (locking).
+- `prewarmModels()` implemented for sequential loading of small and medium models.
+- Correct `keep_alive` values passed during warmup based on tier.
+
+### Task M1.4: Unit Tests for ModelManagerService
+**File**: `src/services/__tests__/model-manager.test.ts`
+**Dependencies**: Task M1.3
+**Description**: Create comprehensive unit tests for the `ModelManagerService`.
+**Acceptance Criteria**:
+- Tests sequential prewarming logic.
+- Tests concurrency safety (concurrent `ensureModelLoaded` calls).
+- Tests correct tier-to-model mapping and keep-alive parameters.
+- All tests pass with `npm test`.
+
+---
+
+## Phase M2: Integration & Verification
+
+### Task M2.1: Integrate ModelManager into GeneratorService
+**File**: `src/services/generator-service.ts`
+**Dependencies**: Task M1.3
+**Description**: Update `GeneratorService` to call the `ModelManagerService` before performing any inference.
+**Acceptance Criteria**:
+- `ModelManagerService` injected into `GeneratorService`.
+- `ensureModelLoaded` called before `ollama.chat` and `ollama.generate`.
+- Works correctly with all model tiers.
+
+### Task M2.2: Implement Startup Prewarming in Orchestrator
+**File**: `src/core/orchestrator.ts`
+**Dependencies**: Task M1.3
+**Description**: Trigger the prewarming of small and medium models during application startup.
+**Acceptance Criteria**:
+- `ModelManagerService` initialized in `Orchestrator`.
+- `prewarmModels()` called during the bootstrap phase.
+- Prewarming does not block the main application flow.
+
+### Task M2.3: Integration Testing for Inference Flow
+**File**: `src/services/__tests__/generator-model-manager.test.ts`
+**Dependencies**: Task M2.1
+**Description**: Integration test to verify that inference requests correctly trigger model loading.
+**Acceptance Criteria**:
+- Mock Ollama adapter.
+- Verify `GeneratorService` + `ModelManagerService` interaction.
+- All tests pass with `npm test`.
+
+### Task M2.4: Manual Verification and Documentation
+**Dependencies**: All previous tasks
+**Description**: Perform manual verification of model states and update project documentation.
+**Acceptance Criteria**:
+- Verify models are loaded at startup using `ollama ps`.
+- Verify large model loads on demand and unloads after inactivity.
+- Update `README.md` or `AI-Agent.md` with model management details.

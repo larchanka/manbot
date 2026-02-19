@@ -410,3 +410,89 @@ Update README and other documentation files to reflect the change.
    - Verify stderr contains error message
    - Verify exit code is non-zero
    - Verify structured error response
+
+---
+
+# Ollama Model Manager with Tiered Prewarming and Routing-Aware Optimization
+
+## Overview
+
+Implement a model management layer for Ollama that minimizes latency and RAM usage while integrating cleanly with the existing model routing system. The system will prewarm small and medium models at startup, load the large model on demand, and manage their lifecycles based on tiered keep-alive policies.
+
+## Proposed Changes
+
+### Component 1: Ollama Adapter
+
+Enhance the Ollama adapter to support warmup requests and the `keep_alive` parameter.
+
+#### [MODIFY] [ollama-adapter.ts](file:///Users/mikhaillarchanka/Projects/AI-Agent/src/services/ollama-adapter.ts)
+
+- Add `warmup(model: string, keepAlive: string | number): Promise<void>` method.
+- Update `chat` and `generate` methods to optionally accept `keep_alive` in options.
+
+---
+
+### Component 2: Model Manager Service
+
+Create a new service dedicated to managing model states and lifecycles.
+
+#### [NEW] [model-manager.ts](file:///Users/mikhaillarchanka/Projects/AI-Agent/src/services/model-manager.ts)
+
+- Implement `ModelManagerService` to track and ensure model availability.
+- Support sequential prewarming of small and medium models.
+- Implement concurrency-safe loading (one load operation per model).
+- Handle tiered `keep_alive` policies:
+    - Small/Medium: `-1` (Infinity)
+    - Large: `5m` (Configurable)
+
+---
+
+### Component 3: Generator Service Integration
+
+Integrate the model manager into the existing inference workflow.
+
+#### [MODIFY] [generator-service.ts](file:///Users/mikhaillarchanka/Projects/AI-Agent/src/services/generator-service.ts)
+
+- Inject `ModelManagerService` into `GeneratorService`.
+- Call `ensureModelLoaded` before executing any chat or generate request.
+
+---
+
+### Component 4: Startup & Configuration
+
+Configure and initialize the model management system.
+
+#### [MODIFY] [config.json](file:///Users/mikhaillarchanka/Projects/AI-Agent/config.json)
+
+- Add `modelManager` configuration section.
+
+#### [MODIFY] [config.ts](file:///Users/mikhaillarchanka/Projects/AI-Agent/src/shared/config.ts)
+
+- Add TypeScript types and validation for model manager settings.
+
+#### [MODIFY] [orchestrator.ts](file:///Users/mikhaillarchanka/Projects/AI-Agent/src/core/orchestrator.ts)
+
+- Initialize `ModelManagerService` and trigger `prewarmModels()` during startup.
+
+---
+
+## Verification Plan
+
+### Automated Tests
+
+1. **ModelManagerService Unit Tests**
+    - `npm test src/services/__tests__/model-manager.test.ts`
+    - Verify sequential prewarming logic.
+    - Verify concurrency safety (locks).
+    - Verify `keep_alive` values for different tiers.
+
+2. **Integration Tests**
+    - `npm test src/services/__tests__/generator-model-manager.test.ts` (Mocking Ollama)
+    - Verify that `GeneratorService` calls the manager before inference.
+
+### Manual Verification
+
+1. **Ollama State Monitoring**
+    - Use `ollama ps` to verify models in memory.
+    - Check startup logs for prewarming progress.
+    - Verify large model unloads after inactivity.
