@@ -311,12 +311,36 @@ export class Orchestrator {
 
       const execPayload = execEnv.payload as { status?: string; result?: { result?: unknown } };
       const result = execPayload.result?.result;
-      const text =
-        typeof result === "string"
-          ? result
-          : result != null && typeof result === "object" && "text" in result
-            ? String((result as { text: unknown }).text)
-            : JSON.stringify(result ?? "Done.");
+      let text: string;
+      if (typeof result === "string") {
+        text = result;
+      } else if (result != null && typeof result === "object" && "text" in result) {
+        text = String((result as { text: unknown }).text);
+      } else {
+        // Result is raw data (JSON object from tool, etc.) — run through analyzer
+        const rawData = JSON.stringify(result ?? "Done.");
+        const modelRouterChild = this.children.get("model-router");
+        if (modelRouterChild?.stdin.writable) {
+          try {
+            const analyzerEnv = await this.sendAndWait(modelRouterChild, "node.execute", {
+              taskId: `analyze-${taskId}`,
+              nodeId: "fallback-analyzer",
+              type: "generate_text",
+              service: "model-router",
+              input: {
+                prompt: `User asked: "${goal}". Here is the data:\n\n${rawData}`,
+                system_prompt: "analyzer",
+              },
+            });
+            const analyzerPayload = analyzerEnv.payload as { status?: string; result?: { text?: string } };
+            text = analyzerPayload.result?.text ?? rawData;
+          } catch {
+            text = rawData;
+          }
+        } else {
+          text = rawData;
+        }
+      }
       this.sendToTelegram(chatId, text);
       return;
     }
