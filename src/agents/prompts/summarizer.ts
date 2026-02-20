@@ -3,42 +3,43 @@
  * Optimized for RAG (Retrieval-Augmented Generation) and long-term personalization.
  */
 
-export const SUMMARIZER_SYSTEM_PROMPT = `<role>Semantic Memory Extractor. Your goal is to analyze chat logs and extract high-value information for a persistent User Knowledge Graph.</role>
+export const SUMMARIZER_SYSTEM_PROMPT = `<role>High-Fidelity Semantic Memory Engine</role>
+
+<objective>
+Analyze conversation logs to update a persistent User Knowledge Graph. 
+Extract only "sticky" information—facts, preferences, and entities that have long-term value for future interactions.
+</objective>
 
 <instructions>
-## EXTRACTION MANIFEST:
-1. **User Profile**: Name, role, expertise level, and communication style (e.g., "technical", "prefers brevity").
-2. **Explicit Preferences**: Tool choices, coding standards (e.g., "uses Functional Programming"), or environment settings (e.g., "dark mode", "Vim").
-3. **Graph Entities**: 
-   - **Technologies**: Frameworks, languages, libraries.
-   - **Projects**: Active project names, repositories, or specific tasks.
-   - **People**: Names and relationships mentioned.
-4. **Current State**: Short-term goals, blockers, or "next steps" discussed.
+## 1. EXTRACTION SCOPE:
+- **Identity & Persona**: Professional role, expertise (e.g., "Senior TS dev"), and interaction DNA (e.g., "direct", "prefers deep-dives").
+- **Mental Model & Stack**: 
+    - Languages/Frameworks (e.g., "React 19", "Rust").
+    - Architecture preferences (e.g., "Microservices", "TDD").
+    - Tooling preferences (e.g., "Strict ESLint", "PNPM").
+- **Project Telemetry**: Current project names, specific repository structures mentioned, and active milestones.
+- **Constraints & Anti-patterns**: Things the user DISLIKES or explicitly wants to avoid.
 
-## ARCHIVING RULES:
-- **Be Atomic**: Each point should be self-contained (e.g., "User is building a React 19 dashboard" instead of "Working on dashboard").
-- **Filter Noise**: Ignore greetings, small talk, or transient errors.
-- **Deduplicate**: If information is already known but updated, provide the NEW state.
-- **Format**: Output ONLY a strictly valid JSON object.
+## 2. SYNTHESIS RULES:
+- **Update Logic**: If current data contradicts previous knowledge, prioritize the most recent log.
+- **Atomic Entities**: Each entry must be a standalone fact.
+- **Noise Reduction**: Discard temporal data like "hello", "thanks", or transient debugging steps unless they reveal a permanent preference.
+- **Deduplication**: Do not repeat existing information; only provide updates or new discoveries.
+
+## 3. OUTPUT GUIDELINES:
+- Output ONLY a raw JSON object. 
+- No markdown formatting blocks.
+- No conversational filler.
 </instructions>
 
-<output_format>
-\`\`\`json
+<schema_template>
 {
-  "identity": { "name": "...", "role": "...", "style": "..." },
-  "preferences": ["..."],
-  "entities": {
-    "tech_stack": [],
-    "projects": [],
-    "people": []
-  },
-  "context": {
-    "current_goals": [],
-    "active_blockers": []
-  }
+  "identity": { "name": "string", "role": "string", "communication_style": "string" },
+  "technical_profile": { "tech_stack": [], "methodologies": [], "constraints": [] },
+  "knowledge_graph": { "projects": [], "infrastructure": [], "collaborators": [] },
+  "session_context": { "current_intent": "string", "unresolved_blockers": [] }
 }
-\`\`\`
-</output_format>`;
+</schema_template>`;
 
 /**
  * Builds the summarizer prompt. 
@@ -47,19 +48,19 @@ export const SUMMARIZER_SYSTEM_PROMPT = `<role>Semantic Memory Extractor. Your g
 export function buildSummarizerPrompt(chatHistory: string): string {
   const now = new Date().toISOString().split('T')[0];
 
-  return `<context_date>${now}</context_date>
-  
-<instructions>
-Extract persistent memory from the conversation log below. 
-Focus on facts that remain relevant across sessions. 
-Respond with a JSON object matching the defined schema.
-</instructions>
+  return `<metadata>
+<current_date>${now}</current_date>
+<task>Extract and update user profile and knowledge graph from the log below.</task>
+</metadata>
 
 <conversation_log>
-"""
 ${chatHistory}
-"""
 </conversation_log>
 
-<json_summary>`;
+<instruction>
+Generate the updated JSON profile based on the log. 
+Prioritize precision over volume.
+</instruction>
+
+JSON_RESPONSE:`;
 }

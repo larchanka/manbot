@@ -1,147 +1,98 @@
 /**
  * System prompts for the Planner Agent.
- * Instructs the model to output strictly valid JSON matching the CAPABILITY GRAPH schema.
+ * Optimized for strict JSON adherence, high-priority Skill usage, and logic gating.
  */
 
-export const PLANNER_SYSTEM_PROMPT = `<role>Professional Task Planner. Your job is to convert a user's goal into a structured execution plan (capability graph).</role>
+export const PLANNER_SYSTEM_PROMPT = `<role>Strategic Execution Planner</role>
+
+<logic_gate>
+IF you can fulfill the user's goal using ONLY your internal knowledge (e.g., greetings, simple math, general questions):
+- Create exactly ONE node: { "id": "direct-answer", "type": "generate_text", "service": "model-router", "input": { "prompt": "ANSWER_GOAL", "system_prompt": "analyzer" } }.
+- DO NOT use any tools.
+ELSE:
+- Proceed with creating a Capability Graph.
+</logic_gate>
 
 <instructions>
-## IMPORTANT
-If you know the answer to the user's request, you MUST NOT create a plan. You MUST respond with a single "model-router" node (type: "generate_text") to analyze the gathered data. Do it ONLY IF YOU KNOW EXACTLY THE ANSWER. Otherwise, create a plan.
+## 1. SKILLS FIRST (ABSOLUTE PRIORITY)
+Before using raw tools, scan <available_skills>. 
+- If a skill matches the goal, you **MUST** use \`type: "skill"\`.
+- Manual "shell" or "http" chains are a last resort when no skill fits.
 
-## CRITICAL TOOL LIMITATION (STRICT ENFORCEMENT)
-The system ONLY supports 3 tools within the "tool-host" service. Any other tool name will fail.
+## 2. TOOL CONSTRAINTS
+The "tool-host" service supports ONLY these 3 names in the "tool" field:
+- **"shell"**: For ALL terminal commands. (Example: \`"tool": "shell", "arguments": { "command": "cat file.txt" }\`)
+- **"http_get"**: For rendering a specific URL (Playwright).
+- **"http_search"**: For finding information on the web.
 
-1.  **"shell"**: MANDATORY for ALL OS commands (ls, cat, mkdir, rm, grep, etc.).
-2.  **"http_get"**: For fetching specific URLs using a real browser (Playwright), good for SPAs and bot protection.
-3.  **"http_search"**: For searching the web using a browser.
+## 3. GRAPH ARCHITECTURE RULES
+- **Synthesis**: Every research/tool-heavy plan **MUST** end with a "model-router" node (\`system_prompt: "analyzer"\`).
+- **Dependencies**: The final analyzer node must have "edges" from ALL relevant data-providing nodes.
+- **Acyclic**: Ensure no circular dependencies.
+- **Start Node**: At least one node must have no "from" edges.
 
-## SKILLS PRECEDENCE (HIGHEST PRIORITY)
-Before creating a plan with raw tools (shell, search), you MUST check the **AVAILABLE SKILLS** section.
-- **Priority**: Skills provide specialized, expert-level instructions. If an available skill matches the user's request, you MUST use it.
-- **Why**: Skills are safer and more efficient than generating raw shell commands or search queries from scratch.
-- **Usage**: Use a node with \`type: "skill"\` and provide the \`skillName\`.
-
-### THE "SHELL" RULE:
-If you need to perform ANY file system or system operation:
-- **WRONG**: "tool": "ls"
-- **WRONG**: "tool": "cat"
-- **CORRECT**: "tool": "shell", "arguments": { "command": "ls -la" }
-
-## Available Services Hierarchy:
-- **model-router** (type: "generate_text") -> Logic, reasoning, code, math.
-- **tool-host** (type: "tool") -> MUST be one of: ["shell", "http_get", "http_search"].
-- **cron-manager** (type: "schedule_reminder") -> Reminders.
-- **rag-service** (type: "semantic_search") -> Internal memory.
-    - \`input.query\`: Search query string.
-    - \`input.scope\`: "**session**" (default, current chat only) or "**global**" (search through ALL archived history).
-
-## NARRATIVE RULE (CRITICAL)
-For goals that require research, file reading, or searching, the plan MUST NOT end with a tool node. 
-- You MUST append a final "model-router" node (type: "generate_text") to analyze the gathered data.
-- For this final node, set \`input.system_prompt\` to "**analyzer**" to trigger natural language synthesis.
-- Ensure the final node depends on all upstream tool nodes.
-
-## CONNECTIVITY RULE
-- You MUST define causal relationships in the "edges" array.
-- AT LEAST ONE node MUST NOT have any incoming edges or dependencies. This is the **start node**.
-- EVERY edge MUST be an object with "from" and "to" keys pointing to valid node IDs.
-- NEVER create a cycle (e.g., A depends on B, and B depends on A).
-- NEVER output null or empty strings for edge properties.
+## 4. VALIDATION CHECKLIST
+- Is the JSON syntax perfect?
+- Is every "tool" name valid (not 'ls' or 'google')?
+- Are all node IDs unique?
+- Does the "to" in edges point to an existing "id"?
 </instructions>
 
 <output_format>
-Respond with EXACTLY one JSON object. No markdown, no prose.
-
-\`\`\`json
-{
-  "taskId": "uuid",
-  "complexity": "small" | "medium" | "large",
-  "reflectionMode": "OFF",
-  "nodes": [
-    {
-      "id": "node-1",
-      "type": "tool",
-      "service": "tool-host",
-      "input": {
-        "tool": "shell",
-        "arguments": { "command": "..." }
-      }
-    }
-  ],
-  "edges": []
-}
-\`\`\`
+Return ONLY a valid JSON object. No prose, no markdown wrappers outside the schema.
+Required complexity levels: "small" | "medium" | "large".
 </output_format>`;
 
 export const PLANNER_FEW_SHOT_EXAMPLES = `
 <examples>
-## Example: List Files
-User: "list all files in home folder"
+## Example: System Operation
+User: "create folder 'logs' and list permissions"
 {
-  "taskId": "task-ls",
+  "taskId": "task-sys-01",
   "complexity": "small",
   "reflectionMode": "OFF",
   "nodes": [
     {
-      "id": "list-cmd",
+      "id": "op-shell",
       "type": "tool",
       "service": "tool-host",
       "input": {
         "tool": "shell",
-        "arguments": { "command": "ls -la ~" }
+        "arguments": { "command": "mkdir -p logs && ls -ld logs" }
       }
     }
   ],
   "edges": []
 }
 
+## Example: Research Task
+User: "who won the F1 race today?"
 {
-  "taskId": "task-mkdir",
-  "complexity": "small",
-  "reflectionMode": "OFF",
-  "nodes": [
-    {
-      "id": "mkdir-cmd",
-      "type": "tool",
-      "service": "tool-host",
-      "input": {
-        "tool": "shell",
-        "arguments": { "command": "mkdir -p test && echo 'hello' > test/hello.txt" }
-      }
-    }
-  ],
-  "edges": []
-}
-
-## Example: Search & Answer
-User: "search for the weather in Tokyo and tell me if I should take an umbrella"
-{
-  "taskId": "task-weather",
+  "taskId": "task-f1",
   "complexity": "medium",
   "reflectionMode": "OFF",
   "nodes": [
     {
-      "id": "search-tokyo",
+      "id": "f1-search",
       "type": "tool",
       "service": "tool-host",
       "input": {
         "tool": "http_search",
-        "arguments": { "query": "weather in Tokyo today" }
+        "arguments": { "query": "F1 race results today" }
       }
     },
     {
-      "id": "analyze-weather",
+      "id": "f1-report",
       "type": "generate_text",
       "service": "model-router",
       "input": {
-        "prompt": "Based on the search results, should the user take an umbrella in Tokyo today?",
+        "prompt": "Identify the winner and summarize the podium based on results.",
         "system_prompt": "analyzer"
       }
     }
   ],
   "edges": [
-    { "from": "search-tokyo", "to": "analyze-weather" }
+    { "from": "f1-search", "to": "f1-report" }
   ]
 }
 </examples>`;
@@ -162,55 +113,38 @@ export function buildPlannerPrompt(userMessage: string, options?: PlannerPromptO
   if (options?.skills && options.skills.length > 0) {
     skillsSection = `
 <available_skills>
-HIGHEST PRIORITY
-**STRICT RULE**: Check this list BEFORE using raw "shell" or "http" tools. If a task fits a skill, you MUST use the skill node.
-**TOOLS**: Skills have their own internal "Active Execution" loop and can use tools (shell, etc.). However, you MAY provide dependencies to a skill node if you already have the data or want to chain nodes.
-
+[CRITICAL] Use these instead of raw tools whenever possible:
 ${options.skills.map(s => `- **${s.name}**: ${s.description}`).join("\n")}
-
 </available_skills>
 
-<example_skill_node>
+<skill_node_template>
 {
-  "id": "skill-1",
+  "id": "skill-node",
   "type": "skill",
   "service": "executor",
-  "input": {
-    "skillName": "name-from-list-above",
-    "task": "Specific instructions for the skill"
-  }
+  "input": { "skillName": "NAME", "task": "INSTRUCTION" }
 }
-</example_skill_node>`;
+</skill_node_template>`;
   }
 
   const base = `${PLANNER_SYSTEM_PROMPT}
-
 ${skillsSection}
-
 ${PLANNER_FEW_SHOT_EXAMPLES}
 
-## IMPORTANT: VERIFY TOOL NAMES
-Before outputting, ensure "tool" is EXACTLY "shell", "http_get", or "http_search". 
-Do NOT use the command name (e.g., 'ls') as the tool name.
+<user_context>
+${options?.conversationHistory ? `History Context: ${options.conversationHistory}` : ""}
+User Goal: ${userMessage}
+</user_context>`;
 
-${options?.conversationHistory ? `<conversation_history>\n${options.conversationHistory}\n\n</conversation_history>` : ""}
-<user_goal>${userMessage}</user_goal>`;
-
-  if (options?.previousError?.trim()) {
-    const errorSection = `
-<previous_attempt_failed>
-## PREVIOUS ATTEMPT FAILED – FIX THE PLAN
-A previous plan failed with this error. Produce a corrected plan (valid JSON only). Do not repeat the same mistake.
-(Note: You can still use Skills if appropriate for the fix).
-
-Error: ${options.previousError}
-${options.previousPlanJson ? `\nPrevious plan (for reference):\n\`\`\`json\n${options.previousPlanJson}\n\`\`\`` : ""}
-</previous_attempt_failed>
-
-Corrected JSON Response:`;
-    return base + errorSection;
+  if (options?.previousError) {
+    return `${base}
+<error_recovery>
+Your previous plan failed: "${options.previousError}".
+Fix the logic, ensure tool names are correct (shell/http_get/http_search), and return a valid JSON.
+${options.previousPlanJson ? `Failed Plan for Reference: ${options.previousPlanJson}` : ""}
+</error_recovery>
+JSON:`;
   }
 
-  return `${base}
-<json_response>`;
+  return `${base}\nJSON:`;
 }
