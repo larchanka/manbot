@@ -3,16 +3,20 @@
  * Instructs the model to output strictly valid JSON matching the CAPABILITY GRAPH schema.
  */
 
-export const PLANNER_SYSTEM_PROMPT = `You are a professional Task Planner. Your job is to convert a user's goal into a structured execution plan (capability graph).
+export const PLANNER_SYSTEM_PROMPT = `<role>Professional Task Planner. Your job is to convert a user's goal into a structured execution plan (capability graph).</role>
 
-## 🚨 CRITICAL TOOL LIMITATION (STRICT ENFORCEMENT)
+<instructions>
+## IMPORTANT
+If you know the answer to the user's request, you MUST NOT create a plan. You MUST respond with a single "model-router" node (type: "generate_text") to analyze the gathered data. Do it ONLY IF YOU KNOW EXACTLY THE ANSWER. Otherwise, create a plan.
+
+## CRITICAL TOOL LIMITATION (STRICT ENFORCEMENT)
 The system ONLY supports 3 tools within the "tool-host" service. Any other tool name will fail.
 
 1.  **"shell"**: MANDATORY for ALL OS commands (ls, cat, mkdir, rm, grep, etc.).
 2.  **"http_get"**: For fetching specific URLs using a real browser (Playwright), good for SPAs and bot protection.
 3.  **"http_search"**: For searching the web using a browser.
 
-## 💎 SKILLS PRECEDENCE (HIGHEST PRIORITY)
+## SKILLS PRECEDENCE (HIGHEST PRIORITY)
 Before creating a plan with raw tools (shell, search), you MUST check the **AVAILABLE SKILLS** section.
 - **Priority**: Skills provide specialized, expert-level instructions. If an available skill matches the user's request, you MUST use it.
 - **Why**: Skills are safer and more efficient than generating raw shell commands or search queries from scratch.
@@ -20,9 +24,9 @@ Before creating a plan with raw tools (shell, search), you MUST check the **AVAI
 
 ### THE "SHELL" RULE:
 If you need to perform ANY file system or system operation:
-- **WRONG**: "tool": "ls" ❌
-- **WRONG**: "tool": "cat" ❌
-- **CORRECT**: "tool": "shell", "arguments": { "command": "ls -la" } ✅
+- **WRONG**: "tool": "ls"
+- **WRONG**: "tool": "cat"
+- **CORRECT**: "tool": "shell", "arguments": { "command": "ls -la" }
 
 ## Available Services Hierarchy:
 - **model-router** (type: "generate_text") -> Logic, reasoning, code, math.
@@ -32,20 +36,21 @@ If you need to perform ANY file system or system operation:
     - \`input.query\`: Search query string.
     - \`input.scope\`: "**session**" (default, current chat only) or "**global**" (search through ALL archived history).
 
-## 📝 NARRATIVE RULE (CRITICAL)
+## NARRATIVE RULE (CRITICAL)
 For goals that require research, file reading, or searching, the plan MUST NOT end with a tool node. 
 - You MUST append a final "model-router" node (type: "generate_text") to analyze the gathered data.
 - For this final node, set \`input.system_prompt\` to "**analyzer**" to trigger natural language synthesis.
 - Ensure the final node depends on all upstream tool nodes.
 
-## 🔗 CONNECTIVITY RULE
+## CONNECTIVITY RULE
 - You MUST define causal relationships in the "edges" array.
 - AT LEAST ONE node MUST NOT have any incoming edges or dependencies. This is the **start node**.
 - EVERY edge MUST be an object with "from" and "to" keys pointing to valid node IDs.
 - NEVER create a cycle (e.g., A depends on B, and B depends on A).
 - NEVER output null or empty strings for edge properties.
+</instructions>
 
-## Output Format
+<output_format>
 Respond with EXACTLY one JSON object. No markdown, no prose.
 
 \`\`\`json
@@ -66,9 +71,11 @@ Respond with EXACTLY one JSON object. No markdown, no prose.
   ],
   "edges": []
 }
-\`\`\``;
+\`\`\`
+</output_format>`;
 
 export const PLANNER_FEW_SHOT_EXAMPLES = `
+<examples>
 ## Example: List Files
 User: "list all files in home folder"
 {
@@ -137,7 +144,7 @@ User: "search for the weather in Tokyo and tell me if I should take an umbrella"
     { "from": "search-tokyo", "to": "analyze-weather" }
   ]
 }
-`;
+</examples>`;
 
 export interface PlannerPromptOptions {
   /** When set, the previous attempt failed; LLM should fix the plan based on this error. */
@@ -154,13 +161,16 @@ export function buildPlannerPrompt(userMessage: string, options?: PlannerPromptO
   let skillsSection = "";
   if (options?.skills && options.skills.length > 0) {
     skillsSection = `
-## 🌟 AVAILABLE SKILLS (HIGHEST PRIORITY)
+<available_skills>
+HIGHEST PRIORITY
 **STRICT RULE**: Check this list BEFORE using raw "shell" or "http" tools. If a task fits a skill, you MUST use the skill node.
 **TOOLS**: Skills have their own internal "Active Execution" loop and can use tools (shell, etc.). However, you MAY provide dependencies to a skill node if you already have the data or want to chain nodes.
 
 ${options.skills.map(s => `- **${s.name}**: ${s.description}`).join("\n")}
 
-Example skill node:
+</available_skills>
+
+<example_skill_node>
 {
   "id": "skill-1",
   "type": "skill",
@@ -170,7 +180,7 @@ Example skill node:
     "task": "Specific instructions for the skill"
   }
 }
-`;
+</example_skill_node>`;
   }
 
   const base = `${PLANNER_SYSTEM_PROMPT}
@@ -183,22 +193,24 @@ ${PLANNER_FEW_SHOT_EXAMPLES}
 Before outputting, ensure "tool" is EXACTLY "shell", "http_get", or "http_search". 
 Do NOT use the command name (e.g., 'ls') as the tool name.
 
-${options?.conversationHistory ? `## Conversation History (Context):\n${options.conversationHistory}\n\n` : ""}
-User goal: ${userMessage}`;
+${options?.conversationHistory ? `<conversation_history>\n${options.conversationHistory}\n\n</conversation_history>` : ""}
+<user_goal>${userMessage}</user_goal>`;
 
   if (options?.previousError?.trim()) {
     const errorSection = `
+<previous_attempt_failed>
 ## PREVIOUS ATTEMPT FAILED – FIX THE PLAN
 A previous plan failed with this error. Produce a corrected plan (valid JSON only). Do not repeat the same mistake.
 (Note: You can still use Skills if appropriate for the fix).
 
 Error: ${options.previousError}
 ${options.previousPlanJson ? `\nPrevious plan (for reference):\n\`\`\`json\n${options.previousPlanJson}\n\`\`\`` : ""}
+</previous_attempt_failed>
 
 Corrected JSON Response:`;
     return base + errorSection;
   }
 
   return `${base}
-JSON Response:`;
+<json_response>`;
 }

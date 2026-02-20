@@ -205,9 +205,9 @@ export class ExecutorAgent extends BaseProcess {
         const planComplexity = plan.complexity ?? "medium";
         context["_complexity"] = planComplexity;
         // Include chatId and userId for reminder scheduling
-        if (chatId !== undefined) context["chatId"] = chatId;
-        if (userId !== undefined) context["userId"] = userId;
-        if (conversationId !== undefined) context["conversationId"] = conversationId;
+        if (chatId !== undefined) context["_chatId"] = chatId;
+        if (userId !== undefined) context["_userId"] = userId;
+        if (conversationId !== undefined) context["_conversationId"] = conversationId;
         try {
           const result = await this.dispatchNode(taskId, node, context);
           return { nodeId, result };
@@ -508,10 +508,10 @@ export class ExecutorAgent extends BaseProcess {
 
       // Auto-inject conversationId into semantic_search input if it's in context but not in nodes's input
       // UNLESS scope is explicitly "global"
-      if (node.type === "semantic_search" && context.conversationId) {
+      if (node.type === "semantic_search" && context._conversationId) {
         const scope = (payload.input.scope as string) ?? "session";
         if (scope === "session" && !payload.input.conversationId) {
-          payload.input.conversationId = context.conversationId;
+          payload.input.conversationId = context._conversationId;
         }
       }
 
@@ -691,11 +691,11 @@ export class ExecutorAgent extends BaseProcess {
 
     // Extract reminder metadata
     const chatId = (nodeInput.chatId as number | string | undefined) ??
-      (context.chatId as number | string | undefined);
+      (context._chatId as number | string | undefined);
     let reminderMessage = (nodeInput.reminderMessage as string | undefined) ??
       (context.reminderMessage as string | undefined);
     const userId = (nodeInput.userId as number | string | undefined) ??
-      (context.userId as number | string | undefined);
+      (context._userId as number | string | undefined);
 
     // Fallback: try to extract reminderMessage from goal if not provided
     if (!reminderMessage && context._goal && typeof context._goal === "string") {

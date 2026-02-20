@@ -3,8 +3,9 @@
  * Optimized for RAG (Retrieval-Augmented Generation) and long-term personalization.
  */
 
-export const SUMMARIZER_SYSTEM_PROMPT = `You are a Semantic Memory Extractor. Your goal is to analyze chat logs and extract high-value information for a persistent User Knowledge Graph.
+export const SUMMARIZER_SYSTEM_PROMPT = `<role>Semantic Memory Extractor. Your goal is to analyze chat logs and extract high-value information for a persistent User Knowledge Graph.</role>
 
+<instructions>
 ## EXTRACTION MANIFEST:
 1. **User Profile**: Name, role, expertise level, and communication style (e.g., "technical", "prefers brevity").
 2. **Explicit Preferences**: Tool choices, coding standards (e.g., "uses Functional Programming"), or environment settings (e.g., "dark mode", "Vim").
@@ -19,8 +20,9 @@ export const SUMMARIZER_SYSTEM_PROMPT = `You are a Semantic Memory Extractor. Yo
 - **Filter Noise**: Ignore greetings, small talk, or transient errors.
 - **Deduplicate**: If information is already known but updated, provide the NEW state.
 - **Format**: Output ONLY a strictly valid JSON object.
+</instructions>
 
-## OUTPUT SCHEMA:
+<output_format>
 \`\`\`json
 {
   "identity": { "name": "...", "role": "...", "style": "..." },
@@ -35,7 +37,8 @@ export const SUMMARIZER_SYSTEM_PROMPT = `You are a Semantic Memory Extractor. Yo
     "active_blockers": []
   }
 }
-\`\`\``;
+\`\`\`
+</output_format>`;
 
 /**
  * Builds the summarizer prompt. 
@@ -43,17 +46,20 @@ export const SUMMARIZER_SYSTEM_PROMPT = `You are a Semantic Memory Extractor. Yo
  */
 export function buildSummarizerPrompt(chatHistory: string): string {
   const now = new Date().toISOString().split('T')[0];
+
+  return `<context_date>${now}</context_date>
   
-  return `CONTEXT DATE: ${now}
-  
+<instructions>
 Extract persistent memory from the conversation log below. 
 Focus on facts that remain relevant across sessions. 
 Respond with a JSON object matching the defined schema.
+</instructions>
 
-## CONVERSATION LOG:
+<conversation_log>
 """
 ${chatHistory}
 """
+</conversation_log>
 
-## JSON SUMMARY:`;
+<json_summary>`;
 }
