@@ -116,25 +116,31 @@ const server = http.createServer((req, res) => {
     }));
     return;
   }
-  res.setHeader('Content-Type', 'text/html');
-  res.end('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>ManBot</title><style>' + CSS + '</style></head><body>' +
-    '<header><h1>ManBot</h1><button class="btn-refresh" onclick="location.reload()">Refresh</button></header>' +
-    '<div class="grid"><div class="card"><h2>Tasks Status</h2><div id="c1" class="chart-container"></div></div>' +
-    '<div class="card"><h2>Task Complexity</h2><div id="c2" class="chart-container"></div></div>' +
-    '<div class="card"><h2>System Memory</h2><div style="display:flex;flex-direction:column;gap:1.5rem;">' +
-    '<div><div style="color:var(--muted);font-size:0.8rem">RAG Documents</div><div class="metric-value" id="m1">0</div></div>' +
-    '<div><div style="color:var(--muted);font-size:0.8rem">Active Schedules</div><div class="metric-value" id="m2" style="color:var(--secondary)">0</div></div>' +
-    '</div></div></div>' +
-    '<div class="card" style="margin-top:1.5rem"><h2>Recent Intelligence Events</h2><table><thead><tr><th>Time</th><th>Type</th><th>Capability / Details</th></tr></thead><tbody id="lt"></tbody></table></div>' +
-    '<script>fetch("/api/stats").then(r=>r.json()).then(d=>{' +
-    'document.getElementById("c1").innerHTML=d.charts.taskDonut;' +
-    'document.getElementById("c2").innerHTML=d.charts.compBar;' +
-    'document.getElementById("m1").textContent=d.rag;' +
-    'document.getElementById("m2").textContent=d.cron;' +
-    'document.getElementById("lt").innerHTML=d.logs.map(l=>{' +
-    'const tc=l.type?.includes("failed")?"error":(l.type?.includes("completed")?"success":"warning");' +
-    'return "<tr><td>"+new Date(l.time||Date.now()).toLocaleTimeString()+"</td><td><span class=\'tag "+tc+"\'>"+(l.type||"EV").split(".").pop()+"</span></td><td style=\'color:var(--muted)\'>"+(l.payload?.toolName||l.payload?.nodeId||l.message||"-")+"</td></tr>"' +
-    '}).join("");});</script></body></html>');
+  if (req.url === '/') {
+    res.setHeader('Content-Type', 'text/html');
+    res.end('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>ManBot</title><style>' + CSS + '</style></head><body>' +
+      '<header><h1>ManBot <small style="font-size: 0.8rem; vertical-align: middle; color: var(--success); margin-left: 0.5rem;">● LIVE</small></h1><button class="btn-refresh" onclick="location.reload()">Refresh</button></header>' +
+      '<div class="grid"><div class="card"><h2>Tasks Status</h2><div id="c1" class="chart-container"></div></div>' +
+      '<div class="card"><h2>Task Complexity</h2><div id="c2" class="chart-container"></div></div>' +
+      '<div class="card"><h2>System Memory</h2><div style="display:flex;flex-direction:column;gap:1.5rem;">' +
+      '<div><div style="color:var(--muted);font-size:0.8rem">RAG Documents</div><div class="metric-value" id="m1">0</div></div>' +
+      '<div><div style="color:var(--muted);font-size:0.8rem">Active Schedules</div><div class="metric-value" id="m2" style="color:var(--secondary)">0</div></div>' +
+      '</div></div></div>' +
+      '<div class="card" style="margin-top:1.5rem"><h2>Recent Intelligence Events</h2><table><thead><tr><th>Time</th><th>Type</th><th>Capability / Details</th></tr></thead><tbody id="lt"></tbody></table></div>' +
+      '<script>fetch("/api/stats").then(r=>r.json()).then(d=>{' +
+      'document.getElementById("c1").innerHTML=d.charts.taskDonut;' +
+      'document.getElementById("c2").innerHTML=d.charts.compBar;' +
+      'document.getElementById("m1").textContent=d.rag;' +
+      'document.getElementById("m2").textContent=d.cron;' +
+      'document.getElementById("lt").innerHTML=d.logs.map(l=>{' +
+      'const tc=l.type?.includes("failed")?"error":(l.type?.includes("completed")?"success":"warning");' +
+      'return "<tr><td>"+new Date(l.time||Date.now()).toLocaleTimeString()+"</td><td><span class=\'tag "+tc+"\'>"+(l.type||"EV").split(".").pop()+"</span></td><td style=\'color:var(--muted)\'>"+(l.payload?.toolName||l.payload?.nodeId||l.message||"-")+"</td></tr>"' +
+      '}).join("");});</script></body></html>');
+    return;
+  }
+
+  res.statusCode = 404;
+  res.end('Not Found');
 });
 
 server.listen(PORT, () => {
