@@ -12,7 +12,62 @@
 
 ## In Progress
 
+
+
+
+
+
 ## Done
+
+### SK-RS-05 E2E Verification of Research Skill
+  - tags: [done, qa]
+  - defaultExpanded: false
+    ```md
+    Perform end-to-end testing of the web research capability.
+    
+    Source: SK-RS-05_E2E_VERIFICATION.md
+    ```
+
+
+### SK-RS-04 Update Planner with Research Guidance
+  - tags: [done, planner]
+  - defaultExpanded: false
+    ```md
+    Add research-focused few-shot examples to the planner prompt.
+    
+    Source: SK-RS-04_PLANNER_GUIDANCE.md
+    ```
+
+
+### SK-RS-03 Register Research Skill in Manifest
+  - tags: [done, skill]
+  - defaultExpanded: false
+    ```md
+    Add the research skill to skills/CONFIG.md.
+    
+    Source: SK-RS-03_REGISTER_SKILL.md
+    ```
+
+
+### SK-RS-02 Create Research Skill Prompt
+  - tags: [done, skill]
+  - defaultExpanded: false
+    ```md
+    Create the SKILL.md instruction file for web research using lynx and DuckDuckGo.
+    
+    Source: SK-RS-02_RESEARCH_PROMPT.md
+    ```
+
+
+### SK-RS-01 Verify Lynx Dependency in Orchestrator
+  - tags: [done, core]
+  - defaultExpanded: false
+    ```md
+    Implement a startup check in orchestrator.ts to ensure lynx is installed on the host.
+    
+    Source: SK-RS-01_VERIFY_LYNX.md
+    ```
+
 
 ### SK-09 Planner Dependency Rule for Skills
   - tags: [done]

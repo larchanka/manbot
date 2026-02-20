@@ -676,4 +676,45 @@ Improve LLM outputs by ensuring that data gathered from tools (search, shell, we
 **Description**: Investigate and implement a way for `skill` nodes to perform their own tool calls if the model supports it.
 **Acceptance Criteria**:
 - Defined protocol for tool-calling within the GeneratorService.
-- Updated ExecutorAgent to support multi-turn skill execution if needed.
+# Research Skill Tasks
+
+## Phase 11: Core Research Skill Implementation
+
+### Task SK-RS-01: Verify Lynx Dependency in Orchestrator
+**File**: `src/core/orchestrator.ts`
+**Description**: Implement a check at startup to ensure `lynx` is installed on the system.
+**Acceptance Criteria**:
+- Add `verifySystemDependencies()` method.
+- Check `lynx --version` or `command -v lynx`.
+- Log an error or warning if missing.
+- Orchestrator continues to run but skill functionality is flagged as degraded.
+
+### Task SK-RS-02: Create Research Skill Prompt
+**File**: `skills/research/SKILL.md`
+**Description**: Create the instruction file for the research skill.
+**Acceptance Criteria**:
+- Define DuckDuckGo search URL: `https://html.duckduckgo.com/html?q={QUERY}`.
+- Instruct LLM to use `lynx -dump` for both searching and browsing.
+- Provide clear instructions on link extraction from `References` section.
+- Set recursive depth limits and summarization quality standards.
+
+### Task SK-RS-03: Register Research Skill in Manifest
+**File**: `skills/CONFIG.md`
+**Description**: Register the new skill in the global skills configuration.
+**Acceptance Criteria**:
+- Add `research` entry with description.
+- Ensure the description highlights its capability for deep web searches.
+
+### Task SK-RS-04: Update Planner with Research Guidance
+**File**: `src/agents/prompts/planner.ts`
+**Description**: Add a few-shot example to the planner to encourage the use of the `research` skill for information gathering.
+**Acceptance Criteria**:
+- New example showing task -> search -> browse -> summarize.
+- Instructions to prefer `research` over generic `http_search` for complex queries.
+
+### Task SK-RS-05: E2E Verification of Research Skill
+**Description**: Perform full end-to-end testing of the research capability.
+**Acceptance Criteria**:
+- Ask the agent complex questions requiring multi-step web browsing.
+- Verify the agent follows links and consolidates findings.
+- Verify the final response is informative and well-reasoned.

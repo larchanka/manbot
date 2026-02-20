@@ -587,4 +587,46 @@ The strategy involves two paths:
 1.  **Time Skill Test**: Use the "time" skill and verify that the Planner either:
     - Creates a `shell (date)` node followed by a `skill (time)` node.
     - Or the \`skill (time)\` node executes the tool itself without hallucinating a shell error.
-2.  **Complex Skill Test**: Create a skill that requires web search and verify it correctly gathers data or requests the search tool.
+# Phase P11: Research Skill with Lynx & DuckDuckGo
+
+## Overview
+
+Implement a new persistent skill called `research` that leverages the `lynx` text-based browser and DuckDuckGo's HTML interface. This skill enables deep web research by allowing the agent to:
+1.  Perform web searches via `https://html.duckduckgo.com/html?q={QUERY}`.
+2.  Navigate recursively through links found in search results.
+3.  Gather and consolidate information from multiple pages into a single high-quality response.
+
+The skill will be implemented using the existing Dynamic Skills System (Phase P9), meaning it will consist of a manifest entry and a specialized `SKILL.md` instruction file.
+
+## Proposed Changes
+
+### Component 1: Environment Guard
+- **File**: `src/core/orchestrator.ts`
+- **Action**: Add `verifySystemDependencies()` method to check for `lynx` availability at startup.
+- **Goal**: Early failure if dependencies are missing on the host machine.
+
+### Component 2: Research Skill Manifest
+- **File**: `skills/CONFIG.md`
+- **Action**: Add an entry for the `research` skill:
+  `| research | Deep web research using lynx. Use this for fact-checking, gathering news, or deep dives into specific topics. |`
+
+### Component 3: Research Skill Instructions
+- **NEW File**: `skills/research/SKILL.md`
+- **Content**: 
+    - Search syntax: `lynx -dump "https://html.duckduckgo.com/html?q={QUERY}"`.
+    - Browsing syntax: `lynx -dump {URL}`.
+    - Protocol for link discovery: Scanning the `References` section of the dump.
+    - Instructions for recursive depth (depth 1-2 standard).
+    - Requirement to consolidate findings before final response.
+
+### Component 4: Planner Optimization
+- **File**: `src/agents/prompts/planner.ts`
+- **Action**: Add a few-shot example that uses the `research` skill for a multi-step investigation.
+
+## Verification Plan
+
+### Manual Verification
+1.  **Dependency Test**: Uninstall `lynx` (if possible/safe) or mock failure to ensure Orchestrator logs a warning.
+2.  **Basic Search**: Ask "Search for the current price of Bitcoin" and verify it uses the `research` skill.
+3.  **Deep Dive**: Ask "Research the history of the Svelte framework and its key contributors" and verify it follows links to Wikipedia or GitHub.
+4.  **Consolidation**: Verify that the final response is a well-formatted summary, not raw dump output.

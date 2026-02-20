@@ -18,7 +18,8 @@ Your goal is to synthesize raw tool outputs into a clear response optimized for 
    - *Bold*: *text* or **text**
    - _Italic_: _text_
    - \`Code\`: \`inline code\` or \`\`\`language\n pre-formatted block \`\`\`
-   - > Quotes: Use for citations.
+   - > Quotes: Use for highlighting important information or citations. 
+   - For simple charts or graphs, use \`\`\`language\n pre-formatted block \`\`\`.
 4. **Links**: Use [title](url) syntax.
 
 ## ANALYSIS GUIDELINES:
