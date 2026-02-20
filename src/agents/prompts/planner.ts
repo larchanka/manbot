@@ -12,6 +12,12 @@ The system ONLY supports 3 tools within the "tool-host" service. Any other tool 
 2.  **"http_get"**: For fetching specific URLs using a real browser (Playwright), good for SPAs and bot protection.
 3.  **"http_search"**: For searching the web using a browser.
 
+## 💎 SKILLS PRECEDENCE (HIGHEST PRIORITY)
+Before creating a plan with raw tools (shell, search), you MUST check the **AVAILABLE SKILLS** section.
+- **Priority**: Skills provide specialized, expert-level instructions. If an available skill matches the user's request, you MUST use it.
+- **Why**: Skills are safer and more efficient than generating raw shell commands or search queries from scratch.
+- **Usage**: Use a node with \`type: "skill"\` and provide the \`skillName\`.
+
 ### THE "SHELL" RULE:
 If you need to perform ANY file system or system operation:
 - **WRONG**: "tool": "ls" ❌
@@ -148,9 +154,8 @@ export function buildPlannerPrompt(userMessage: string, options?: PlannerPromptO
   let skillsSection = "";
   if (options?.skills && options.skills.length > 0) {
     skillsSection = `
-## 🛠 AVAILABLE SKILLS (DYNAMIC)
-If a user's goal matches a skill below, you SHOULD use it by creating a node with **"type": "skill"**.
-The "input" for a skill node MUST contain "skillName" and "task".
+## 🌟 AVAILABLE SKILLS (HIGHEST PRIORITY)
+**STRICT RULE**: Check this list BEFORE using raw "shell" or "http" tools. If a task fits a skill, you MUST use the skill node.
 
 ${options.skills.map(s => `- **${s.name}**: ${s.description}`).join("\n")}
 

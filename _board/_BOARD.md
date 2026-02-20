@@ -8,6 +8,15 @@
 
 ## Done
 
+### SK-08 Prioritize Skill Usage in Planner
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Update the planner prompts to ensure that skills are given higher priority than raw tool usage, making skill nodes mandatory when a match is found.
+
+    Source: SK-08_PRIORITISE_SKILLS.md
+    ```
+
 ### SK-07 Project Compilation
   - tags: [done]
   - defaultExpanded: false
