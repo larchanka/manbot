@@ -6,29 +6,31 @@
 
 
 
+
+
+
+
+## In Progress
+
 ### SK-09 Planner Dependency Rule for Skills
-  - tags: [todo]
-  - defaultExpanded: false
+  - tags: [in-progress]
+  - defaultExpanded: true
     ```md
     Instruct the planner to provide tool outputs to skills that need them, preventing hallucinations.
     
     Source: SK-09_PLANNER_SKILL_DEPENDENCIES.md
     ```
 
-
-
-## In Progress
+## Done
 
 ### SK-10 Refine Skill Prompts for Tool Dependencies
-  - tags: [in-progress]
-  - defaultExpanded: true
+  - tags: [done]
+  - defaultExpanded: false
     ```md
     Update skill prompts (like the 'time' skill) to expect data from tools rather than claiming to run them.
     
     Source: SK-10_REFINE_SKILL_PROMPTS.md
     ```
-
-## Done
 
 ### SK-11 Active Skill Research and Implementation
   - tags: [done]

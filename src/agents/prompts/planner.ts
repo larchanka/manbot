@@ -156,6 +156,7 @@ export function buildPlannerPrompt(userMessage: string, options?: PlannerPromptO
     skillsSection = `
 ## 🌟 AVAILABLE SKILLS (HIGHEST PRIORITY)
 **STRICT RULE**: Check this list BEFORE using raw "shell" or "http" tools. If a task fits a skill, you MUST use the skill node.
+**TOOLS**: Skills have their own internal "Active Execution" loop and can use tools (shell, etc.). However, you MAY provide dependencies to a skill node if you already have the data or want to chain nodes.
 
 ${options.skills.map(s => `- **${s.name}**: ${s.description}`).join("\n")}
 
