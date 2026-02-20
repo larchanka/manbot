@@ -3,14 +3,6 @@
 ## To Do
 
 
-### DB-02 SQLite and Log Data Extraction
-  - tags: [todo, data]
-  - defaultExpanded: false
-    ```md
-    Implement the logic to extract data from the SQLite databases and the NDJSON log file.
-    
-    Source: DB-02_DATA_LAYER.md
-    ```
 
 ### DB-03 SVG Visualization Engine
   - tags: [todo, ui]
@@ -50,13 +42,17 @@
 
 ## In Progress
 
-
-
-
-
-
-
 ## Done
+
+### DB-02 SQLite and Log Data Extraction
+  - tags: [done, data]
+  - defaultExpanded: false
+    ```md
+    Implement the logic to extract data from the SQLite databases and the NDJSON log file.
+    
+    Source: DB-02_DATA_LAYER.md
+    ```
+
 
 ### DB-01 Initial Setup and Basic Server
   - tags: [done, infra]
