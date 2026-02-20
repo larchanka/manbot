@@ -12,16 +12,16 @@
 
 ## In Progress
 
+## Done
+
 ### SK-09 Planner Dependency Rule for Skills
-  - tags: [in-progress]
-  - defaultExpanded: true
+  - tags: [done]
+  - defaultExpanded: false
     ```md
     Instruct the planner to provide tool outputs to skills that need them, preventing hallucinations.
     
     Source: SK-09_PLANNER_SKILL_DEPENDENCIES.md
     ```
-
-## Done
 
 ### SK-10 Refine Skill Prompts for Tool Dependencies
   - tags: [done]

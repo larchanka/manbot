@@ -11,7 +11,7 @@ import { PROTOCOL_VERSION } from "../shared/protocol.js";
 import { responsePayloadSchema } from "../shared/protocol.js";
 import { buildSummarizerPrompt, SUMMARIZER_SYSTEM_PROMPT } from "../agents/prompts/summarizer.js";
 import { ANALYZER_SYSTEM_PROMPT, buildAnalyzerUserPrompt } from "../agents/prompts/analyzer.js";
-import { OllamaAdapter } from "./ollama-adapter.js";
+import { OllamaAdapter, type ChatMessage } from "./ollama-adapter.js";
 import { ModelRouter } from "./model-router.js";
 import { ModelManagerService, type ModelTier } from "./model-manager.js";
 
@@ -166,13 +166,15 @@ export class GeneratorService extends BaseProcess {
           });
           prompt = depOutputs.join("\n\n") || "Generate a brief response.";
         }
-        const genResult = systemPrompt
-          ? await this.ollama.chat(
-            [{ role: "system", content: systemPrompt }, { role: "user", content: prompt }],
-            model,
-            { tools: p.input?.tools as any[] }
-          )
+        const messages = (p.input?.messages as ChatMessage[]) ??
+          (systemPrompt
+            ? [{ role: "system" as const, content: systemPrompt }, { role: "user" as const, content: prompt }]
+            : undefined);
+
+        const genResult = messages
+          ? await this.ollama.chat(messages, model, { tools: p.input?.tools as any[] })
           : await this.ollama.generate(prompt, model);
+
         const text = "message" in genResult ? genResult.message.content : genResult.text;
         const tool_calls = "message" in genResult ? genResult.message.tool_calls : undefined;
         this.sendResponse(envelope, {
