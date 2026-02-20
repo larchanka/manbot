@@ -5,7 +5,8 @@
  */
 
 import { createInterface } from "node:readline";
-import { spawn, type ChildProcess } from "node:child_process";
+import { spawn, exec, type ChildProcess } from "node:child_process";
+import { promisify } from "node:util";
 import { randomUUID } from "node:crypto";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -644,7 +645,21 @@ export class Orchestrator {
     });
   }
 
+  private async verifySystemDependencies(): Promise<void> {
+    const execAsync = promisify(exec);
+    try {
+      await execAsync("lynx --version");
+      ConsoleLogger.info("core", "Dependency check passed: lynx found.");
+    } catch (err) {
+      ConsoleLogger.warn("core", "Dependency check failed: 'lynx' not found. Research skill will be non-functional.");
+    }
+  }
+
   start(): void {
+    this.verifySystemDependencies().catch((err) => {
+      ConsoleLogger.error("core", "Dependency verification error", err);
+    });
+
     for (const [name, scriptPath] of Object.entries(PROCESS_SCRIPTS)) {
       this.spawnProcess(name, scriptPath);
     }

@@ -95,6 +95,37 @@ User: "who won the F1 race today?"
     { "from": "f1-search", "to": "f1-report" }
   ]
 }
+
+## Example: Deep Research
+User: "Deep dive into the current status of the RISC-V ecosystem."
+{
+  "taskId": "task-riscv",
+  "complexity": "large",
+  "reflectionMode": "OFF",
+  "nodes": [
+    {
+      "id": "research-eco",
+      "type": "skill",
+      "service": "executor",
+      "input": { 
+        "skillName": "research", 
+        "task": "Investigate RISC-V hardware, software support, and corporate adoption in 2024. Use search first, then follow key documentation links." 
+      }
+    },
+    {
+      "id": "final-report",
+      "type": "generate_text",
+      "service": "model-router",
+      "input": {
+        "prompt": "Consolidate the RISC-V research into a comprehensive report.",
+        "system_prompt": "analyzer"
+      }
+    }
+  ],
+  "edges": [
+    { "from": "research-eco", "to": "final-report" }
+  ]
+}
 </examples>`;
 
 export interface PlannerPromptOptions {
