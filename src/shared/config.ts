@@ -10,6 +10,7 @@ export interface OllamaConfig {
   baseUrl: string;
   timeoutMs: number;
   retries: number;
+  numCtx: number;
 }
 
 export interface TelegramConfig {
@@ -115,6 +116,7 @@ const DEFAULT_CONFIG: AppConfig = {
     baseUrl: "http://127.0.0.1:11434",
     timeoutMs: 600_000, // 10 minutes default
     retries: 2,
+    numCtx: 32768,
   },
   telegram: {
     botToken: "",
@@ -183,6 +185,7 @@ function mergeEnv(config: AppConfig): AppConfig {
       baseUrl: process.env.OLLAMA_BASE_URL ?? config.ollama.baseUrl,
       timeoutMs: Number(process.env.OLLAMA_TIMEOUT_MS) || config.ollama.timeoutMs,
       retries: Number(process.env.OLLAMA_RETRIES) || config.ollama.retries,
+      numCtx: Number(process.env.OLLAMA_NUM_CTX) || config.ollama.numCtx,
     },
     telegram: {
       botToken: process.env.TELEGRAM_BOT_TOKEN ?? config.telegram.botToken,

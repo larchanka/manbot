@@ -4,14 +4,14 @@ Deep web research using the text-based browser `lynx` and DuckDuckGo HTML interf
 
 ## When to Use
 
-✅ **USE this skill when:**
+**USE this skill when:**
 
 - You need current information from the web.
 - You need to deep dive into a topic by following multiple links.
 - Fact-checking or verifying news.
 - Researching technical documentation or complex subjects.
 
-❌ **DON'T use this skill when:**
+**DON'T use this skill when:**
 
 - The information is already available in your training data (unless it's time-sensitive).
 - You can solve the task with a simple search and the snippet is enough.
@@ -64,6 +64,8 @@ In this case, execute a new search on the URL provided in `[1]`.
 
 ## Guidelines
 
+- **Token Efficiency**: Web pages contain noise. Focus on the core content. Use specific search queries to find the exact page instead of browsing aimlessly.
+- **Concise Summaries**: In multi-turn research, keep your internal notes concise. Do not repeat raw data if you have already extracted the key points.
 - **Max Depth**: Typically go 1-2 levels deep from the search results.
 - **Data Extraction**: Extract only relevant text. Ignore obvious navigation menus or ads.
 - **Synthesis**: Your final output should not be a raw data dump. It must be a structured, factual answer to the user's initial goal.

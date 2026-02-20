@@ -8,12 +8,14 @@ import { getConfig } from "../shared/config.js";
 export interface GenerateOptions {
   timeoutMs?: number;
   keep_alive?: string | number;
+  options?: Record<string, unknown>;
 }
 
 export interface ChatOptions {
   timeoutMs?: number;
   keep_alive?: string | number;
   tools?: any[];
+  options?: Record<string, unknown>;
 }
 
 export interface GenerateResult {
@@ -92,6 +94,7 @@ export class OllamaAdapter {
     const url = `${this.baseUrl}/api/generate`;
     const body: Record<string, unknown> = { model, prompt, stream: false };
     if (opts.keep_alive !== undefined) body.keep_alive = opts.keep_alive;
+    if (opts.options !== undefined) body.options = opts.options;
     const res = await this.fetchWithRetry(url, body, timeoutMs);
     const data = (await res.json()) as {
       response?: string;
@@ -121,6 +124,7 @@ export class OllamaAdapter {
     const body: Record<string, unknown> = { model, messages, stream: false };
     if (opts.keep_alive !== undefined) body.keep_alive = opts.keep_alive;
     if (opts.tools) body.tools = opts.tools;
+    if (opts.options !== undefined) body.options = opts.options;
     const res = await this.fetchWithRetry(url, body, timeoutMs);
     const data = (await res.json()) as {
       message?: { role: string; content: string; tool_calls?: ToolCall[] };
@@ -189,6 +193,7 @@ export class OllamaAdapter {
     const url = `${this.baseUrl}/api/chat`;
     const body: Record<string, unknown> = { model, messages, stream: true };
     if (opts.keep_alive !== undefined) body.keep_alive = opts.keep_alive;
+    if (opts.options !== undefined) body.options = opts.options;
     const res = await this.fetchWithRetry(url, body, timeoutMs);
     if (!res.body) return;
     const reader = res.body.getReader();

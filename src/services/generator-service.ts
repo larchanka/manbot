@@ -9,6 +9,7 @@ import { BaseProcess } from "../shared/base-process.js";
 import type { Envelope } from "../shared/protocol.js";
 import { PROTOCOL_VERSION } from "../shared/protocol.js";
 import { responsePayloadSchema } from "../shared/protocol.js";
+import { getConfig } from "../shared/config.js";
 import { buildSummarizerPrompt, SUMMARIZER_SYSTEM_PROMPT } from "../agents/prompts/summarizer.js";
 import { ANALYZER_SYSTEM_PROMPT, buildAnalyzerUserPrompt } from "../agents/prompts/analyzer.js";
 import { OllamaAdapter, type ChatMessage } from "./ollama-adapter.js";
@@ -53,13 +54,16 @@ export class GeneratorService extends BaseProcess {
     }
 
     (async () => {
+      let model = "unknown";
+      let prompt = "";
+      let messages: ChatMessage[] | undefined;
       try {
         // Check for modelClass in input, then fallback to _complexity from context, then default to "medium"
         const modelClass = (p.input?.modelClass as string) ??
           (p.context?._complexity as string) ??
           "medium";
         const tier = modelClass as ModelTier;
-        const model = this.modelRouter.getModel(tier);
+        model = this.modelRouter.getModel(tier);
 
         // Ensure the model is loaded before inference.
         if (this.modelManager) {
@@ -67,7 +71,6 @@ export class GeneratorService extends BaseProcess {
         }
         const context = (p.context ?? {}) as Record<string, unknown>;
         const goal = context["_goal"] as string | undefined;
-        let prompt: string;
         let systemPrompt: string | undefined;
         if (p.type === "summarize") {
           const chatHistory =
@@ -166,14 +169,15 @@ export class GeneratorService extends BaseProcess {
           });
           prompt = depOutputs.join("\n\n") || "Generate a brief response.";
         }
-        const messages = (p.input?.messages as ChatMessage[]) ??
+        messages = (p.input?.messages as ChatMessage[]) ??
           (systemPrompt
             ? [{ role: "system" as const, content: systemPrompt }, { role: "user" as const, content: prompt }]
             : undefined);
 
+        const ollamaOptions = { num_ctx: getConfig().ollama.numCtx };
         const genResult = messages
-          ? await this.ollama.chat(messages, model, { tools: p.input?.tools as any[] })
-          : await this.ollama.generate(prompt, model);
+          ? await this.ollama.chat(messages, model, { tools: p.input?.tools as any[], options: ollamaOptions })
+          : await this.ollama.generate(prompt, model, { options: ollamaOptions });
 
         const text = "message" in genResult ? genResult.message.content : genResult.text;
         const tool_calls = "message" in genResult ? genResult.message.tool_calls : undefined;
@@ -190,7 +194,10 @@ export class GeneratorService extends BaseProcess {
 
         const details: Record<string, unknown> = {
           originalError: message,
-          isTimeout
+          isTimeout,
+          model,
+          promptLength: prompt.length,
+          messageCount: messages?.length ?? 0
         };
         if (err instanceof Error && err.stack) {
           details.stack = err.stack;
