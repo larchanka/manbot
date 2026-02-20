@@ -639,3 +639,12 @@ Improve LLM outputs by ensuring that data gathered from tools (search, shell, we
 **Acceptance Criteria**:
 - `npm run build` succeeds without TypeScript errors.
 - Lint errors related to the new services are resolved.
+
+### Task 9.8: Prioritize Skill Usage in Planner
+**File**: `src/agents/prompts/planner.ts`
+**Dependencies**: Task 9.3
+**Description**: Update the planner prompts to ensure that skills are given higher priority than raw tool usage.
+**Acceptance Criteria**:
+- Added `## 💎 SKILLS PRECEDENCE (HIGHEST PRIORITY)` section to `PLANNER_SYSTEM_PROMPT`.
+- Updated `buildPlannerPrompt` to label the skills section as `HIGHEST PRIORITY` and added a `STRICT RULE` instruction.
+- Verified that instructions tell the model to check skills BEFORE raw tools.
