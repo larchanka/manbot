@@ -8,6 +8,69 @@
 
 ## Done
 
+### SK-07 Project Compilation
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Ensure the project builds successfully with the new Skills system changes. Verified with 'npm run build'.
+
+    Source: SK-07_PROJECT_COMPILATION.md
+    ```
+
+### SK-06 Create Demo Skill
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Create a sample skill in skills/demo/ to verify the system end-to-end and provide a template for future skills.
+
+    Source: SK-06_DEMO_SKILL.md
+    ```
+
+### SK-05 Support Skill Nodes in ExecutorAgent
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Update the executor to recognize 'skill' node types and dispatch them to model-router with the skill's specific system prompt.
+
+    Source: SK-05_EXECUTOR_SKILL_NODES.md
+    ```
+
+### SK-04 Integrate SkillManager into PlannerAgent
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Integrate SkillManager into the planning loop to load and inject available skills into the LLM context.
+
+    Source: SK-04_INTEGRATE_PLANNER.md
+    ```
+
+### SK-03 Update Planner Prompts for Skills
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Enhance the planner system prompt to handle dynamic skills and instruct the model on using 'skill' nodes.
+
+    Source: SK-03_UPDATE_PLANNER_PROMPTS.md
+    ```
+
+### SK-02 Implement SkillManager Service
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Create a dedicated service to dynamically discover and load skill manifests (CONFIG.md) and prompts from disk.
+
+    Source: SK-02_IMPLEMENT_SKILL_MANAGER.md
+    ```
+
+### SK-01 Add Skills Configuration
+  - tags: [done]
+  - defaultExpanded: false
+    ```md
+    Add skills section to central configuration system and support environment variable overrides.
+
+    Source: SK-01_ADD_SKILLS_CONFIG.md
+    ```
+
 ### P8-01 Refine LLM Analysis Prompts for Natural Language Output
   - tags: [done]
   - defaultExpanded: false

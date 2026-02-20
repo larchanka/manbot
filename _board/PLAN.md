@@ -518,3 +518,46 @@ Improve LLM outputs by ensuring that data gathered from tools (search, shell, we
 ### Component 3: Targeted Deployment in Generator
 - The Generator Service detects the "analyzer" tag and applies the synthesis prompt.
 - This prevents breaking internal tool chains that require JSON.
+
+# Phase P9: Dynamic Skills System
+
+## Overview
+
+Implement a dynamic skills system that allows the agent to load specialized prompts and instructions from a `/skills` directory. This enables easy extension of the agent's capabilities without modifying code.
+
+The system features:
+1.  **Skill Manifest**: A global `CONFIG.md` file to list and describe available skills.
+2.  **Skill Prompts**: Individual `SKILL.md` files for each skill's specialized instructions.
+3.  **Dynamic Discovery**: Skills are loaded from disk on every request by the Planner and Executor.
+4.  **Skill Dispatch**: The Executor handles `skill` nodes by injecting the skill's prompt as a system prompt to the Model Router.
+
+## Proposed Changes
+
+### Component 1: Skill Management Service
+- Create `SkillManager` to handle parsing `CONFIG.md` and loading `SKILL.md` files.
+- Support both table and list formats in the manifest.
+
+### Component 2: Configuration
+- Add `skillsDir` to the central configuration system.
+- Support environment variable override (`SKILLS_DIR`).
+
+### Component 3: Planner Integration
+- Update `PlannerAgent` to load skills at runtime.
+- Update Planner prompt to include a dynamic "Available Skills" section.
+- Instruct the Planner on how to use the new `skill` node type.
+
+### Component 4: Executor Integration
+- Update `ExecutorAgent` to recognize and execute `skill` nodes.
+- Map `skill` nodes to the `model-router` service with a custom system prompt.
+
+## Verification Plan
+
+### Automated Tests
+1. **SkillManager Unit Tests** (to be implemented)
+2. **Planner Integration Tests** (verify skill injection in prompts)
+3. **Executor Integration Tests** (verify skill node execution flow)
+
+### Manual Verification
+1. **Manifest Updates**: Add a skill to `CONFIG.md` and verify the Planner sees it immediately without restart.
+2. **Prompt Updates**: Update a `SKILL.md` and verify the Executor uses the new version immediately.
+3. **End-to-End**: Request a task covered by a specific skill and verify the agent uses the skill node as expected.

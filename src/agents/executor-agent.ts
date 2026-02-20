@@ -21,6 +21,7 @@ import type { Envelope } from "../shared/protocol.js";
 import { PROTOCOL_VERSION } from "../shared/protocol.js";
 import { responsePayloadSchema } from "../shared/protocol.js";
 import { getConfig } from "../shared/config.js";
+import { SkillManager } from "../services/skill-manager.js";
 
 const PLAN_EXECUTE = "plan.execute";
 const NODE_EXECUTE = "node.execute";
@@ -34,6 +35,7 @@ const TYPE_TO_SERVICE: Record<string, string> = {
   generate_text: "model-router",
   generate: "model-router",
   summarize: "model-router",
+  skill: "model-router", // skills are handled by generation with custom system prompt
   tool: "tool-host",
   semantic_search: "rag-service",
   reflect: "critic-agent",
@@ -77,9 +79,11 @@ type PendingReject = (err: any) => void;
 
 export class ExecutorAgent extends BaseProcess {
   private readonly pending = new Map<string, { resolve: PendingResolve; reject: PendingReject }>();
+  private readonly skillManager: SkillManager;
 
-  constructor() {
+  constructor(options?: { skillManager?: SkillManager }) {
     super({ processName: PROCESS_NAME });
+    this.skillManager = options?.skillManager ?? new SkillManager();
   }
 
   protected override handleEnvelope(envelope: Envelope): void {
@@ -404,9 +408,24 @@ export class ExecutorAgent extends BaseProcess {
         nodeId: node.id,
         type: node.type,
         service,
-        input: node.input ?? {},
+        input: { ...(node.input ?? {}) }, // shallow copy to avoid mutating original
         ...(Object.keys(context).length > 0 && { context }),
       };
+
+      // Handle skill nodes by swapping prompt and injecting skill system prompt
+      if (node.type === "skill") {
+        const skillName = (node.input?.skillName ?? node.input?.skill) as string;
+        const task = (node.input?.task ?? node.input?.prompt ?? "") as string;
+        const skillPrompt = this.skillManager.getSkillPrompt(skillName);
+        if (!skillPrompt) {
+          reject(new Error(`Skill prompt not found: ${skillName}`));
+          return;
+        }
+        payload.input.system_prompt = skillPrompt;
+        payload.input.prompt = task;
+        // Ensure type for model-router is recognized
+        payload.type = "generate_text";
+      }
 
       // Auto-inject conversationId into semantic_search input if it's in context but not in nodes's input
       // UNLESS scope is explicitly "global"

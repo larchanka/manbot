@@ -140,10 +140,37 @@ export interface PlannerPromptOptions {
   previousPlanJson?: string;
   /** Optional conversation history to provide context. */
   conversationHistory?: string;
+  /** Optional available skills to provide specialized functionality. */
+  skills?: Array<{ name: string; description: string }>;
 }
 
 export function buildPlannerPrompt(userMessage: string, options?: PlannerPromptOptions): string {
+  let skillsSection = "";
+  if (options?.skills && options.skills.length > 0) {
+    skillsSection = `
+## 🛠 AVAILABLE SKILLS (DYNAMIC)
+If a user's goal matches a skill below, you SHOULD use it by creating a node with **"type": "skill"**.
+The "input" for a skill node MUST contain "skillName" and "task".
+
+${options.skills.map(s => `- **${s.name}**: ${s.description}`).join("\n")}
+
+Example skill node:
+{
+  "id": "skill-1",
+  "type": "skill",
+  "service": "executor",
+  "input": {
+    "skillName": "name-from-list-above",
+    "task": "Specific instructions for the skill"
+  }
+}
+`;
+  }
+
   const base = `${PLANNER_SYSTEM_PROMPT}
+
+${skillsSection}
+
 ${PLANNER_FEW_SHOT_EXAMPLES}
 
 ## IMPORTANT: VERIFY TOOL NAMES
@@ -157,6 +184,7 @@ User goal: ${userMessage}`;
     const errorSection = `
 ## PREVIOUS ATTEMPT FAILED – FIX THE PLAN
 A previous plan failed with this error. Produce a corrected plan (valid JSON only). Do not repeat the same mistake.
+(Note: You can still use Skills if appropriate for the fix).
 
 Error: ${options.previousError}
 ${options.previousPlanJson ? `\nPrevious plan (for reference):\n\`\`\`json\n${options.previousPlanJson}\n\`\`\`` : ""}

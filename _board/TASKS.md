@@ -564,3 +564,78 @@ Improve LLM outputs by ensuring that data gathered from tools (search, shell, we
 - Narrative Rule added to system prompt.
 - Search & Answer few-shot example added.
 - All research plans end with a `generate_text` node tagged as "analyzer".
+
+# Phase P9: Dynamic Skills System Tasks
+
+## Phase 9.1: Core Infrastructure
+
+### Task 9.1: Add Skills Configuration
+**File**: `src/shared/config.ts`
+**Dependencies**: None
+**Description**: Add skills section to the central configuration system to specify the skills directory.
+**Acceptance Criteria**:
+- `SkillsConfig` interface added.
+- `skills` added to `AppConfig` and `DEFAULT_CONFIG`.
+- `mergeEnv` handles `SKILLS_DIR` environment variable.
+- Configuration is successfully merged and validated.
+
+### Task 9.2: Implement SkillManager Service
+**File**: `src/services/skill-manager.ts`
+**Dependencies**: Task 9.1
+**Description**: Create a service to load and parse skill manifests and prompts from disk.
+**Acceptance Criteria**:
+- `SkillManager` class created.
+- `listSkills()` correctly parses `CONFIG.md` (tables and lists).
+- `getSkillPrompt(name)` loads `SKILL.md` for a specific skill.
+- Paths are resolved correctly relative to the skills directory.
+- Error handling for missing files or parse errors.
+
+## Phase 9.2: Agent Integration
+
+### Task 9.3: Update Planner Prompts for Skills
+**File**: `src/agents/prompts/planner.ts`
+**Dependencies**: Task 9.2
+**Description**: Modify the planner system prompt to support dynamic skills and the `skill` node type.
+**Acceptance Criteria**:
+- `PlannerPromptOptions` updated to include optional skills array.
+- `buildPlannerPrompt` injects "AVAILABLE SKILLS" section if skills are provided.
+- System prompt includes instructions for creating `type: "skill"` nodes.
+- Example skill node provided in the prompt.
+
+### Task 9.4: Integrate SkillManager into PlannerAgent
+**File**: `src/agents/planner-agent.ts`
+**Dependencies**: Task 9.3
+**Description**: Wire the SkillManager into the PlannerAgent so it loads skills on every request.
+**Acceptance Criteria**:
+- `SkillManager` initialized in `PlannerAgent` constructor.
+- `handleEnvelope` calls `listSkills()` and passes them to `buildPlannerPrompt`.
+- Skills are successfully injected into the LLM prompt.
+
+### Task 9.5: Support Skill Nodes in ExecutorAgent
+**File**: `src/agents/executor-agent.ts`
+**Dependencies**: Task 9.2
+**Description**: Update the executor to recognize and process the new `skill` node type.
+**Acceptance Criteria**:
+- `SkillManager` initialized in `ExecutorAgent`.
+- `TYPE_TO_SERVICE` maps `skill` to `model-router`.
+- `dispatchNode` handles `type: skill` by loading the prompt via `SkillManager`.
+- Skill task and prompt are correctly mapped to model-router input.
+
+## Phase 9.3: Validation and Demo
+
+### Task 9.6: Create Demo Skill
+**File**: `skills/demo/SKILL.md`, `skills/CONFIG.md`
+**Dependencies**: Task 9.4, Task 9.5
+**Description**: Create a sample skill to verify the system end-to-end.
+**Acceptance Criteria**:
+- `skills/CONFIG.md` initialized with a demo skill entry.
+- `skills/demo/SKILL.md` created with clear instructions.
+- Verification that the skill appears in the planner's context.
+
+### Task 9.7: Project Compilation
+**File**: Project-wide
+**Dependencies**: All Phase 9 tasks
+**Description**: Ensure the project builds successfully with the new changes.
+**Acceptance Criteria**:
+- `npm run build` succeeds without TypeScript errors.
+- Lint errors related to the new services are resolved.

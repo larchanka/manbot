@@ -90,6 +90,11 @@ export interface ModelManagerConfig {
   warmupPrompt: string;
 }
 
+export interface SkillsConfig {
+  /** Directory containing skills/CONFIG.md and subfolders. */
+  skillsDir: string;
+}
+
 export interface AppConfig {
   ollama: OllamaConfig;
   telegram: TelegramConfig;
@@ -102,6 +107,7 @@ export interface AppConfig {
   executor: ExecutorConfig;
   browserService: BrowserServiceConfig;
   modelManager: ModelManagerConfig;
+  skills: SkillsConfig;
 }
 
 const DEFAULT_CONFIG: AppConfig = {
@@ -136,7 +142,7 @@ const DEFAULT_CONFIG: AppConfig = {
     small: "qwen3:0.6b",
     medium: "qwen3:1.7b",
     large: "qwen3:4b",
-    plannerComplexity: "medium",
+    plannerComplexity: "small",
   },
   executor: {
     nodeTimeoutMs: 600_000, // 10 minutes default
@@ -152,6 +158,9 @@ const DEFAULT_CONFIG: AppConfig = {
     mediumModelKeepAlive: "30m",
     largeModelKeepAlive: "60m",
     warmupPrompt: "hello",
+  },
+  skills: {
+    skillsDir: "skills",
   },
 };
 
@@ -218,6 +227,9 @@ function mergeEnv(config: AppConfig): AppConfig {
       mediumModelKeepAlive: process.env.MODEL_MANAGER_MEDIUM_KEEP_ALIVE ?? config.modelManager.mediumModelKeepAlive,
       largeModelKeepAlive: process.env.MODEL_MANAGER_LARGE_KEEP_ALIVE ?? config.modelManager.largeModelKeepAlive,
       warmupPrompt: process.env.MODEL_MANAGER_WARMUP_PROMPT ?? config.modelManager.warmupPrompt,
+    },
+    skills: {
+      skillsDir: process.env.SKILLS_DIR ?? config.skills.skillsDir,
     },
   };
 }

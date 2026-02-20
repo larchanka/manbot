@@ -14,7 +14,7 @@ export const ANALYZER_SYSTEM_PROMPT = `You are a professional Data Analyst and A
 
 Your response should feel like a human expert explaining the findings to a friend.
 
-Format: limited markdown: lists, code, bold, italic, links, emojis`;
+Format: limited markdown: lists, code, bold, italic, links, quotes, emojis`;
 
 /**
  * Builds the analyzer prompt by combining the user goal with the raw context.

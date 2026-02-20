@@ -12,6 +12,7 @@ import { responsePayloadSchema } from "../shared/protocol.js";
 import { buildPlannerPrompt } from "./prompts/planner.js";
 import { ModelRouter } from "../services/model-router.js";
 import { OllamaAdapter } from "../services/ollama-adapter.js";
+import { SkillManager } from "../services/skill-manager.js";
 
 const PLAN_CREATE = "plan.create";
 
@@ -40,11 +41,13 @@ function extractJson(text: string): string {
 export class PlannerAgent extends BaseProcess {
   private readonly ollama: OllamaAdapter;
   private readonly modelRouter: ModelRouter;
+  private readonly skillManager: SkillManager;
 
-  constructor(options?: { ollama?: OllamaAdapter; modelRouter?: ModelRouter }) {
+  constructor(options?: { ollama?: OllamaAdapter; modelRouter?: ModelRouter; skillManager?: SkillManager }) {
     super({ processName: "planner" });
     this.ollama = options?.ollama ?? new OllamaAdapter();
     this.modelRouter = options?.modelRouter ?? new ModelRouter();
+    this.skillManager = options?.skillManager ?? new SkillManager();
   }
 
   protected override handleEnvelope(envelope: Envelope): void {
@@ -68,10 +71,15 @@ export class PlannerAgent extends BaseProcess {
           p.previousPlan && typeof p.previousPlan === "object"
             ? JSON.stringify(p.previousPlan, null, 2)
             : undefined;
+
+        // Load dynamic skills
+        const skills = this.skillManager.listSkills();
+
         const promptOptions = {
           ...(previousError && { previousError }),
           ...(previousPlanJson && { previousPlanJson }),
           ...(p.history && { conversationHistory: p.history }),
+          ...(skills.length > 0 && { skills }),
         };
         const prompt = buildPlannerPrompt(goal, promptOptions);
         const messages = [
