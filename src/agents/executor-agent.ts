@@ -484,11 +484,16 @@ export class ExecutorAgent extends BaseProcess {
                 // Execute each tool call
                 for (const tc of result.tool_calls) {
                   const toolResult = await this.callTool(taskId, node.id, tc.function.name, tc.function.arguments);
+                  let content = typeof toolResult === "string" ? toolResult : JSON.stringify(toolResult);
+                  // Safety truncation for large web pages or shell outputs to stay within context limits
+                  if (content.length > 30000) {
+                    content = content.substring(0, 30000) + "\n\n...[TRUNCATED DUE TO LENGTH]...";
+                  }
                   messages.push({
                     role: "tool",
                     tool_call_id: tc.id,
                     name: tc.function.name,
-                    content: typeof toolResult === "string" ? toolResult : JSON.stringify(toolResult)
+                    content
                   });
                 }
                 turnCount++;
