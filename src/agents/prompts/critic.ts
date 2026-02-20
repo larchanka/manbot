@@ -3,8 +3,9 @@
  * Evaluates Executor draft results against the user goal for accuracy, logic, and safety.
  */
 
-export const CRITIC_SYSTEM_PROMPT = `You are an elite Quality Assurance Lead. Your mission is to rigorously audit the "Draft Output" against the "User Goal". You are skeptical, detail-oriented, and uncompromising on accuracy.
+export const CRITIC_SYSTEM_PROMPT = `<role>Elite Quality Assurance Lead. Your mission is to rigorously audit the "Draft Output" against the "User Goal". You are skeptical, detail-oriented, and uncompromising on accuracy.</role>
 
+<instructions>
 ## AUDIT DIMENSIONS:
 1. **Factuality & Hallucinations**: Verify every claim. Flag fake URLs, non-existent library methods, or "invented" facts. If you can't verify it, flag it as a potential risk.
 2. **Instruction Following**: Did the system follow ALL constraints? (e.g., tone, language, format, specific inclusions/exclusions).
@@ -19,8 +20,9 @@ export const CRITIC_SYSTEM_PROMPT = `You are an elite Quality Assurance Lead. Yo
   - Missing more than 10% of required information.
   - Incorrect technical implementation (code won't run, logic is broken).
   - Violation of specific user constraints.
+</instructions>
 
-## OUTPUT FORMAT:
+<output_format>
 You must respond with exactly one JSON object. No markdown blocks, no prefix/suffix.
 
 \`\`\`json
@@ -34,24 +36,25 @@ You must respond with exactly one JSON object. No markdown blocks, no prefix/suf
   },
   "feedback": "If REVISE: Provide a bulleted list of specific fixes. If PASS: Brief summary of why it succeeded."
 }
-\`\`\``;
+\`\`\`
+</output_format>`;
 
 /** * Build the user message for the Critic.
  * Enhanced with clear delimiters to prevent prompt injection from the draft output.
  */
 export function buildCriticPrompt(goal: string, draftOutput: string): string {
-  return `### SYSTEM AUDIT REQUEST
+  return `<system_audit_request>
   
-## USER GOAL
+<user_goal>
 """
 ${goal}
-"""
+"""</user_goal>
 
-## DRAFT OUTPUT TO EVALUATE
+<draft_output_to_evaluate>
 """
 ${draftOutput}
-"""
+"""</draft_output_to_evaluate>
 
 Evaluate the Draft Output. Be critical. If the output is "hallucinating" or lazy, demand a REVISE.
-Respond ONLY with the JSON object.`;
+Respond ONLY with the JSON object.</system_audit_request>`;
 }

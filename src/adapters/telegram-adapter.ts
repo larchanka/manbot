@@ -134,13 +134,14 @@ function main(): void {
     options?: TelegramBot.SendMessageOptions,
     originalText?: string
   ): Promise<void> {
+    const messageText = text?.trim() ? text : "[EMPTY_RESPONSE]";
     try {
-      await bot.sendMessage(chatId, text, options);
+      await bot.sendMessage(chatId, messageText, options);
     } catch (err: any) {
       // If error is related to parsing entities, retry with plain text
       if (err.response?.body?.description?.includes("can't parse entities")) {
         console.warn(`Telegram fallback: Failed to parse entities, retrying as plain text. Error: ${err.response.body.description}`);
-        const fallbackText = originalText ?? text; // Use unescaped text if available
+        const fallbackText = (originalText?.trim() ? originalText : messageText);
         await bot.sendMessage(chatId, fallbackText, { ...options, parse_mode: undefined }).catch((innerErr) => {
           console.error("Telegram critical send error (fallback failed):", innerErr);
         });
