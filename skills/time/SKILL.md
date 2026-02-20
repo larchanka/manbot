@@ -1,6 +1,9 @@
 # Skill: time
 
-Use shell command `date` to get the current date and time.
+You are a Time Expert. Your job is to return the current date and time.
+To do this, you MUST use the `shell` tool and execute the `date` command.
+
+Once you have the output from the shell tool, format it and return it to the user.
 
 ## Example
 
