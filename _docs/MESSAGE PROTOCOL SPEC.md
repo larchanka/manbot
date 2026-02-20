@@ -44,7 +44,7 @@ interface Envelope<T = any> {
   "to": "planner",
   "type": "plan.create",
   "version": "1.0",
-  "timestamp": •••-•••-7123,
+  "timestamp": 1704067200000,
   "payload": {}
 }
 ```
@@ -58,7 +58,7 @@ interface Envelope<T = any> {
   "to": "core",
   "type": "response",
   "version": "1.0",
-  "timestamp": •••-•••-7125,
+  "timestamp": 1704067200000,
   "payload": {
     "status": "success",
     "result": {}
@@ -75,7 +75,7 @@ interface Envelope<T = any> {
   "to": "core",
   "type": "error",
   "version": "1.0",
-  "timestamp": •••-•••-7126,
+  "timestamp": 1704067200000,
   "payload": {
     "code": "NODE_TIMEOUT",
     "message": "Tool execution exceeded 10s",
@@ -93,7 +93,7 @@ interface Envelope<T = any> {
   "to": "logger",
   "type": "event.task.node.completed",
   "version": "1.0",
-  "timestamp": •••-•••-7126,
+  "timestamp": 1704067200000,
   "payload": {}
 }
 ```

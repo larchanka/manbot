@@ -13,6 +13,7 @@ export interface GenerateOptions {
 export interface ChatOptions {
   timeoutMs?: number;
   keep_alive?: string | number;
+  tools?: any[];
 }
 
 export interface GenerateResult {
@@ -23,19 +24,33 @@ export interface GenerateResult {
 }
 
 export interface ChatMessage {
-  role: "system" | "user" | "assistant";
+  role: "system" | "user" | "assistant" | "tool";
   content: string;
+  tool_calls?: ToolCall[];
+}
+
+export interface ToolCall {
+  id: string;
+  type: string;
+  function: {
+    name: string;
+    arguments: Record<string, any>;
+  };
 }
 
 export interface ChatResult {
-  message: { role: string; content: string };
+  message: {
+    role: string;
+    content: string;
+    tool_calls?: ToolCall[];
+  };
   prompt_eval_count?: number;
   eval_count?: number;
   done: boolean;
 }
 
 export interface StreamChunk {
-  message?: { content: string };
+  message?: { content: string; tool_calls?: ToolCall[] };
   done?: boolean;
   prompt_eval_count?: number;
   eval_count?: number;
@@ -104,9 +119,10 @@ export class OllamaAdapter {
     const url = `${this.baseUrl}/api/chat`;
     const body: Record<string, unknown> = { model, messages, stream: false };
     if (opts.keep_alive !== undefined) body.keep_alive = opts.keep_alive;
+    if (opts.tools) body.tools = opts.tools;
     const res = await this.fetchWithRetry(url, body, timeoutMs);
     const data = (await res.json()) as {
-      message?: { role: string; content: string };
+      message?: { role: string; content: string; tool_calls?: ToolCall[] };
       done?: boolean;
       prompt_eval_count?: number;
       eval_count?: number;
