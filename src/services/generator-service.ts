@@ -167,10 +167,20 @@ export class GeneratorService extends BaseProcess {
           prompt = depOutputs.join("\n\n") || "Generate a brief response.";
         }
         const genResult = systemPrompt
-          ? await this.ollama.chat([{ role: "system", content: systemPrompt }, { role: "user", content: prompt }], model)
+          ? await this.ollama.chat(
+            [{ role: "system", content: systemPrompt }, { role: "user", content: prompt }],
+            model,
+            { tools: p.input?.tools as any[] }
+          )
           : await this.ollama.generate(prompt, model);
         const text = "message" in genResult ? genResult.message.content : genResult.text;
-        this.sendResponse(envelope, { text, prompt_eval_count: genResult.prompt_eval_count, eval_count: genResult.eval_count });
+        const tool_calls = "message" in genResult ? genResult.message.tool_calls : undefined;
+        this.sendResponse(envelope, {
+          text,
+          tool_calls,
+          prompt_eval_count: genResult.prompt_eval_count,
+          eval_count: genResult.eval_count
+        });
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         const isTimeout = err instanceof Error && (err.name === "AbortError" || message.includes("aborted") || message.includes("timeout"));

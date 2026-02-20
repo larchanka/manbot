@@ -648,3 +648,32 @@ Improve LLM outputs by ensuring that data gathered from tools (search, shell, we
 - Added `## 💎 SKILLS PRECEDENCE (HIGHEST PRIORITY)` section to `PLANNER_SYSTEM_PROMPT`.
 - Updated `buildPlannerPrompt` to label the skills section as `HIGHEST PRIORITY` and added a `STRICT RULE` instruction.
 - Verified that instructions tell the model to check skills BEFORE raw tools.
+
+# Phase P10: Tool-Aware Active Skills Tasks
+
+## Phase 10.1: Alignment and Planning
+
+### Task 10.1: Planner "Dependency Rule" for Skills
+**File**: `src/agents/prompts/planner.ts`
+**Dependencies**: Task 9.8
+**Description**: Instruct the planner to provide tool outputs to skills that need them.
+**Acceptance Criteria**:
+- Added instructions to `PLANNER_SYSTEM_PROMPT` about skill dependencies.
+- Updated `buildPlannerPrompt` to emphasize that skills don't have direct tool access; they need "data nodes" as dependencies.
+
+### Task 10.2: Refine Skill Prompts for Tool Dependencies
+**File**: `skills/time/SKILL.md`
+**Dependencies**: Task 10.1
+**Description**: Update the "time" skill to expect input from a `shell` tool rather than promising to run it itself.
+**Acceptance Criteria**:
+- Updated `time` skill prompt to explain it formats raw `date` output.
+
+## Phase 10.2: Active Skill Execution (Future)
+
+### Task 10.3: Active Skill Research and Implementation
+**File**: `src/agents/executor-agent.ts`, `src/services/generator-service.ts`
+**Dependencies**: Task 9.5
+**Description**: Investigate and implement a way for `skill` nodes to perform their own tool calls if the model supports it.
+**Acceptance Criteria**:
+- Defined protocol for tool-calling within the GeneratorService.
+- Updated ExecutorAgent to support multi-turn skill execution if needed.

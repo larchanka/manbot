@@ -561,3 +561,30 @@ The system features:
 1. **Manifest Updates**: Add a skill to `CONFIG.md` and verify the Planner sees it immediately without restart.
 2. **Prompt Updates**: Update a `SKILL.md` and verify the Executor uses the new version immediately.
 3. **End-to-End**: Request a task covered by a specific skill and verify the agent uses the skill node as expected.
+
+# Phase P10: Tool-Aware Active Skills
+
+## Overview
+
+Address the issue where skills that require raw tool data (like shell commands or web searches) hallucinate their output because they are executed as plain text generation.
+
+The strategy involves two paths:
+1.  **Planner Guidance**: Instruct the Planner to provide tool outputs as dependencies to skill nodes if the skill description requires external data.
+2.  **Active Execution**: Enhance the `ExecutorAgent` or `GeneratorService` to allow skill nodes to perform tool calls if the LLM requires them, preventing "ENOENT" hallucinations.
+
+## Proposed Changes
+
+### Component 1: Planner "Dependency Rule" for Skills
+- Update `buildPlannerPrompt` to include a rule: "If a skill requires external data (e.g., shell output, web content), you MUST create the necessary tool nodes first and make the skill node depend on them."
+
+### Component 2: Executor Active Skill Handling
+- Update `ExecutorAgent.dispatchNode` to allow `skill` nodes to maintain their specialized type for the model-router.
+- Investigate enabling tool-calling for the model-router when a skill is being executed.
+
+## Verification Plan
+
+### Manual Verification
+1.  **Time Skill Test**: Use the "time" skill and verify that the Planner either:
+    - Creates a `shell (date)` node followed by a `skill (time)` node.
+    - Or the \`skill (time)\` node executes the tool itself without hallucinating a shell error.
+2.  **Complex Skill Test**: Create a skill that requires web search and verify it correctly gathers data or requests the search tool.

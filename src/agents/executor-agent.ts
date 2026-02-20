@@ -8,6 +8,39 @@
 
 const MAX_CONCURRENT_NODES = 5;
 const MAX_REVISION_CYCLES = 3;
+const MAX_SKILL_TURNS = 5;
+
+const SKILL_TOOLS = [
+  {
+    type: "function",
+    function: {
+      name: "shell",
+      description: "Execute a shell command within the sandbox. Safely handles file operations, system checks, etc. Mandatory for 'date', 'ls', 'cat', etc.",
+      parameters: {
+        type: "object",
+        properties: {
+          command: { type: "string", description: "The command to run" }
+        },
+        required: ["command"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "http_get",
+      description: "Fetch content from a URL using a browser.",
+      parameters: {
+        type: "object",
+        properties: {
+          url: { type: "string", description: "Target URL" },
+          useBrowser: { type: "boolean", description: "Use real browser (Playwright)" }
+        },
+        required: ["url"]
+      }
+    }
+  }
+];
 
 import { randomUUID } from "node:crypto";
 import { BaseProcess } from "../shared/base-process.js";
@@ -421,10 +454,56 @@ export class ExecutorAgent extends BaseProcess {
           reject(new Error(`Skill prompt not found: ${skillName}`));
           return;
         }
-        payload.input.system_prompt = skillPrompt;
-        payload.input.prompt = task;
-        // Ensure type for model-router is recognized
-        payload.type = "generate_text";
+
+        // Active Skill loop
+        (async () => {
+          try {
+            const messages: any[] = [
+              { role: "system", content: skillPrompt },
+              { role: "user", content: task }
+            ];
+
+            let turnCount = 0;
+            while (turnCount < MAX_SKILL_TURNS) {
+              const genResponse = await this.callModelRouter(taskId, node.id, {
+                type: "generate_text",
+                input: {
+                  prompt: task, // Fallback, messages are used if present
+                  messages,
+                  tools: SKILL_TOOLS
+                },
+                context
+              });
+
+              const result = (genResponse.payload as any).result as { text: string; tool_calls?: any[] };
+
+              if (result.tool_calls && result.tool_calls.length > 0) {
+                // Add assistant message with tool calls to history
+                messages.push({ role: "assistant", content: result.text || "", tool_calls: result.tool_calls });
+
+                // Execute each tool call
+                for (const tc of result.tool_calls) {
+                  const toolResult = await this.callTool(taskId, node.id, tc.function.name, tc.function.arguments);
+                  messages.push({
+                    role: "tool",
+                    tool_call_id: tc.id,
+                    name: tc.function.name,
+                    content: typeof toolResult === "string" ? toolResult : JSON.stringify(toolResult)
+                  });
+                }
+                turnCount++;
+              } else {
+                // No more tool calls, we are done
+                resolve(result);
+                return;
+              }
+            }
+            reject(new Error(`Skill exceeded maximum turns (${MAX_SKILL_TURNS})`));
+          } catch (err) {
+            reject(err);
+          }
+        })();
+        return;
       }
 
       // Auto-inject conversationId into semantic_search input if it's in context but not in nodes's input
@@ -748,6 +827,73 @@ export class ExecutorAgent extends BaseProcess {
       type: "task.fail",
       version: PROTOCOL_VERSION,
       payload: { taskId, reason },
+    });
+  }
+
+  private callModelRouter(taskId: string, nodeId: string, payload: any): Promise<Envelope> {
+    return new Promise((resolve, reject) => {
+      const id = randomUUID();
+      const timeoutMs = getConfig().executor.nodeTimeoutMs || 600000;
+
+      this.send({
+        id,
+        timestamp: Date.now(),
+        from: PROCESS_NAME,
+        to: "model-router",
+        type: NODE_EXECUTE,
+        version: PROTOCOL_VERSION,
+        payload: {
+          ...payload,
+          taskId,
+          nodeId
+        }
+      });
+
+      const timeout = setTimeout(() => {
+        if (this.pending.has(id)) {
+          this.pending.delete(id);
+          reject(new Error(`Model router timeout for node ${nodeId}`));
+        }
+      }, timeoutMs);
+
+      this.pending.set(id, {
+        resolve: (env) => {
+          clearTimeout(timeout);
+          resolve(env);
+        },
+        reject: (err) => {
+          clearTimeout(timeout);
+          reject(err);
+        }
+      });
+    });
+  }
+
+  private callTool(taskId: string, nodeId: string, name: string, args: any): Promise<any> {
+    return new Promise((resolve, reject) => {
+      const id = randomUUID();
+      this.send({
+        id,
+        timestamp: Date.now(),
+        from: PROCESS_NAME,
+        to: "tool-host",
+        type: NODE_EXECUTE,
+        version: PROTOCOL_VERSION,
+        payload: {
+          taskId,
+          nodeId,
+          type: "tool",
+          input: {
+            tool: name,
+            arguments: args
+          }
+        }
+      });
+
+      this.pending.set(id, {
+        resolve: (env) => resolve((env.payload as any).result),
+        reject: (err) => reject(err)
+      });
     });
   }
 
