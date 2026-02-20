@@ -4,14 +4,6 @@
 
 
 
-### DB-03 SVG Visualization Engine
-  - tags: [todo, ui]
-  - defaultExpanded: false
-    ```md
-    Implement helper functions to generate SVG chart strings from data arrays.
-    
-    Source: DB-03_SVG_ENGINE.md
-    ```
 
 ### DB-04 UI Design and Theming
   - tags: [todo, ui]
@@ -40,9 +32,18 @@
     Source: DB-06_VERIFICATION.md
     ```
 
-## In Progress
 
 ## Done
+
+### DB-03 SVG Visualization Engine
+  - tags: [done, ui]
+  - defaultExpanded: false
+    ```md
+    Implement helper functions to generate SVG chart strings from data arrays.
+    
+    Source: DB-03_SVG_ENGINE.md
+    ```
+
 
 ### DB-02 SQLite and Log Data Extraction
   - tags: [done, data]
