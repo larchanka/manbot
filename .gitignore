@@ -43,7 +43,7 @@ config.json
 *.key
 
 # Database and Persistence
-data/
+data/**/**
 *.sqlite
 *.sqlite-journal
 *.db
@@ -55,3 +55,5 @@ logs/
 
 # AI Tools Specific
 .gemini/
+
+!.gitkeep
