@@ -33,6 +33,7 @@ const PROCESS_SCRIPTS: Record<string, string> = {
   "rag-service": join(DIST, "services", "rag-service.js"),
   "tool-host": join(DIST, "services", "tool-host.js"),
   "cron-manager": join(DIST, "services", "cron-manager.js"),
+  "dashboard": join(DIST, "services", "dashboard-service.js"),
 };
 
 interface ChildEntry {

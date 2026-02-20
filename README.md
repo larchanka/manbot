@@ -13,6 +13,7 @@ A multi-process AI platform with type-safe IPC and capability-graph execution. U
 - **Session-Scoped RAG**: Memory searches are session-scoped by default to prevent context leakage after `/new`, with an optional `global` scope.
 - **Telegram adapter**: Commands `/start`, `/task`, `/new`, `/help`; session tracking and conversation archiving; robust message delivery with automatic plain-text fallback.
 - **Reminder System**: Schedule one-time or recurring reminders via natural language; cron-based scheduling with Telegram delivery
+- **Monitoring Dashboard**: A Notion-style internal web dashboard for real-time tracking of tasks, system stats, and event logs.
 
 ## Requirements
 
@@ -219,12 +220,32 @@ ollama ps
 
 The prewarming start and completion are logged by the Orchestrator (`core` prefix in logs).
 
+## Monitoring Dashboard
+
+ManBot includes a real-time internal monitoring dashboard with a clean, Notion-inspired design.
+
+### Features
+- **Task Analytics**: Distribution of task statuses (Completed, Failed, Pending) and complexity levels.
+- **System Memory**: Real-time document count in RAG and active cron schedules.
+- **Live Event Pipeline**: A feed of the most recent intelligence events from the log file.
+- **System Theme Support**: Automatically switches between light and dark modes based on your OS settings.
+
+### Access
+The dashboard is automatically started by the Orchestrator and is available at:
+**`http://localhost:3001`**
+
+You can configure the port using the `DASHBOARD_PORT` environment variable or by editing `config.json` (planned).
+
+<p align="center">
+  <i>The dashboard outputs its own lifecycle events to the central logger, visible in <code>logs/events.log</code>.</i>
+</p>
+
 ## Project layout
 
 - **src/core/** — Core Orchestrator (process spawning, message routing, task pipeline)
 - **src/agents/** — Planner, Executor, Critic; **prompts/** for system prompts (planner, critic, summarizer)
 - **src/adapters/** — Telegram adapter
-- **src/services/** — Task Memory, Logger, Ollama adapter, Model Router, Generator (generate_text + summarize), RAG (SQLite), Tool Host, Cron Manager
+- **src/services/** — Task Memory, Logger, Ollama adapter, Model Router, Generator, RAG (SQLite), Tool Host, Cron Manager, Dashboard Service
 - **src/shared/** — Protocol (Zod schemas), BaseProcess, graph-utils, config
 - **_docs/** — Architecture and protocol specs
 - **_board/** — Task board and task specs

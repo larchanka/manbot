@@ -686,3 +686,23 @@ Create a standalone, single-file Node.js web application (`/stats/app.js`) to pr
 3. **Data Integrity**: Compare dashboard numbers with direct SQLite queries.
 4. **Refresh**: Click "Refresh" and verify metrics update after new agent activity.
 5. **Responsiveness**: Check layout on different screen sizes.
+
+## Phase: Orchestrator Integration & UI Polish
+
+### Overview
+Integrate the dashboard into the core ManBot orchestration layer, transitioning from a standalone script to a managed background service. Refine the UI to match professional "Notion" aesthetics and support system-wide themes.
+
+### Components
+1. **TypeScript Migration**: Revamp `stats/app.js` into `src/services/dashboard-service.ts`.
+2. **Orchestrator Integration**: Add the dashboard to `PROCESS_SCRIPTS` in `orchestrator.ts`.
+3. **IPC Logging**: Enable the dashboard to send its own health and status events to the central `logger-service`.
+4. **Notion UI**: 
+   - Minimalist Inter-based typography.
+   - Light/Dark mode support via `prefers-color-scheme`.
+   - Workspace-like grid layout and clean aesthetics.
+
+### Verification
+1. `npm run build` succeeds without TS errors.
+2. `npm run dev:orchestrator` spawns the dashboard service.
+3. Dashboard logs appear in `logs/events.log`.
+4. UI automatically switches themes when OS settings change.
