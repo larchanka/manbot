@@ -630,3 +630,59 @@ The skill will be implemented using the existing Dynamic Skills System (Phase P9
 2.  **Basic Search**: Ask "Search for the current price of Bitcoin" and verify it uses the `research` skill.
 3.  **Deep Dive**: Ask "Research the history of the Svelte framework and its key contributors" and verify it follows links to Wikipedia or GitHub.
 4.  **Consolidation**: Verify that the final response is a well-formatted summary, not raw dump output.
+# Internal Monitoring Dashboard Implementation Plan
+
+## Overview
+Create a standalone, single-file Node.js web application (`/stats/app.js`) to provide a real-time (on-demand) overview of the AI Agent's performance, health, and activity. This tool serves as an internal monitoring dashboard, visualizing data from SQLite databases and local log files.
+
+### Requirements
+- Single File: Everything must be in `stats/app.js`.
+- No Frameworks: Vanilla Node.js for backend, Vanilla JS/CSS for frontend.
+- No Build Step: Raw HTML generation on request.
+- On-Demand: Data is read and HTML is generated on each page load.
+
+## User Review Required
+
+> [!IMPORTANT]
+> **Performance Impact**
+> 
+> Since the server reads logs and queries databases on every request, performance may degrade if log files grow extremely large. 
+> **Strategy**: Use streaming log parsing and limit reading to the last N lines or last M hours.
+
+> [!IMPORTANT]
+> **External Dependencies**
+> 
+> The plan assumes `better-sqlite3` or `sqlite3` is available. If these are not installed, the tool will fail. 
+> **Decision**: We will use `better-sqlite3` for its synchronous API which simplifies single-file implementations.
+
+## Proposed Changes
+
+### Component 1: Setup & Infrastructure
+- Initialize `/stats` directory.
+- Create `app.js` with basic HTTP server logic.
+- Implement path resolution for `logs/` and `data/`.
+
+### Component 2: Data layer
+- Implement raw SQLite queries for `tasks.sqlite`, `rag.sqlite`, and `cron.sqlite`.
+- Implement NDJSON log parser for `logs/events.log`.
+- Aggregation logic for metrics (Success rates, document counts, tool latency).
+
+### Component 3: Visualization Engine
+- Implement standalone SVG generators for:
+    - Task Success Rate (Bar/Pie).
+    - Tool Performance (Horizontal Bar).
+    - Volume over time (Line/Area).
+
+### Component 4: Dashboard UI
+- Modern Dark-Mode CSS design with premium aesthetics (glassmorphism, subtle gradients).
+- Grid layout for metrics.
+- Component-based HTML generation using template literals.
+
+## Verification Plan
+
+### Manual Verification
+1. **Startup**: Run `node stats/app.js` and verify it starts without errors.
+2. **Access**: Navigate to `http://localhost:3001` (or configured port).
+3. **Data Integrity**: Compare dashboard numbers with direct SQLite queries.
+4. **Refresh**: Click "Refresh" and verify metrics update after new agent activity.
+5. **Responsiveness**: Check layout on different screen sizes.

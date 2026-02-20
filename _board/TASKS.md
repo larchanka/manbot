@@ -718,3 +718,75 @@ Improve LLM outputs by ensuring that data gathered from tools (search, shell, we
 - Ask the agent complex questions requiring multi-step web browsing.
 - Verify the agent follows links and consolidates findings.
 - Verify the final response is informative and well-reasoned.
+# Internal Monitoring Dashboard Tasks
+
+## Phase 1: Setup & Infrastructure
+
+### Task DB-1.1: Initial Setup and Basic Server
+**File**: `/stats/app.js`
+**Dependencies**: None
+**Description**: Initialize the `/stats` directory and create the basic Node.js HTTP server.
+**Acceptance Criteria**:
+- Directory `/stats` exists.
+- File `/stats/app.js` created.
+- Basic `http.createServer` implementation listening on port 3001.
+- Responds with "Hello Dashboard" for all requests.
+
+---
+
+## Phase 2: Data Extraction
+
+### Task DB-2.1: SQLite and Log Data Extraction
+**File**: `/stats/app.js`
+**Dependencies**: DB-1.1
+**Description**: Implement the logic to extract data from the SQLite databases and the NDJSON log file.
+**Acceptance Criteria**:
+- Implements `getTaskStats()`, `getRagStats()`, `getCronStats()`.
+- Implements `getLatestLogs(n)` reading from `logs/events.log`.
+- Handles missing files gracefully.
+
+---
+
+## Phase 3: Visualization Engine
+
+### Task DB-3.1: SVG Visualization Engine
+**File**: `/stats/app.js`
+**Dependencies**: DB-1.1
+**Description**: Implement helper functions to generate SVG chart strings from data arrays.
+**Acceptance Criteria**:
+- Functions for Bar, Line, and Donut charts.
+- Returns SVG strings directly.
+- No external libraries used.
+
+---
+
+## Phase 4: UI and Assembly
+
+### Task DB-4.1: UI Design and Theming
+**File**: `/stats/app.js`
+**Dependencies**: DB-1.1
+**Description**: Implement the CSS design system and base HTML template for the dashboard.
+**Acceptance Criteria**:
+- Premium Dark-Mode aesthetics.
+- Responsive grid layout.
+
+### Task DB-4.2: Final Assembly and Integration
+**File**: `/stats/app.js`
+**Dependencies**: DB-2.1, DB-3.1, DB-4.1
+**Description**: Combine the data layer, visualization engine, and UI theme into the final request handler.
+**Acceptance Criteria**:
+- Dynamic on-load HTML generation.
+- Full dashboard view with metrics, charts, and table.
+
+---
+
+## Phase 5: Verification
+
+### Task DB-5.1: Verification and Polish
+**File**: `/stats/app.js`
+**Dependencies**: DB-4.2
+**Description**: Final polish, bug fixes, and manual verification of all features.
+**Acceptance Criteria**:
+- Functioning Refresh button.
+- Clean, performant code.
+- Verification against actual DB data.

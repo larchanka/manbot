@@ -2,13 +2,59 @@
 
 ## To Do
 
+### DB-01 Initial Setup and Basic Server
+  - tags: [todo, infra]
+  - defaultExpanded: false
+    ```md
+    Initialize the /stats directory and create the basic Node.js HTTP server.
+    
+    Source: DB-01_INITIAL_SETUP.md
+    ```
 
+### DB-02 SQLite and Log Data Extraction
+  - tags: [todo, data]
+  - defaultExpanded: false
+    ```md
+    Implement the logic to extract data from the SQLite databases and the NDJSON log file.
+    
+    Source: DB-02_DATA_LAYER.md
+    ```
 
+### DB-03 SVG Visualization Engine
+  - tags: [todo, ui]
+  - defaultExpanded: false
+    ```md
+    Implement helper functions to generate SVG chart strings from data arrays.
+    
+    Source: DB-03_SVG_ENGINE.md
+    ```
 
+### DB-04 UI Design and Theming
+  - tags: [todo, ui]
+  - defaultExpanded: false
+    ```md
+    Implement the CSS design system and base HTML template for the dashboard.
+    
+    Source: DB-04_UI_THEMING.md
+    ```
 
+### DB-05 Final Assembly and Integration
+  - tags: [todo, ui]
+  - defaultExpanded: false
+    ```md
+    Combine the data layer, visualization engine, and UI theme into the final request handler.
+    
+    Source: DB-05_ASSEMBLY.md
+    ```
 
-
-
+### DB-06 Verification and Polish
+  - tags: [todo, qa]
+  - defaultExpanded: false
+    ```md
+    Final polish, bug fixes, and manual verification of all features.
+    
+    Source: DB-06_VERIFICATION.md
+    ```
 
 ## In Progress
 
