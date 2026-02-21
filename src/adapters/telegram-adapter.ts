@@ -8,10 +8,15 @@
 
 import TelegramBot from "node-telegram-bot-api";
 import { randomUUID } from "node:crypto";
+import { mkdir, createWriteStream } from "node:fs";
+import { pipeline } from "node:stream/promises";
+import { join } from "node:path";
 import { PROTOCOL_VERSION } from "../shared/protocol.js";
 import type { Envelope } from "../shared/protocol.js";
 import { BaseProcess } from "../shared/base-process.js";
 import { getConfig } from "../shared/config.js";
+import { classifyMimeType } from "../shared/file-protocol.js";
+import type { FileIngestPayload, FileDescriptor } from "../shared/file-protocol.js";
 
 const PROCESS_NAME = "telegram-adapter";
 
@@ -151,7 +156,7 @@ function main(): void {
     }
   }
 
-  // Incoming Telegram message → auth, commands, or task creation
+  // Incoming Telegram message → auth, commands, file attachments, or task creation
   bot.on("message", (msg) => {
     const chatId = msg.chat?.id;
     const from = msg.from;
@@ -163,6 +168,140 @@ function main(): void {
       sendToUser(chatId, "You are not authorized to use this bot.");
       return;
     }
+
+    // --- FP-09: File attachment detection ---
+    const hasDocument = !!msg.document;
+    const hasPhoto = !!msg.photo?.length;
+    const hasVoice = !!msg.voice;
+    const hasAudio = !!msg.audio;
+    const hasVideo = !!(msg.video || msg.video_note);
+
+    if (hasDocument || hasPhoto || hasVoice || hasAudio || hasVideo) {
+      // Handle file upload asynchronously so we don't block the event loop
+      ; (async () => {
+        // Video: unsupported — notify and bail
+        if (hasVideo) {
+          await sendToUser(chatId, "⚠️ Video files are not supported yet.");
+          return;
+        }
+
+        const cfg = getConfig();
+        const uploadDir = cfg.fileProcessor.uploadDir;
+        const maxSize = cfg.fileProcessor.maxFileSizeBytes;
+        const conversationId = getOrCreateConversationId(chatId);
+        const caption = msg.caption?.trim();
+
+        // Build a list of TelegramFile descriptors (one per attachment)
+        type TgFileInfo = { fileId: string; fileName: string; mimeType: string; sizeBytes: number };
+        const tgFiles: TgFileInfo[] = [];
+
+        if (hasVoice && msg.voice) {
+          const v = msg.voice;
+          tgFiles.push({
+            fileId: v.file_id,
+            fileName: `voice_${v.file_id}.ogg`,
+            mimeType: v.mime_type ?? "audio/ogg",
+            sizeBytes: v.file_size ?? 0,
+          });
+        } else if (hasAudio && msg.audio) {
+          const a = msg.audio;
+          tgFiles.push({
+            fileId: a.file_id,
+            fileName: `audio_${a.file_id}.mp3`,
+            mimeType: a.mime_type ?? "audio/mpeg",
+            sizeBytes: a.file_size ?? 0,
+          });
+        } else if (hasPhoto && msg.photo) {
+          // Telegram sends multiple resolutions; pick the highest
+          const best = msg.photo[msg.photo.length - 1]!;
+          tgFiles.push({
+            fileId: best.file_id,
+            fileName: `photo_${best.file_id}.jpg`,
+            mimeType: "image/jpeg",
+            sizeBytes: best.file_size ?? 0,
+          });
+        } else if (hasDocument && msg.document) {
+          const d = msg.document;
+          tgFiles.push({
+            fileId: d.file_id,
+            fileName: d.file_name ?? `document_${d.file_id}`,
+            mimeType: d.mime_type ?? "application/octet-stream",
+            sizeBytes: d.file_size ?? 0,
+          });
+        }
+
+        // Download each file and build FileDescriptor list
+        const fileDescriptors: FileDescriptor[] = [];
+
+        for (const tgFile of tgFiles) {
+          // Size check
+          if (tgFile.sizeBytes > maxSize) {
+            await sendToUser(
+              chatId,
+              `⚠️ "${tgFile.fileName}" is too large (${Math.round(tgFile.sizeBytes / 1_048_576)} MB). Max is ${Math.round(maxSize / 1_048_576)} MB. Skipping.`,
+            );
+            continue;
+          }
+
+          try {
+            // Get download path from Telegram
+            const fileInfo = await bot.getFile(tgFile.fileId);
+            const filePath = fileInfo.file_path;
+            if (!filePath) continue;
+
+            // Determine local save path
+            const convSubdir = join(uploadDir, conversationId);
+            await new Promise<void>((res, rej) =>
+              mkdir(convSubdir, { recursive: true }, (err) => (err ? rej(err) : res())),
+            );
+            const localFileName = `${tgFile.fileId}-${tgFile.fileName.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+            const localPath = join(convSubdir, localFileName);
+
+            // Download the file
+            const downloadUrl = `https://api.telegram.org/file/bot${cfg.telegram.botToken}/${filePath}`;
+            const resp = await fetch(downloadUrl);
+            if (!resp.ok || !resp.body) {
+              throw new Error(`HTTP ${resp.status} downloading ${tgFile.fileName}`);
+            }
+            await pipeline(
+              resp.body as unknown as NodeJS.ReadableStream,
+              createWriteStream(localPath),
+            );
+
+            fileDescriptors.push({
+              fileId: tgFile.fileId,
+              fileName: tgFile.fileName,
+              mimeType: tgFile.mimeType,
+              sizeBytes: tgFile.sizeBytes,
+              localPath,
+              category: classifyMimeType(tgFile.mimeType),
+            });
+          } catch (err) {
+            await sendToUser(
+              chatId,
+              `⚠️ Failed to download "${tgFile.fileName}": ${err instanceof Error ? err.message : String(err)}`,
+            );
+          }
+        }
+
+        if (fileDescriptors.length === 0 && !caption) return;
+
+        // Emit file.ingest to core
+        const ingestPayload: FileIngestPayload = {
+          chatId,
+          userId: from.id,
+          conversationId,
+          messageId: msg.message_id ?? 0,
+          files: fileDescriptors,
+          ...(caption && { caption }),
+        };
+        base.send(createEnvelope<FileIngestPayload>("file.ingest", "core", ingestPayload));
+      })().catch((err) => {
+        console.error("[telegram-adapter] file handling error:", err);
+      });
+      return; // Don't fall through to text handling
+    }
+    // --- end file handling ---
 
     if (!text) {
       sendToUser(chatId, "Please send a text message or use /help.");

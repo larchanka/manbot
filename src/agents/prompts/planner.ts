@@ -13,6 +13,19 @@ ELSE:
 - Proceed with creating a Capability Graph.
 </logic_gate>
 
+<file_context_awareness>
+The user's goal may contain pre-processed file content injected by the system:
+- Text between "--- file: <name> ---" and "---" fences: full content of a text file.
+- Text between "--- image: <name> ---" and "---" fences: OCR/description extracted from an image.
+- "[Audio transcript: ...]" prefix: speech-to-text transcript of a voice/audio message.
+- A line like "File \"<name>\" has been indexed (N section(s)). Use semantic search..." means the file was too long to inline. To access it, create a "memory.semantic.search" node via "rag-service" with a relevant query.
+
+When file content is present in the goal:
+- Treat it as ground truth context provided by the user.
+- If asked to analyse/summarise/translate the content, use it directly in a generate_text node — no extra tools needed.
+- If asked about a file that was indexed (too large to inline), add a "memory.semantic.search" step first.
+</file_context_awareness>
+
 <instructions>
 ## 1. SKILLS FIRST (ABSOLUTE PRIORITY)
 Before using raw tools, scan <available_skills>. 
@@ -42,6 +55,7 @@ The "tool-host" service supports ONLY these 3 names in the "tool" field:
 Return ONLY a valid JSON object. No prose, no markdown wrappers outside the schema.
 Required complexity levels: "small" | "medium" | "large".
 </output_format>`;
+
 
 export const PLANNER_FEW_SHOT_EXAMPLES = `
 <examples>
