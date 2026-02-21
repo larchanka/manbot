@@ -144,6 +144,27 @@ const CSS = `
     gap: 30px;
   }
 
+  .models-section {
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+  }
+
+  .model-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 12px;
+    background: var(--subtle);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    font-size: 13px;
+    margin-right: 12px;
+    margin-bottom: 12px;
+  }
+
+  .model-pill b { color: var(--primary); }
+
   .chart-container {
     height: 240px;
     display: flex;
@@ -333,7 +354,24 @@ export class DashboardService extends BaseProcess {
     }
 
     private getStats() {
-        const stats: any = { tasks: {}, complexity: { small: 0, medium: 0, high: 0, unknown: 0 }, rag: 0, cron: 0, logs: [], maxNodes: 0 };
+        const stats: any = {
+            tasks: {},
+            complexity: { small: 0, medium: 0, high: 0, unknown: 0 },
+            rag: 0,
+            cron: 0,
+            logs: [],
+            maxNodes: 0,
+            timing: { first: '-', last: '-', avg: '-' },
+            models: {}
+        };
+        try {
+            const configPath = path.join(ROOT_DIR, 'config.json');
+            if (fs.existsSync(configPath)) {
+                const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+                stats.models = config.modelRouter || {};
+            }
+        } catch (e) { }
+
         try {
             const tdb = new Database(path.join(ROOT_DIR, 'data/tasks.sqlite'), { readonly: true });
             tdb.prepare('SELECT status, count(*) as c FROM tasks GROUP BY status').all().forEach((r: any) => stats.tasks[r.status] = r.c);
@@ -343,6 +381,18 @@ export class DashboardService extends BaseProcess {
             });
             const peak = tdb.prepare('SELECT MAX(cnt) as m FROM (SELECT count(*) as cnt FROM task_nodes GROUP BY task_id)').get() as { m: number } | undefined;
             stats.maxNodes = peak ? peak.m : 0;
+
+            const times = tdb.prepare('SELECT MIN(created_at) as first, MAX(updated_at) as last FROM tasks').get() as { first: number, last: number } | undefined;
+            if (times?.first) {
+                stats.timing.first = new Date(times.first).toLocaleDateString() + ' ' + new Date(times.first).toLocaleTimeString();
+                stats.timing.last = new Date(times.last).toLocaleDateString() + ' ' + new Date(times.last).toLocaleTimeString();
+            }
+
+            const avg = tdb.prepare("SELECT AVG(updated_at - created_at) as a FROM tasks WHERE status = 'completed' AND updated_at > created_at").get() as { a: number } | undefined;
+            if (avg?.a) {
+                const sec = Math.round(avg.a / 1000);
+                stats.timing.avg = sec > 60 ? `${Math.floor(sec / 60)}m ${sec % 60}s` : `${sec}s`;
+            }
 
             stats.pendingTasks = tdb.prepare('SELECT id, goal, status, updated_at FROM tasks WHERE status IN (?, ?) ORDER BY updated_at DESC')
                 .all('pending', 'running');
@@ -437,6 +487,21 @@ export class DashboardService extends BaseProcess {
             </div>
         </div>
 
+        <div class="grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 60px;">
+            <div class="card">
+                <h2>First Task</h2>
+                <div class="metric-value" id="time-first" style="font-size: 20px;">-</div>
+            </div>
+            <div class="card">
+                <h2>Last Active</h2>
+                <div class="metric-value" id="time-last" style="font-size: 20px;">-</div>
+            </div>
+            <div class="card">
+                <h2>Avg Duration</h2>
+                <div class="metric-value" id="time-avg" style="font-size: 20px;">-</div>
+            </div>
+        </div>
+
         <div class="chart-section">
             <h3>Analytics</h3>
             <div class="charts-grid">
@@ -483,6 +548,11 @@ export class DashboardService extends BaseProcess {
                 </table>
             </div>
         </div>
+
+        <div class="models-section" id="model-mapping">
+            <h3>Mission Control: Model Routing</h3>
+            <div id="model-list"></div>
+        </div>
     </div>
 
     <script>
@@ -507,6 +577,16 @@ export class DashboardService extends BaseProcess {
                 document.getElementById("rag-count").textContent = d.rag;
                 document.getElementById("cron-count").textContent = d.cron;
                 document.getElementById("max-nodes").textContent = d.maxNodes || 0;
+                
+                document.getElementById("time-first").textContent = d.timing.first;
+                document.getElementById("time-last").textContent = d.timing.last;
+                document.getElementById("time-avg").textContent = d.timing.avg;
+
+                const modelsSection = document.getElementById("model-list");
+                modelsSection.innerHTML = Object.entries(d.models)
+                    .filter(([k]) => ['small', 'medium', 'large'].includes(k))
+                    .map(([k, v]) => \`<div class="model-pill"><span>\${k.toUpperCase()}:</span><b>\${v}</b></div>\`)
+                    .join("");
                 
                 document.getElementById("c1").innerHTML = d.charts.taskDonut;
                 document.getElementById("c2").innerHTML = d.charts.compBar;
