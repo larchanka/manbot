@@ -47,5 +47,17 @@
     "mediumModelKeepAlive": "30m",
     "largeModelKeepAlive": "60m",
     "warmupPrompt": "hello"
+  },
+  "whisper": {
+    "modelName": "base",
+    "language": "auto",
+    "modelDir": "data/whisper-models"
+  },
+  "fileProcessor": {
+    "uploadDir": "data/uploads",
+    "maxFileSizeBytes": 52428800,
+    "textMaxInlineChars": 8000,
+    "ocrModel": "glm-ocr:q8_0",
+    "ocrEnabled": true
   }
 }
