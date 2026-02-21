@@ -195,6 +195,7 @@ class FileProcessorService extends BaseProcess {
 
         const result = await this.ollama.chatWithImage(messages, ocrModel, req.localPath);
         const content = result.message?.content?.trim() ?? "";
+        process.stderr.write(`[file-processor] [DEBUG] OCR Result for ${req.fileName} (length: ${content.length}): ${content.substring(0, 100).replace(/\n/g, " ")}...\n`);
 
         return {
             fileId: req.fileId,

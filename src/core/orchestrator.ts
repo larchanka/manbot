@@ -515,7 +515,8 @@ export class Orchestrator {
     } else if (inlineContext && caption) {
       enrichedGoal = `${caption}\n\n${inlineContext}`;
     } else if (inlineContext) {
-      enrichedGoal = `${inlineContext}`;
+      // Default intent if user sent files without a caption
+      enrichedGoal = `Analyze the provided file(s) and provide a concise summary or extraction of the contents:\n\n${inlineContext}`;
     } else if (caption) {
       enrichedGoal = caption;
     } else {
