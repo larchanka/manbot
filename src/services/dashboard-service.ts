@@ -221,6 +221,10 @@ const CSS = `
     gap: 4px;
   }
 
+  .tag.complexity-small { background: var(--subtle); color: var(--text-muted); border: 1px solid var(--border); }
+  .tag.complexity-medium { background: rgba(35, 131, 226, 0.1); color: var(--primary); }
+  .tag.complexity-large { background: rgba(147, 51, 234, 0.1); color: #9333ea; }
+
   .pulse {
     width: 6px;
     height: 6px;
@@ -415,7 +419,7 @@ export class DashboardService extends BaseProcess {
                 stats.timing.avg = sec > 60 ? `${Math.floor(sec / 60)}m ${sec % 60}s` : `${sec}s`;
             }
 
-            stats.pendingTasks = tdb.prepare('SELECT id, goal, status, updated_at FROM tasks WHERE status IN (?, ?) ORDER BY updated_at DESC')
+            stats.pendingTasks = tdb.prepare('SELECT id, goal, status, complexity, updated_at FROM tasks WHERE status IN (?, ?) ORDER BY updated_at DESC')
                 .all('pending', 'running');
 
             tdb.close();
@@ -545,6 +549,7 @@ export class DashboardService extends BaseProcess {
                         <tr>
                             <th style="padding-left: 20px;">UPDATED</th>
                             <th>STATUS</th>
+                            <th>COMPLEXITY</th>
                             <th>GOAL</th>
                             <th style="padding-right: 20px; text-align: right;">ACTION</th>
                         </tr>
@@ -624,6 +629,7 @@ export class DashboardService extends BaseProcess {
                         return \`<tr>
                             <td style="padding-left: 20px; color: var(--text-muted);">\${new Date(t.updated_at).toLocaleTimeString()}</td>
                             <td><span class="tag \${tc}">\${indicator}\${t.status.toUpperCase()}</span></td>
+                            <td><span class="tag complexity-\${t.complexity || 'unknown'}">\${(t.complexity || 'unknown').toUpperCase()}</span></td>
                             <td style="font-weight: 500;">\${t.goal}</td>
                             <td style="padding-right: 20px; text-align: right;">
                                 <button onclick="failTask('\${t.id}')" style="cursor: pointer; font-size: 11px; padding: 2px 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--error);">FAIL</button>

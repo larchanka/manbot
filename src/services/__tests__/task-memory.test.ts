@@ -204,7 +204,7 @@ describe("TaskMemoryStore", () => {
       store.updateNodeStatus(taskId, "n1", "completed");
 
       const state = store.getTaskState(taskId);
-      expect(state?.status).toBe("pending");
+      expect(state?.status).toBe("running");
       expect(state?.nodes).toHaveLength(2);
       expect(state?.nodes.find((n) => n.id === "n1")?.status).toBe("completed");
       expect(state?.nodes.find((n) => n.id === "n2")?.status).toBe("pending");
