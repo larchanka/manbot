@@ -115,7 +115,7 @@ Ensure `config.json` has a valid **telegram.botToken** and Ollama is running.
 - **Telegram adapter only**: `npm run start:telegram` or `npm run dev:telegram`
 - **Generator (model-router)**: `npm run start:generator`
 
-![Telegram Screenshot](_images/telegram-chat.png | width=300)
+<img alt="Telegram Screenshot" src="_images/telegram-chat.png" width="300" />
 
 Other services (task-memory, logger, planner, executor, critic-agent, rag-service, tool-host, cron-manager) are normally started by the Orchestrator; run them manually only if you are wiring your own pipeline.
 
