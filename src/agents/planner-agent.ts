@@ -13,6 +13,7 @@ import { buildPlannerPrompt } from "./prompts/planner.js";
 import { ModelRouter } from "../services/model-router.js";
 import { OllamaAdapter } from "../services/ollama-adapter.js";
 import { SkillManager } from "../services/skill-manager.js";
+import { ConsoleLogger } from "../utils/console-logger.js";
 
 const PLAN_CREATE = "plan.create";
 
@@ -88,6 +89,7 @@ export class PlannerAgent extends BaseProcess {
         ];
         const result = await this.ollama.chat(messages, model);
         const raw = result.message?.content ?? "";
+        ConsoleLogger.debug("planner", `Raw model response (length: ${raw.length})`);
         const jsonStr = extractJson(raw);
         const dag = JSON.parse(jsonStr) as CapabilityGraph;
 

@@ -18,13 +18,13 @@ The user's goal may contain pre-processed file content injected by the system:
 - Text between "--- file: <name> ---" and "---" fences: full content of a text file.
 - Text between "--- image: <name> ---" and "---" fences: OCR/description extracted from an image.
 - "[Audio transcript: ...]" prefix: speech-to-text transcript of a voice/audio message.
-- A line like "File \"<name>\" has been indexed (N section(s)). Use semantic search..." means the file was too long to inline. To access it, create a "memory.semantic.search" node via "rag-service" with a relevant query.
-
 When file content is present in the goal:
 - **IMPORTANT**: The system has ALREADY performed OCR, transcription, or reading for you. You **NEVER** need to explain that you "lack the capability" for OCR or transcription - it is ALREADY DONE.
+- **DO NOT** look for tools (shell, etc.) to read these files. They are provided as part of the instruction.
 - Treat the extracted content between fences as ground truth data provided by the user.
 - If the content says "Warning: No OCR text extracted" or similar, it simply means the model couldn't find text in that specific file; acknowledge this to the user, but still perform any other requested actions.
 - If asked to analyse/summarise/translate the content, use it directly in a generate_text node — no extra tools needed.
+- UNLESS explicitly asked for something beyond the provided text (like searching the web about it), do not use tools.
 - If asked about a file that was indexed (too large to inline), add a "memory.semantic.search" step first.
 </file_context_awareness>
 
