@@ -205,30 +205,37 @@ const CSS = `
     transition: background 0.2s;
   }
 
-  tr {
+  tr.log-row {
     cursor: pointer;
     transition: background 0.1s;
   }
 
-  tr:hover {
+  tr.log-row:hover {
     background-color: var(--subtle);
   }
 
-  .log-details {
+  .log-details-row {
     display: none;
+  }
+
+  .log-details-row.open {
+    display: table-row;
+  }
+
+  .log-details-container {
+    padding: 0 20px 20px 20px;
+  }
+
+  .log-details-content {
     font-size: 11px;
     color: var(--text-muted);
-    background: var(--bg);
-    padding: 8px;
+    background: var(--subtle);
+    padding: 12px;
     border-radius: 4px;
-    margin-top: 4px;
     white-space: pre-wrap;
     word-break: break-all;
     border: 1px solid var(--border);
-  }
-
-  .log-details.open {
-    display: block;
+    font-family: monospace;
   }
 
   @media (max-width: 768px) {
@@ -457,14 +464,20 @@ export class DashboardService extends BaseProcess {
                     const mainContent = l.payload?.toolName || l.payload?.nodeId || l.message || "-";
                     const args = l.payload ? JSON.stringify(l.payload, null, 2) : "";
                     
-                    return \`<tr onclick="this.querySelector('.log-details')?.classList.toggle('open')">
+                    return \`<tr class="log-row" onclick="const next = this.nextElementSibling; if(next) next.classList.toggle('open')">
                         <td style="padding-left: 20px; color: var(--text-muted); vertical-align: top; padding-top: 12px;">\${new Date(l.time || Date.now()).toLocaleTimeString()}</td>
                         <td style="vertical-align: top; padding-top: 12px;"><span class="tag \${tc}">\${typeLabel}</span></td>
-                        <td style="padding-right: 20px; color: var(--text-muted); font-family: monospace; font-size: 13px;">
-                          <div style="font-weight: 600; color: var(--text); padding-top: 2px;">\${mainContent}</div>
-                          \${args ? \`<div class="log-details">\${args}</div>\` : ""}
+                        <td style="padding-right: 20px; color: var(--text-muted); font-size: 13px; vertical-align: top; padding-top: 12px;">
+                          <div style="font-weight: 600; color: var(--text);">\${mainContent}</div>
                         </td>
-                    </tr>\`;
+                    </tr>
+                    \${args ? \`<tr class="log-details-row">
+                        <td colspan="3">
+                            <div class="log-details-container">
+                                <div class="log-details-content">\${args}</div>
+                            </div>
+                        </td>
+                    </tr>\` : ""}\`;
                 }).join("");
             });
     </script>
