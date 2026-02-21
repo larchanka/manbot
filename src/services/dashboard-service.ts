@@ -309,6 +309,25 @@ export class DashboardService extends BaseProcess {
             return;
         }
 
+        if (req.url?.startsWith('/api/fail-task')) {
+            const url = new URL(req.url, `http://${req.headers.host}`);
+            const taskId = url.searchParams.get('id');
+            if (taskId) {
+                try {
+                    const tdb = new Database(path.join(ROOT_DIR, 'data/tasks.sqlite'));
+                    tdb.prepare("UPDATE tasks SET status = 'failed', updated_at = ?, metadata = ? WHERE id = ?").run(Date.now(), JSON.stringify({ reason: 'Manually failed via dashboard' }), taskId);
+                    tdb.close();
+                    res.setHeader('Content-Type', 'application/json');
+                    res.end(JSON.stringify({ status: 'success' }));
+                    return;
+                } catch (e) {
+                    res.statusCode = 500;
+                    res.end(JSON.stringify({ status: 'error', message: String(e) }));
+                    return;
+                }
+            }
+        }
+
         res.statusCode = 404;
         res.end('Not Found');
     }
@@ -325,9 +344,8 @@ export class DashboardService extends BaseProcess {
             const peak = tdb.prepare('SELECT MAX(cnt) as m FROM (SELECT count(*) as cnt FROM task_nodes GROUP BY task_id)').get() as { m: number } | undefined;
             stats.maxNodes = peak ? peak.m : 0;
 
-            const twoHoursAgo = Date.now() - (2 * 60 * 60 * 1000);
-            stats.pendingTasks = tdb.prepare('SELECT id, goal, status, updated_at FROM tasks WHERE status IN (?, ?) AND updated_at > ? ORDER BY updated_at DESC')
-                .all('pending', 'running', twoHoursAgo);
+            stats.pendingTasks = tdb.prepare('SELECT id, goal, status, updated_at FROM tasks WHERE status IN (?, ?) ORDER BY updated_at DESC')
+                .all('pending', 'running');
 
             tdb.close();
         } catch (e) { }
@@ -441,7 +459,8 @@ export class DashboardService extends BaseProcess {
                         <tr>
                             <th style="padding-left: 20px;">UPDATED</th>
                             <th>STATUS</th>
-                            <th style="padding-right: 20px;">GOAL</th>
+                            <th>GOAL</th>
+                            <th style="padding-right: 20px; text-align: right;">ACTION</th>
                         </tr>
                     </thead>
                     <tbody id="qt"></tbody>
@@ -467,6 +486,19 @@ export class DashboardService extends BaseProcess {
     </div>
 
     <script>
+        function failTask(id) {
+            if (!confirm("Mark this task as failed?")) return;
+            fetch(\`/api/fail-task?id=\${id}\`)
+                .then(r => r.json())
+                .then(d => {
+                    if (d.status === 'success') {
+                        location.reload();
+                    } else {
+                        alert("Error: " + d.message);
+                    }
+                });
+        }
+
         fetch("/api/stats")
             .then(r => r.json())
             .then(d => {
@@ -489,7 +521,10 @@ export class DashboardService extends BaseProcess {
                         return \`<tr>
                             <td style="padding-left: 20px; color: var(--text-muted);">\${new Date(t.updated_at).toLocaleTimeString()}</td>
                             <td><span class="tag \${tc}">\${t.status.toUpperCase()}</span></td>
-                            <td style="padding-right: 20px; font-weight: 500;">\${t.goal}</td>
+                            <td style="font-weight: 500;">\${t.goal}</td>
+                            <td style="padding-right: 20px; text-align: right;">
+                                <button onclick="failTask('\${t.id}')" style="cursor: pointer; font-size: 11px; padding: 2px 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--error);">FAIL</button>
+                            </td>
                         </tr>\`;
                     }).join("");
                 } else {
