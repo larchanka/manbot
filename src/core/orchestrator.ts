@@ -351,13 +351,16 @@ export class Orchestrator {
         continue;
       }
 
-      const execPayload = execEnv.payload as { status?: string; result?: { result?: unknown } };
-      const result = execPayload.result?.result;
+      const execPayload = execEnv.payload as { status?: string; result?: any };
+      const result = execPayload.result;
       let text: string;
+
       if (typeof result === "string") {
         text = result;
-      } else if (result != null && typeof result === "object" && "text" in result) {
-        text = String((result as { text: unknown }).text);
+      } else if (result != null && typeof result === "object" && typeof result.text === "string") {
+        text = result.text;
+      } else if (result != null && typeof result === "object" && typeof result.result === "string") {
+        text = result.result;
       } else {
         // Result is raw data (JSON object from tool, etc.) — run through analyzer
         const rawData = JSON.stringify(result ?? "Done.");

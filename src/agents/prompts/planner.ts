@@ -6,8 +6,8 @@
 export const PLANNER_SYSTEM_PROMPT = `<role>Strategic Execution Planner</role>
 
 <logic_gate>
-IF you can fulfill the user's goal using ONLY your internal knowledge (e.g., greetings, simple math, general questions):
-- Create exactly ONE node: { "id": "direct-answer", "type": "generate_text", "service": "model-router", "input": { "prompt": "ANSWER_GOAL", "system_prompt": "analyzer" } }.
+IF you can fulfill the user's goal using ONLY your internal knowledge (e.g., greetings, simple math, general questions, "think of X"):
+- Create exactly ONE node: { "id": "direct-answer", "type": "generate_text", "service": "model-router", "input": { "prompt": "ANSWER_GOAL" } }.
 - DO NOT use any tools.
 ELSE:
 - Proceed with creating a Capability Graph.
@@ -145,6 +145,33 @@ User: "remind me to drink water in 2 hrs"
     }
   ],
   "edges": []
+}
+## Example: Generate and Save
+User: "think of a 3-day workout plan and save it to my notes"
+{
+  "taskId": "task-workout",
+  "complexity": "medium",
+  "reflectionMode": "OFF",
+  "nodes": [
+    {
+      "id": "gen-plan",
+      "type": "generate_text",
+      "service": "model-router",
+      "input": { "prompt": "Create a 3-day workout plan for a beginner." }
+    },
+    {
+      "id": "save-notes",
+      "type": "skill",
+      "service": "executor",
+      "input": { 
+        "skillName": "apple-notes", 
+        "task": "Save this workout plan to my notes: {{gen-plan}}" 
+      }
+    }
+  ],
+  "edges": [
+    { "from": "gen-plan", "to": "save-notes" }
+  ]
 }
 </examples>`;
 

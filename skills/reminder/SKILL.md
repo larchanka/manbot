@@ -13,7 +13,7 @@ Set up one-time or recurring reminders for the user.
 **DON'T use this skill when:**
 - The user is asking to list current reminders (use core /reminders command instead).
 - The user is asking to cancel a reminder.
-- The user is asking to create a note (use apple-notes skill).
+- The user is asking to work with notes (use apple-notes skill).
 
 ## Instructions
 

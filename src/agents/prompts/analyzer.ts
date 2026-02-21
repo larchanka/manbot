@@ -37,19 +37,8 @@ No raw JSON/HTML unless requested.
  * Builds the analyzer prompt.
  */
 export function buildAnalyzerUserPrompt(goal: string, context: string): string {
-    return `<analysis_task>
-<user_goal>
-${goal}
-</user_goal>
-
-<raw_data_context>
-${context}
-</raw_data_context>
-
-<instruction>
-Synthesize the context to fulfill the goal. 
-Apply Telegram MarkdownV2 formatting (NO headers, NO tables).
-</instruction>
-
-<final_response>`;
+    if (!context || !context.trim()) {
+        return `Respond to the user goal directly:\n\n${goal}`;
+    }
+    return `User Goal: ${goal}\n\nData Context:\n${context}\n\nTask: Synthesize the data to answer the goal. Use Telegram MarkdownV2 (no headers/tables).`;
 }
