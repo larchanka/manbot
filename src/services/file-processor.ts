@@ -56,7 +56,9 @@ class FileProcessorService extends BaseProcess {
             let processingError: string | undefined;
 
             try {
+                process.stderr.write(`[file-processor] [INFO] Routing ${req.fileName} (category: ${req.category})\n`);
                 processedFile = await this.route(req);
+
                 // Hard limit: Content should not exceed 64KB per file to prevent overwhelming the planner
                 if (processedFile.content.length > 65536) {
                     processedFile.content = processedFile.content.slice(0, 65536) + "\n\n[...content truncated due to excessive length]";
@@ -81,6 +83,7 @@ class FileProcessorService extends BaseProcess {
                 }
             } catch (err) {
                 const msg = err instanceof Error ? err.message : String(err);
+                process.stderr.write(`[file-processor] [ERROR] Failed to process ${req.fileName}: ${msg}\n`);
                 processingError = msg;
                 processedFile = {
                     fileId: req.fileId,
