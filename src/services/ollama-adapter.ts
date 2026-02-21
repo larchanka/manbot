@@ -114,6 +114,46 @@ export class OllamaAdapter {
   }
 
   /**
+   * Generate with an image attachment.
+   */
+  async generateWithImage(
+    prompt: string,
+    model: string,
+    imagePath: string,
+    opts: GenerateOptions = {},
+  ): Promise<GenerateResult> {
+    const imageBytes = await readFile(imagePath);
+    const base64Image = imageBytes.toString("base64");
+
+    const timeoutMs = opts.timeoutMs ?? this.timeoutMs;
+    const url = `${this.baseUrl}/api/generate`;
+    const body: Record<string, unknown> = {
+      model,
+      prompt,
+      images: [base64Image],
+      stream: false,
+    };
+    if (opts.keep_alive !== undefined) body.keep_alive = opts.keep_alive;
+    if (opts.options !== undefined) body.options = opts.options;
+
+    const res = await this.fetchWithRetry(url, body, timeoutMs);
+    const data = (await res.json()) as {
+      response?: string;
+      done?: boolean;
+      prompt_eval_count?: number;
+      eval_count?: number;
+    };
+    const result: GenerateResult = {
+      text: data.response ?? "",
+      done: data.done ?? true,
+    };
+    if (data.prompt_eval_count !== undefined) result.prompt_eval_count = data.prompt_eval_count;
+    if (data.eval_count !== undefined) result.eval_count = data.eval_count;
+    return result;
+  }
+
+
+  /**
    * Chat with messages. Returns full response (stream: false).
    */
   async chat(
