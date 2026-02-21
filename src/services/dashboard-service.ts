@@ -205,15 +205,20 @@ const CSS = `
     transition: background 0.2s;
   }
 
-  .btn-refresh:hover {
-    background: var(--subtle);
+  tr {
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+
+  tr:hover {
+    background-color: var(--subtle);
   }
 
   .log-details {
     display: none;
     font-size: 11px;
     color: var(--text-muted);
-    background: var(--subtle);
+    background: var(--bg);
     padding: 8px;
     border-radius: 4px;
     margin-top: 4px;
@@ -222,7 +227,7 @@ const CSS = `
     border: 1px solid var(--border);
   }
 
-  tr:hover .log-details {
+  .log-details.open {
     display: block;
   }
 
@@ -452,7 +457,7 @@ export class DashboardService extends BaseProcess {
                     const mainContent = l.payload?.toolName || l.payload?.nodeId || l.message || "-";
                     const args = l.payload ? JSON.stringify(l.payload, null, 2) : "";
                     
-                    return \`<tr>
+                    return \`<tr onclick="this.querySelector('.log-details')?.classList.toggle('open')">
                         <td style="padding-left: 20px; color: var(--text-muted); vertical-align: top; padding-top: 12px;">\${new Date(l.time || Date.now()).toLocaleTimeString()}</td>
                         <td style="vertical-align: top; padding-top: 12px;"><span class="tag \${tc}">\${typeLabel}</span></td>
                         <td style="padding-right: 20px; color: var(--text-muted); font-family: monospace; font-size: 13px;">
