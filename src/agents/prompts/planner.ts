@@ -241,10 +241,11 @@ ${options.skills.map(s => `- **${s.name}**: ${s.description}`).join("\n")}
 </skill_node_template>`;
   }
 
+  const now = new Date().toISOString().split('T')[0];
   const base = `${PLANNER_SYSTEM_PROMPT}
 ${skillsSection}
 ${PLANNER_FEW_SHOT_EXAMPLES}
-
+<current_date>${now}</current_date>
 <user_context>
 ${options?.conversationHistory ? `History Context: ${options.conversationHistory}` : ""}
 User Goal: ${userMessage}

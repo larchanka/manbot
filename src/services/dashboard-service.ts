@@ -339,8 +339,11 @@ export class DashboardService extends BaseProcess {
   }
 
   private handleRequest(req: http.IncomingMessage, res: http.ServerResponse) {
-    if (req.url === '/api/stats') {
-      const s = this.getStats();
+    const url = new URL(req.url || '/', `http://${req.headers.host}`);
+
+    if (url.pathname === '/api/stats') {
+      const date = url.searchParams.get('date') || undefined;
+      const s = this.getStats(date);
       res.setHeader('Content-Type', 'application/json');
       res.end(JSON.stringify({
         ...s,
@@ -352,14 +355,35 @@ export class DashboardService extends BaseProcess {
       return;
     }
 
-    if (req.url === '/') {
+    if (url.pathname === '/api/log-files') {
+      try {
+        const logDir = path.join(ROOT_DIR, 'logs');
+        if (!fs.existsSync(logDir)) {
+          res.setHeader('Content-Type', 'application/json');
+          res.end(JSON.stringify([]));
+          return;
+        }
+        const files = fs.readdirSync(logDir)
+          .filter(f => f.startsWith('events-') && f.endsWith('.log'))
+          .map(f => f.replace('events-', '').replace('.log', ''))
+          .sort((a, b) => b.localeCompare(a)); // Newest first
+
+        res.setHeader('Content-Type', 'application/json');
+        res.end(JSON.stringify(files));
+      } catch (e) {
+        res.statusCode = 500;
+        res.end(JSON.stringify({ error: String(e) }));
+      }
+      return;
+    }
+
+    if (url.pathname === '/') {
       res.setHeader('Content-Type', 'text/html');
       res.end(this.getHTML());
       return;
     }
 
-    if (req.url?.startsWith('/api/fail-task')) {
-      const url = new URL(req.url, `http://${req.headers.host}`);
+    if (url.pathname.startsWith('/api/fail-task')) {
       const taskId = url.searchParams.get('id');
       if (taskId) {
         try {
@@ -381,7 +405,7 @@ export class DashboardService extends BaseProcess {
     res.end('Not Found');
   }
 
-  private getStats() {
+  private getStats(date?: string) {
     const stats: any = {
       tasks: {},
       complexity: { small: 0, medium: 0, large: 0, unknown: 0 },
@@ -412,8 +436,12 @@ export class DashboardService extends BaseProcess {
 
       const times = tdb.prepare('SELECT MIN(created_at) as first, MAX(updated_at) as last FROM tasks').get() as { first: number, last: number } | undefined;
       if (times?.first) {
-        stats.timing.first = new Date(times.first).toLocaleDateString() + ' ' + new Date(times.first).toLocaleTimeString();
-        stats.timing.last = new Date(times.last).toLocaleDateString() + ' ' + new Date(times.last).toLocaleTimeString();
+        const fmt = (d: number) => {
+          const date = new Date(d);
+          return `${date.getDate()} ${date.toLocaleString('en-US', { month: 'short' })}, ${date.getFullYear()} ${date.toLocaleTimeString('en-GB')}`;
+        };
+        stats.timing.first = fmt(times.first);
+        stats.timing.last = fmt(times.last);
       }
 
       const avg = tdb.prepare("SELECT AVG(updated_at - created_at) as a FROM tasks WHERE status = 'completed' AND updated_at > created_at").get() as { a: number } | undefined;
@@ -440,9 +468,10 @@ export class DashboardService extends BaseProcess {
       cdb.close();
     } catch (e) { }
     try {
-      const logPath = path.join(ROOT_DIR, 'logs/events.log');
+      const dateStr = date || new Date().toISOString().split('T')[0];
+      const logPath = path.join(ROOT_DIR, 'logs', `events-${dateStr}.log`);
       if (fs.existsSync(logPath)) {
-        stats.logs = fs.readFileSync(logPath, 'utf8').trim().split('\n').slice(-20).map(line => {
+        stats.logs = fs.readFileSync(logPath, 'utf8').trim().split('\n').map(line => {
           try { return JSON.parse(line); } catch (e) { return { message: line }; }
         }).reverse();
       }
@@ -493,7 +522,9 @@ export class DashboardService extends BaseProcess {
         <header>
             <h1>🍱 ManBot Dashboard <span class="live-indicator">LIVE</span></h1>
             <p class="description">Real-time internal monitoring for AI-Agent orchestration, memory, and events.</p>
-            <button class="btn-refresh" onclick="location.reload()">Refresh Data</button>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn-refresh" onclick="updateDashboard()">Refresh Data</button>
+            </div>
         </header>
 
         <div class="grid">
@@ -542,6 +573,10 @@ export class DashboardService extends BaseProcess {
                     <div id="c2" class="chart-container"></div>
                 </div>
             </div>
+            
+            <div class="models-section" id="model-mapping" style="border-top: none; margin-top: 20px;">
+                <div id="model-list"></div>
+            </div>
         </div>
 
         <div class="logs-section" id="active-queue-section" style="margin-bottom: 60px; display: none;">
@@ -563,107 +598,158 @@ export class DashboardService extends BaseProcess {
         </div>
 
         <div class="logs-section">
-            <h3>Recent Intelligence Pipeline</h3>
+            <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 20px; padding-bottom: 8px;">
+                <h3 style="margin: 0; flex: 1;">Intelligence Pipeline</h3>
+                <select id="log-date-select" onchange="updateDashboard()" style="width: 140px; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--subtle); color: var(--text); font-family: inherit; font-size: 13px; cursor: pointer; height: 32px;">
+                </select>
+            </div>
             <div class="card" style="padding: 0;">
-                <table id="log-table">
+                <table id="log-table" style="table-layout: fixed;">
                     <thead>
                         <tr>
-                            <th style="padding-left: 20px; width: 100px;">TIME</th>
-                            <th style="width: 120px;">TYPE</th>
-                            <th style="padding-right: 20px;">CONTENT</th>
+                            <th style="padding-left: 20px; width: 25%;">TIME</th>
+                            <th style="width: 25%;">TYPE</th>
+                            <th style="padding-right: 20px; width: 50%;">CONTENT</th>
                         </tr>
                     </thead>
                     <tbody id="lt"></tbody>
                 </table>
             </div>
-        </div>
-
-        <div class="models-section" id="model-mapping">
-            <h3>Mission Control: Model Routing</h3>
-            <div id="model-list"></div>
+            <div style="text-align: center; margin-top: 20px;">
+                <button id="show-more-btn" class="btn-refresh" style="display: none;" onclick="toggleLogs()">Show More</button>
+            </div>
         </div>
     </div>
 
     <script>
+        let allLogs = [];
+        let showingAll = false;
+
+        function fmtDate(d) {
+            const date = new Date(d);
+            return \`\${date.getDate()} \${date.toLocaleString('en-US', { month: 'short' })}, \${date.getFullYear()} \${date.toLocaleTimeString('en-GB')}\`;
+        }
+
         function failTask(id) {
             if (!confirm("Mark this task as failed?")) return;
             fetch(\`/api/fail-task?id=\${id}\`)
                 .then(r => r.json())
                 .then(d => {
                     if (d.status === 'success') {
-                        location.reload();
+                        updateDashboard();
                     } else {
                         alert("Error: " + d.message);
                     }
                 });
         }
 
-        fetch("/api/stats")
+        function toggleLogs() {
+            showingAll = !showingAll;
+            const btn = document.getElementById("show-more-btn");
+            btn.textContent = showingAll ? "Show Less" : "Show More";
+            renderLogs();
+        }
+
+        function renderLogs() {
+            const lt = document.getElementById("lt");
+            const logsToRender = showingAll ? allLogs : allLogs.slice(0, 20);
+            
+            lt.innerHTML = logsToRender.map(l => {
+                const tc = l.type?.includes("failed") ? "error" : (l.type?.includes("completed") ? "success" : "warning");
+                const typeLabel = (l.type || "EVENT").split(".").pop();
+                const mainContent = l.payload?.toolName || l.payload?.nodeId || l.message || "-";
+                const args = l.payload ? JSON.stringify(l.payload, null, 2) : "";
+                
+                return \`<tr class="log-row" onclick="const next = this.nextElementSibling; if(next) next.classList.toggle('open')">
+                    <td style="padding-left: 20px; color: var(--text-muted); vertical-align: top; padding-top: 12px;">\${fmtDate(l.time || l.timestamp || Date.now())}</td>
+                    <td style="vertical-align: top; padding-top: 12px;"><span class="tag \${tc}">\${typeLabel}</span></td>
+                    <td style="padding-right: 20px; color: var(--text-muted); font-size: 13px; vertical-align: top; padding-top: 12px;">
+                      <div style="font-weight: 600; color: var(--text);">\${mainContent}</div>
+                    </td>
+                </tr>
+                \${args ? \`<tr class="log-details-row">
+                    <td colspan="3">
+                        <div class="log-details-container">
+                            <div class="log-details-content">\${args}</div>
+                        </div>
+                    </td>
+                </tr>\` : ""}\`;
+            }).join("");
+
+            document.getElementById("show-more-btn").style.display = allLogs.length > 20 ? "inline-block" : "none";
+        }
+
+        function updateDashboard() {
+            const dateSelect = document.getElementById("log-date-select");
+            const date = dateSelect.value;
+            
+            fetch(\`/api/stats\${date ? '?date=' + date : ''}\`)
+                .then(r => r.json())
+                .then(d => {
+                    const total = Object.values(d.tasks).reduce((a, b) => a + b, 0);
+                    document.getElementById("task-total").textContent = total;
+                    document.getElementById("rag-count").textContent = d.rag;
+                    document.getElementById("cron-count").textContent = d.cron;
+                    document.getElementById("max-nodes").textContent = d.maxNodes || 0;
+                    
+                    document.getElementById("time-first").textContent = d.timing.first;
+                    document.getElementById("time-last").textContent = d.timing.last;
+                    document.getElementById("time-avg").textContent = d.timing.avg;
+
+                    const modelsSection = document.getElementById("model-list");
+                    modelsSection.innerHTML = Object.entries(d.models)
+                        .filter(([k]) => ['small', 'medium', 'large'].includes(k))
+                        .map(([k, v]) => \`<div class="model-pill"><span>\${k.toUpperCase()}:</span><b>\${v}</b></div>\`)
+                        .join("");
+                    
+                    document.getElementById("c1").innerHTML = d.charts.taskDonut;
+                    document.getElementById("c2").innerHTML = d.charts.compBar;
+
+                    // Active Queue
+                    const qt = document.getElementById("qt");
+                    const qs = document.getElementById("active-queue-section");
+                    if (d.pendingTasks && d.pendingTasks.length > 0) {
+                        qs.style.display = "block";
+                        qt.innerHTML = d.pendingTasks.map(t => {
+                            const isRunning = t.status === 'running';
+                            const tc = isRunning ? "running" : "warning";
+                            const indicator = isRunning ? '<div class="pulse"></div>' : '';
+                            return \`<tr>
+                                <td style="padding-left: 20px; color: var(--text-muted); white-space: nowrap;">\${fmtDate(t.updated_at)}</td>
+                                <td style="white-space: nowrap;"><span class="tag \${tc}">\${indicator}\${t.status.toUpperCase()}</span></td>
+                                <td style="white-space: nowrap;"><span class="tag complexity-\${t.complexity || 'unknown'}">\${(t.complexity || 'unknown').toUpperCase()}</span></td>
+                                <td style="font-weight: 500; word-break: break-word;">\${t.goal}</td>
+                                <td style="padding-right: 20px; text-align: right;">
+                                    <button onclick="failTask('\${t.id}')" style="cursor: pointer; font-size: 11px; padding: 2px 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--error);">FAIL</button>
+                                </td>
+                            </tr>\`;
+                        }).join("");
+                    } else {
+                        qs.style.display = "none";
+                    }
+                    
+                    allLogs = d.logs;
+                    renderLogs();
+                });
+        }
+
+        // Initial load
+        fetch("/api/log-files")
             .then(r => r.json())
-            .then(d => {
-                const total = Object.values(d.tasks).reduce((a, b) => a + b, 0);
-                document.getElementById("task-total").textContent = total;
-                document.getElementById("rag-count").textContent = d.rag;
-                document.getElementById("cron-count").textContent = d.cron;
-                document.getElementById("max-nodes").textContent = d.maxNodes || 0;
+            .then(files => {
+                const dateSelect = document.getElementById("log-date-select");
+                const today = new Date().toISOString().split('T')[0];
                 
-                document.getElementById("time-first").textContent = d.timing.first;
-                document.getElementById("time-last").textContent = d.timing.last;
-                document.getElementById("time-avg").textContent = d.timing.avg;
-
-                const modelsSection = document.getElementById("model-list");
-                modelsSection.innerHTML = Object.entries(d.models)
-                    .filter(([k]) => ['small', 'medium', 'large'].includes(k))
-                    .map(([k, v]) => \`<div class="model-pill"><span>\${k.toUpperCase()}:</span><b>\${v}</b></div>\`)
-                    .join("");
-                
-                document.getElementById("c1").innerHTML = d.charts.taskDonut;
-                document.getElementById("c2").innerHTML = d.charts.compBar;
-
-                // Active Queue
-                const qt = document.getElementById("qt");
-                const qs = document.getElementById("active-queue-section");
-                if (d.pendingTasks && d.pendingTasks.length > 0) {
-                    qs.style.display = "block";
-                    qt.innerHTML = d.pendingTasks.map(t => {
-                        const isRunning = t.status === 'running';
-                        const tc = isRunning ? "running" : "warning";
-                        const indicator = isRunning ? '<div class="pulse"></div>' : '';
-                        return \`<tr>
-                            <td style="padding-left: 20px; color: var(--text-muted); white-space: nowrap;">\${new Date(t.updated_at).toLocaleTimeString()}</td>
-                            <td style="white-space: nowrap;"><span class="tag \${tc}">\${indicator}\${t.status.toUpperCase()}</span></td>
-                            <td style="white-space: nowrap;"><span class="tag complexity-\${t.complexity || 'unknown'}">\${(t.complexity || 'unknown').toUpperCase()}</span></td>
-                            <td style="font-weight: 500; word-break: break-word;">\${t.goal}</td>
-                            <td style="padding-right: 20px; text-align: right;">
-                                <button onclick="failTask('\${t.id}')" style="cursor: pointer; font-size: 11px; padding: 2px 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--error);">FAIL</button>
-                            </td>
-                        </tr>\`;
-                    }).join("");
-                } else {
-                    qs.style.display = "none";
+                // Add today if not in files
+                if (!files.includes(today)) {
+                    files.unshift(today);
                 }
                 
-                document.getElementById("lt").innerHTML = d.logs.map(l => {
-                    const tc = l.type?.includes("failed") ? "error" : (l.type?.includes("completed") ? "success" : "warning");
-                    const typeLabel = (l.type || "EVENT").split(".").pop();
-                    const mainContent = l.payload?.toolName || l.payload?.nodeId || l.message || "-";
-                    const args = l.payload ? JSON.stringify(l.payload, null, 2) : "";
-                    
-                    return \`<tr class="log-row" onclick="const next = this.nextElementSibling; if(next) next.classList.toggle('open')">
-                        <td style="padding-left: 20px; color: var(--text-muted); vertical-align: top; padding-top: 12px;">\${new Date(l.time || Date.now()).toLocaleTimeString()}</td>
-                        <td style="vertical-align: top; padding-top: 12px;"><span class="tag \${tc}">\${typeLabel}</span></td>
-                        <td style="padding-right: 20px; color: var(--text-muted); font-size: 13px; vertical-align: top; padding-top: 12px;">
-                          <div style="font-weight: 600; color: var(--text);">\${mainContent}</div>
-                        </td>
-                    </tr>
-                    \${args ? \`<tr class="log-details-row">
-                        <td colspan="3">
-                            <div class="log-details-container">
-                                <div class="log-details-content">\${args}</div>
-                            </div>
-                        </td>
-                    </tr>\` : ""}\`;
-                }).join("");
+                dateSelect.innerHTML = files.map(f => \`<option value="\${f}" \${f === today ? 'selected' : ''}>\${f}</option>\`).join("");
+                updateDashboard();
+                
+                // Auto-refresh every 5 seconds
+                setInterval(updateDashboard, 5000);
             });
     </script>
 </body>

@@ -25,6 +25,7 @@ Extract only "sticky" information—facts, preferences, and entities that have l
 - **Atomic Entities**: Each entry must be a standalone fact.
 - **Noise Reduction**: Discard temporal data like "hello", "thanks", or transient debugging steps unless they reveal a permanent preference.
 - **Deduplication**: Do not repeat existing information; only provide updates or new discoveries.
+- **Response Language**: ALWAYS respond in the same language as the user request.
 
 ## 3. OUTPUT GUIDELINES:
 - Output ONLY a raw JSON object. 
@@ -46,10 +47,8 @@ Extract only "sticky" information—facts, preferences, and entities that have l
  * Includes a timestamp to provide temporal grounding for extracted goals.
  */
 export function buildSummarizerPrompt(chatHistory: string): string {
-  const now = new Date().toISOString().split('T')[0];
 
   return `<metadata>
-<current_date>${now}</current_date>
 <task>Extract and update user profile and knowledge graph from the log below.</task>
 </metadata>
 
