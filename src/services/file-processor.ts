@@ -60,6 +60,15 @@ class FileProcessorService extends BaseProcess {
 
             try {
                 processedFile = await this.route(req);
+                // Hard limit: Content should not exceed 64KB per file to prevent overwhelming the planner
+                if (processedFile.content.length > 65536) {
+                    processedFile.content = processedFile.content.slice(0, 65536) + "\n\n[...content truncated due to excessive length]";
+                }
+                // Sanity check: Strip anything that looks like a huge base64 or hex string (likely model barf or leaked data)
+                const base64Regex = /[A-Za-z0-9+/]{200,}/g;
+                if (base64Regex.test(processedFile.content)) {
+                    processedFile.content = processedFile.content.replace(base64Regex, "[...large data-string removed...]");
+                }
             } catch (err) {
                 const msg = err instanceof Error ? err.message : String(err);
                 processingError = msg;
