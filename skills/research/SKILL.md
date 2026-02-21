@@ -20,11 +20,12 @@ Deep web research using the text-based browser `lynx` and DuckDuckGo HTML interf
 
 Web research is a multi-step process. Do not stop at the first page of search results.
 
-1.  **Search**: Start with a precise DuckDuckGo query.
-2.  **Analyze**: Scan the search results. Identify 2-3 most promising links.
-3.  **Browse**: Visit those links one by one.
-4.  **Recurse**: If a page contains a "References" section or promising links to deeper info, follow them.
-5.  **Summarize**: Gather all key findings and provide a comprehensive response.
+1.  **Planning**: Start with a plan of what you want to research. Plan must be very detailed and logical. Build list of search queries to execute. They have to be logical and cover different aspects of the topic.
+2.  **Search**:  Execute search queries one by one using `lynx -dump` command.
+3.  **Analyze**: Scan the search results after each query. Identify 2-10 most promising links. If needed go to the next page of search results.
+4.  **Browse**: Visit those links one by one.
+5.  **Recurse**: If a page contains a "References" section or promising links to deeper info, follow them.
+6.  **Summarize**: Gather all key findings and provide a comprehensive response.
 
 **!!! IMPORTANT !!!** If you think that you dont have enough information to answer the user's request, you can generate new search queries and repeat the process.
 
@@ -35,13 +36,13 @@ Web research is a multi-step process. Do not stop at the first page of search re
 Use DuckDuckGo's HTML or Lite interface with a standard User-Agent to avoid blocks.
 
 ```bash
-lynx -useragent="Lynx/2.8.9rel.1 libwww-FM/2.14 SSL-MM/1.4.1 OpenSSL/1.1.1g" -dump "https://html.duckduckgo.com/html?q=YOUR+SEARCH+QUERY"
+lynx -dump "https://html.duckduckgo.com/html?q=YOUR+SEARCH+QUERY"
 ```
 
 ### 2. Browse a URL
 
 ```bash
-lynx -useragent="Lynx/2.8.9rel.1 libwww-FM/2.14 SSL-MM/1.4.1 OpenSSL/1.1.1g" -dump "https://example.com/some/path"
+lynx -dump "https://example.com/some/path"
 ```
 
 ## How to Navigate Links & Redirects

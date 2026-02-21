@@ -3,12 +3,12 @@
  * Identifies ready nodes, dispatches to services, records results in Task Memory.
  * P3-01: _board/TASKS/P3-01_EXECUTOR_CORE_LOOP.md
  * P3-02: parallel execution with concurrency limit (_board/TASKS/P3-02_PARALLEL_EXECUTION.md).
- * P3-05: handle REVISE from Critic, inject revision (re-run generation with feedback), max 3 cycles.
+ * P3-05: handle REVISE from Critic, inject revision (re-run generation with feedback), max 10 cycles.
  */
 
 const MAX_CONCURRENT_NODES = 5;
-const MAX_REVISION_CYCLES = 3;
-const MAX_SKILL_TURNS = 5;
+const MAX_REVISION_CYCLES = 10;
+const MAX_SKILL_TURNS = 15;
 
 const SKILL_TOOLS: any[] = [
   {
