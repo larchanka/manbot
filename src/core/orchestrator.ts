@@ -491,8 +491,9 @@ export class Orchestrator {
           break;
         }
         case "ignored": {
-          const meta = processed.metadata as { reason?: string };
-          warnings.push(`⚠️ "${processed.fileName}" skipped: ${meta.reason ?? "unsupported format"}`);
+          const meta = processed.metadata as { reason?: string; error?: string };
+          const reason = meta.reason || meta.error || "unsupported format";
+          warnings.push(`⚠️ "${processed.fileName}" skipped: ${reason}`);
           break;
         }
       }
@@ -500,7 +501,8 @@ export class Orchestrator {
 
     // Send warnings silently before running the pipeline
     if (warnings.length > 0) {
-      this.sendToTelegram(chatId, warnings.join("\n"), true);
+      // Use plain text for warnings to avoid issues with filenames containing underscores
+      this.sendToTelegram(chatId, warnings.join("\n"), true, undefined as any);
     }
 
     // Build the enriched goal
