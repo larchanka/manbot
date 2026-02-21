@@ -203,12 +203,8 @@ class FileProcessorService extends BaseProcess {
             };
         }
 
-        const messages = [
-            { role: "user" as const, content: OCR_PROMPT },
-        ];
-
-        const result = await this.ollama.chatWithImage(messages, ocrModel, req.localPath);
-        const content = result.message?.content?.trim() ?? "";
+        const result = await this.ollama.generateWithImage(OCR_PROMPT, ocrModel, req.localPath);
+        const content = result.text?.trim() ?? "";
 
         // Log basic info for debugging without leaking full sensitive content
         process.stderr.write(`[file-processor] [DEBUG] OCR Result for ${req.fileName} (len: ${content.length}, words: ${content.split(/\s+/).length}): ${content.substring(0, 150).replace(/\n/g, " ")}...\n`);
