@@ -10,6 +10,7 @@ import { promisify } from "node:util";
 import { randomUUID } from "node:crypto";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { mkdir, readdir, stat, unlink } from "node:fs/promises";
 import { envelopeSchema } from "../shared/protocol.js";
 import type { Envelope } from "../shared/protocol.js";
 import { ConsoleLogger } from "../utils/console-logger.js";
@@ -17,6 +18,7 @@ import { getConfig } from "../shared/config.js";
 import { OllamaAdapter } from "../services/ollama-adapter.js";
 import { ModelRouter } from "../services/model-router.js";
 import { ModelManagerService } from "../services/model-manager.js";
+import type { FileIngestPayload, ProcessedFile } from "../shared/file-protocol.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, "..", "..");
@@ -34,6 +36,7 @@ const PROCESS_SCRIPTS: Record<string, string> = {
   "tool-host": join(DIST, "services", "tool-host.js"),
   "cron-manager": join(DIST, "services", "cron-manager.js"),
   "dashboard": join(DIST, "services", "dashboard-service.js"),
+  "file-processor": join(DIST, "services", "file-processor.js"),
 };
 
 interface ChildEntry {
@@ -206,6 +209,15 @@ export class Orchestrator {
           this.sendToTelegram(chatId, `Error: ${err instanceof Error ? err.message : String(err)}`);
         });
       }
+    }
+
+    // FP-10: Handle file ingest from Telegram adapter
+    if (type === "file.ingest" && fromProcess === "telegram-adapter") {
+      const p = (payload as unknown) as FileIngestPayload;
+      this.handleFileIngest(p).catch((err) => {
+        ConsoleLogger.error("core", "File ingest error", err instanceof Error ? err : String(err), envelope);
+        this.sendToTelegram(p.chatId, `File processing error: ${err instanceof Error ? err.message : String(err)}`);
+      });
     }
   }
 
@@ -391,6 +403,208 @@ export class Orchestrator {
     }
 
     this.sendToTelegram(chatId, lastError || "Task failed after retries.");
+  }
+
+  // ---------------------------------------------------------------------------
+  // FP-10: File ingest pipeline
+  // ---------------------------------------------------------------------------
+
+  private async handleFileIngest(p: FileIngestPayload): Promise<void> {
+    const { chatId, userId, conversationId, files, caption } = p;
+    const fileProcessor = this.children.get("file-processor");
+    const ragService = this.children.get("rag-service");
+    const modelRouter = this.children.get("model-router");
+
+    if (!fileProcessor?.stdin.writable) {
+      this.sendToTelegram(chatId, "⚠️ File processing service unavailable.", true);
+      return;
+    }
+
+    // Notify user processing has started
+    const fileWord = files.length === 1 ? "file" : "files";
+    this.sendToTelegram(chatId, `⏳ Processing ${files.length} ${fileWord}...`, true);
+
+    // Process all files in parallel — allSettled so one failure doesn't cancel others
+    const results = await Promise.allSettled(
+      files.map((file) =>
+        this.sendAndWait(fileProcessor, "file.process", {
+          fileId: file.fileId,
+          localPath: file.localPath,
+          fileName: file.fileName,
+          mimeType: file.mimeType,
+          category: file.category,
+        }),
+      ),
+    );
+
+    const warnings: string[] = [];
+    const inlineContextParts: string[] = [];
+    let audioTranscript: string | undefined;
+
+    for (let i = 0; i < results.length; i++) {
+      const r = results[i]!;
+      const file = files[i]!;
+
+      if (r.status === "rejected") {
+        const msg = r.reason instanceof Error ? r.reason.message : String(r.reason);
+        warnings.push(`⚠️ Failed to process "${file.fileName}": ${msg}`);
+        continue;
+      }
+
+      const env = r.value;
+      const pl = env.payload as { status?: string; result?: ProcessedFile };
+      const processed = pl.result;
+
+      if (!processed) {
+        warnings.push(`⚠️ No result for "${file.fileName}"`);
+        continue;
+      }
+
+      switch (processed.type) {
+        case "text": {
+          inlineContextParts.push(`--- file: ${processed.fileName} ---\n${processed.content}\n---`);
+          break;
+        }
+        case "text_long": {
+          if (ragService?.stdin.writable && modelRouter?.stdin.writable) {
+            const ragNote = await this.indexLongText(
+              processed.content,
+              processed.fileName,
+              conversationId,
+              modelRouter,
+              ragService,
+            );
+            inlineContextParts.push(ragNote);
+          } else {
+            // Fallback: truncate and inline if RAG unavailable
+            const truncated = processed.content.slice(0, 6000);
+            inlineContextParts.push(`--- file: ${processed.fileName} (truncated) ---\n${truncated}\n---`);
+          }
+          break;
+        }
+        case "image_ocr": {
+          inlineContextParts.push(`--- image: ${processed.fileName} ---\n${processed.content}\n---`);
+          break;
+        }
+        case "audio_transcript": {
+          audioTranscript = processed.content;
+          break;
+        }
+        case "ignored": {
+          const meta = processed.metadata as { reason?: string };
+          warnings.push(`⚠️ "${processed.fileName}" skipped: ${meta.reason ?? "unsupported format"}`);
+          break;
+        }
+      }
+    }
+
+    // Send warnings silently before running the pipeline
+    if (warnings.length > 0) {
+      this.sendToTelegram(chatId, warnings.join("\n"), true);
+    }
+
+    // Build the enriched goal
+    const inlineContext = inlineContextParts.join("\n\n");
+    let enrichedGoal: string;
+
+    if (audioTranscript && !caption) {
+      // Audio transcript is the primary goal
+      enrichedGoal = audioTranscript;
+    } else if (audioTranscript && caption) {
+      enrichedGoal = `${caption}\n\n[Audio transcript: ${audioTranscript}]`;
+    } else if (inlineContext && caption) {
+      enrichedGoal = `${caption}\n\n${inlineContext}`;
+    } else if (inlineContext) {
+      enrichedGoal = `${inlineContext}`;
+    } else if (caption) {
+      enrichedGoal = caption;
+    } else {
+      // Everything was ignored or failed with no caption
+      if (warnings.length > 0) {
+        this.sendToTelegram(chatId, "No processable content found in the uploaded files.", true);
+      }
+      return;
+    }
+
+    // Guard against absurdly large goals (cap inline context at ~32k chars)
+    const MAX_GOAL_CHARS = 32_000;
+    if (enrichedGoal.length > MAX_GOAL_CHARS) {
+      enrichedGoal = enrichedGoal.slice(0, MAX_GOAL_CHARS) + "\n\n[...content truncated for context limit]";
+    }
+
+    await this.runTaskPipeline(chatId, userId, enrichedGoal, conversationId);
+  }
+
+  // ---------------------------------------------------------------------------
+  // FP-11: Long text chunking, summarisation, and RAG indexing
+  // ---------------------------------------------------------------------------
+
+  private async indexLongText(
+    content: string,
+    fileName: string,
+    conversationId: string,
+    modelRouter: ChildEntry,
+    ragService: ChildEntry,
+  ): Promise<string> {
+    const CHUNK_SIZE = 2000;
+    const OVERLAP = 200;
+    const chunks: string[] = [];
+
+    // Chunk with overlap
+    for (let start = 0; start < content.length; start += CHUNK_SIZE - OVERLAP) {
+      chunks.push(content.slice(start, start + CHUNK_SIZE));
+    }
+
+    ConsoleLogger.info("core", `Indexing "${fileName}" into RAG: ${chunks.length} chunk(s)`);
+
+    // Summarise each chunk (limit concurrency to 3)
+    const summaries: string[] = [];
+    const CONCURRENCY = 3;
+    for (let i = 0; i < chunks.length; i += CONCURRENCY) {
+      const batch = chunks.slice(i, i + CONCURRENCY);
+      const batchResults = await Promise.allSettled(
+        batch.map((chunk, idx) =>
+          this.sendAndWait(modelRouter, "node.execute", {
+            taskId: `file-index-${randomUUID()}`,
+            nodeId: `chunk-${i + idx}`,
+            type: "generate_text",
+            service: "model-router",
+            input: {
+              prompt: `Summarize this section of a document concisely, preserving all key facts, numbers, and structure:\n\n${chunk}`,
+              system_prompt: "summarizer",
+            },
+          }),
+        ),
+      );
+      for (const res of batchResults) {
+        if (res.status === "fulfilled") {
+          const pl = res.value.payload as { result?: { text?: string } };
+          summaries.push(pl.result?.text ?? "");
+        }
+        // Failed chunks are skipped silently
+      }
+    }
+
+    // Insert each summary into RAG
+    await Promise.allSettled(
+      summaries.map((summary, idx) =>
+        this.sendAndWait(ragService, "memory.semantic.insert", {
+          content: summary,
+          metadata: {
+            source: "file",
+            fileName,
+            conversationId,
+            uploadedAt: Date.now(),
+            chunkIndex: idx,
+          },
+        }),
+      ),
+    );
+
+    return (
+      `File "${fileName}" has been indexed (${summaries.length} section(s)). ` +
+      `Use semantic search to retrieve relevant content.`
+    );
   }
 
   private async runArchivingPipeline(chatId: number, conversationId: string): Promise<void> {
@@ -665,6 +879,11 @@ export class Orchestrator {
       ConsoleLogger.error("core", "Dependency verification error", err);
     });
 
+    // FP-13: Ensure upload directory exists and clean up orphaned files (> 1h old)
+    this.initUploadDirectory().catch((err) => {
+      ConsoleLogger.warn("core", `Upload directory init error: ${err instanceof Error ? err.message : String(err)}`);
+    });
+
     for (const [name, scriptPath] of Object.entries(PROCESS_SCRIPTS)) {
       this.spawnProcess(name, scriptPath);
     }
@@ -675,6 +894,53 @@ export class Orchestrator {
       .catch((err: unknown) =>
         ConsoleLogger.warn("core", `Model prewarming failed: ${err instanceof Error ? err.message : String(err)}`)
       );
+  }
+
+  /** FP-13: Create uploads dir and purge stale orphan files from crashed sessions. */
+  private async initUploadDirectory(): Promise<void> {
+    const uploadDir = getConfig().fileProcessor.uploadDir;
+    await mkdir(uploadDir, { recursive: true });
+
+    const ORPHAN_AGE_MS = 60 * 60 * 1000; // 1 hour
+    const now = Date.now();
+    let deleted = 0;
+    try {
+      const entries = await readdir(uploadDir, { withFileTypes: true });
+      await Promise.all(
+        entries.map(async (entry) => {
+          const entryPath = join(uploadDir, entry.name);
+          try {
+            if (entry.isDirectory()) {
+              // Scan conversation subdirectories
+              const subEntries = await readdir(entryPath, { withFileTypes: true });
+              await Promise.all(
+                subEntries.map(async (sub) => {
+                  const subPath = join(entryPath, sub.name);
+                  const s = await stat(subPath);
+                  if (now - s.mtimeMs > ORPHAN_AGE_MS) {
+                    await unlink(subPath).catch(() => { });
+                    deleted++;
+                  }
+                }),
+              );
+            } else {
+              const s = await stat(entryPath);
+              if (now - s.mtimeMs > ORPHAN_AGE_MS) {
+                await unlink(entryPath).catch(() => { });
+                deleted++;
+              }
+            }
+          } catch {
+            // Ignore per-file stat errors
+          }
+        }),
+      );
+    } catch {
+      // Directory may be empty or scanning failed — non-fatal
+    }
+    if (deleted > 0) {
+      ConsoleLogger.info("core", `Upload dir cleanup: removed ${deleted} orphaned file(s) from ${uploadDir}`);
+    }
   }
 
   stop(): void {
