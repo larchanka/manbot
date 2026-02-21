@@ -10,7 +10,7 @@ const MAX_CONCURRENT_NODES = 5;
 const MAX_REVISION_CYCLES = 3;
 const MAX_SKILL_TURNS = 5;
 
-const SKILL_TOOLS = [
+const SKILL_TOOLS: any[] = [
   {
     type: "function",
     function: {
@@ -39,6 +39,21 @@ const SKILL_TOOLS = [
         required: ["url"]
       }
     }
+  },
+  {
+    type: "function",
+    function: {
+      name: "schedule_reminder",
+      description: "Schedule a reminder for the user. Use natural language for the 'time' parameter.",
+      parameters: {
+        type: "object",
+        properties: {
+          time: { type: "string", description: "When to remind (e.g., 'in 2 hours', 'every Monday at 9am', 'tomorrow at 3pm')" },
+          message: { type: "string", description: "The content of the reminder (what to remind about)" }
+        },
+        required: ["time", "message"]
+      }
+    }
   }
 ];
 
@@ -55,6 +70,7 @@ import { PROTOCOL_VERSION } from "../shared/protocol.js";
 import { responsePayloadSchema } from "../shared/protocol.js";
 import { getConfig } from "../shared/config.js";
 import { SkillManager } from "../services/skill-manager.js";
+import { parseTimeExpression } from "../services/time-parser.js";
 
 const PLAN_EXECUTE = "plan.execute";
 const NODE_EXECUTE = "node.execute";
@@ -483,7 +499,7 @@ export class ExecutorAgent extends BaseProcess {
 
                 // Execute each tool call
                 for (const tc of result.tool_calls) {
-                  const toolResult = await this.callTool(taskId, node.id, tc.function.name, tc.function.arguments);
+                  const toolResult = await this.callTool(taskId, node.id, tc.function.name, tc.function.arguments, context);
                   let content = typeof toolResult === "string" ? toolResult : JSON.stringify(toolResult);
                   // Safety truncation for large web pages or shell outputs to stay within context limits
                   if (content.length > 30000) {
@@ -610,6 +626,19 @@ export class ExecutorAgent extends BaseProcess {
     // Extract cronExpr from input or dependency output
     let cronExpr = nodeInput.cronExpr as string | undefined;
 
+    // Support natural language 'time' input
+    if (!cronExpr) {
+      const time = (nodeInput.time as string | undefined) ?? (nodeInput.prompt as string | undefined);
+      if (time) {
+        try {
+          const result = await parseTimeExpression(time);
+          cronExpr = result.cronExpr;
+        } catch (err) {
+          // Fallback to extraction from deps if parsing fails
+        }
+      }
+    }
+
     // Check if cronExpr is a placeholder string (should be ignored)
     const isPlaceholder = cronExpr && (
       cronExpr.includes("<output from") ||
@@ -698,6 +727,7 @@ export class ExecutorAgent extends BaseProcess {
     const chatId = (nodeInput.chatId as number | string | undefined) ??
       (context._chatId as number | string | undefined);
     let reminderMessage = (nodeInput.reminderMessage as string | undefined) ??
+      (nodeInput.message as string | undefined) ??
       (context.reminderMessage as string | undefined);
     const userId = (nodeInput.userId as number | string | undefined) ??
       (context._userId as number | string | undefined);
@@ -874,7 +904,16 @@ export class ExecutorAgent extends BaseProcess {
     });
   }
 
-  private callTool(taskId: string, nodeId: string, name: string, args: any): Promise<any> {
+  private callTool(taskId: string, nodeId: string, name: string, args: any, context: Record<string, unknown> = {}): Promise<any> {
+    if (name === "schedule_reminder") {
+      const node: CapabilityNode = {
+        id: nodeId,
+        type: "schedule_reminder",
+        service: "cron-manager",
+        input: args
+      };
+      return this.handleScheduleReminder(taskId, node, context);
+    }
     return new Promise((resolve, reject) => {
       const id = randomUUID();
       this.send({

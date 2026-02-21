@@ -26,6 +26,8 @@ Web research is a multi-step process. Do not stop at the first page of search re
 4.  **Recurse**: If a page contains a "References" section or promising links to deeper info, follow them.
 5.  **Summarize**: Gather all key findings and provide a comprehensive response.
 
+**!!! IMPORTANT !!!** If you think that you dont have enough information to answer the user's request, you can generate new search queries and repeat the process.
+
 ## Commands
 
 ### 1. Perform a Search

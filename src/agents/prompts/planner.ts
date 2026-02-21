@@ -126,6 +126,26 @@ User: "Deep dive into the current status of the RISC-V ecosystem."
     { "from": "research-eco", "to": "final-report" }
   ]
 }
+
+## Example: Reminder
+User: "remind me to drink water in 2 hrs"
+{
+  "taskId": "task-rem-01",
+  "complexity": "small",
+  "reflectionMode": "OFF",
+  "nodes": [
+    {
+      "id": "rem-node",
+      "type": "skill",
+      "service": "executor",
+      "input": {
+        "skillName": "reminder",
+        "task": "remind me to drink water in 2 hrs"
+      }
+    }
+  ],
+  "edges": []
+}
 </examples>`;
 
 export interface PlannerPromptOptions {

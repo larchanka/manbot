@@ -186,6 +186,7 @@ const CSS = `
   table {
     width: 100%;
     border-collapse: collapse;
+    table-layout: auto;
   }
 
   th {
@@ -193,14 +194,16 @@ const CSS = `
     font-size: 12px;
     font-weight: 500;
     color: var(--text-muted);
-    padding: 8px 0;
+    padding: 12px 10px;
     border-bottom: 1px solid var(--border);
+    white-space: nowrap;
   }
 
   td {
-    padding: 12px 0;
+    padding: 12px 10px;
     border-bottom: 1px solid var(--border);
     font-size: 14px;
+    vertical-align: middle;
   }
 
   .tag {
@@ -298,183 +301,183 @@ const CSS = `
 `;
 
 export class DashboardService extends BaseProcess {
-    private readonly server: http.Server;
+  private readonly server: http.Server;
 
-    constructor() {
-        super({ processName: 'dashboard' });
-        this.server = http.createServer((req, res) => this.handleRequest(req, res));
-    }
+  constructor() {
+    super({ processName: 'dashboard' });
+    this.server = http.createServer((req, res) => this.handleRequest(req, res));
+  }
 
-    override start(): void {
-        super.start();
-        this.server.listen(PORT, () => {
-            this.logEvent('info', `Dashboard server started on port ${PORT}`);
-        });
+  override start(): void {
+    super.start();
+    this.server.listen(PORT, () => {
+      this.logEvent('info', `Dashboard server started on port ${PORT}`);
+    });
 
-        // Send initial log announcement to orchestrator
-        this.send({
-            id: randomUUID(),
-            timestamp: Date.now(),
-            from: 'dashboard',
-            to: 'logger',
-            type: 'event.system.dashboard_online',
-            version: '1.0',
-            payload: { port: PORT, status: 'online' }
-        });
-    }
+    // Send initial log announcement to orchestrator
+    this.send({
+      id: randomUUID(),
+      timestamp: Date.now(),
+      from: 'dashboard',
+      to: 'logger',
+      type: 'event.system.dashboard_online',
+      version: '1.0',
+      payload: { port: PORT, status: 'online' }
+    });
+  }
 
-    private logEvent(level: string, message: string) {
-        this.send({
-            id: randomUUID(),
-            timestamp: Date.now(),
-            from: 'dashboard',
-            to: 'logger',
-            type: `event.dashboard.${level}`,
-            version: '1.0',
-            payload: { message }
-        });
-    }
+  private logEvent(level: string, message: string) {
+    this.send({
+      id: randomUUID(),
+      timestamp: Date.now(),
+      from: 'dashboard',
+      to: 'logger',
+      type: `event.dashboard.${level}`,
+      version: '1.0',
+      payload: { message }
+    });
+  }
 
-    private handleRequest(req: http.IncomingMessage, res: http.ServerResponse) {
-        if (req.url === '/api/stats') {
-            const s = this.getStats();
-            res.setHeader('Content-Type', 'application/json');
-            res.end(JSON.stringify({
-                ...s,
-                charts: {
-                    taskDonut: this.generateDonutChart(s.tasks),
-                    compBar: this.generateBarChart(Object.keys(s.complexity), Object.values(s.complexity))
-                }
-            }));
-            return;
+  private handleRequest(req: http.IncomingMessage, res: http.ServerResponse) {
+    if (req.url === '/api/stats') {
+      const s = this.getStats();
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify({
+        ...s,
+        charts: {
+          taskDonut: this.generateDonutChart(s.tasks),
+          compBar: this.generateBarChart(Object.keys(s.complexity), Object.values(s.complexity))
         }
+      }));
+      return;
+    }
 
-        if (req.url === '/') {
-            res.setHeader('Content-Type', 'text/html');
-            res.end(this.getHTML());
-            return;
+    if (req.url === '/') {
+      res.setHeader('Content-Type', 'text/html');
+      res.end(this.getHTML());
+      return;
+    }
+
+    if (req.url?.startsWith('/api/fail-task')) {
+      const url = new URL(req.url, `http://${req.headers.host}`);
+      const taskId = url.searchParams.get('id');
+      if (taskId) {
+        try {
+          const tdb = new Database(path.join(ROOT_DIR, 'data/tasks.sqlite'));
+          tdb.prepare("UPDATE tasks SET status = 'failed', updated_at = ?, metadata = ? WHERE id = ?").run(Date.now(), JSON.stringify({ reason: 'Manually failed via dashboard' }), taskId);
+          tdb.close();
+          res.setHeader('Content-Type', 'application/json');
+          res.end(JSON.stringify({ status: 'success' }));
+          return;
+        } catch (e) {
+          res.statusCode = 500;
+          res.end(JSON.stringify({ status: 'error', message: String(e) }));
+          return;
         }
-
-        if (req.url?.startsWith('/api/fail-task')) {
-            const url = new URL(req.url, `http://${req.headers.host}`);
-            const taskId = url.searchParams.get('id');
-            if (taskId) {
-                try {
-                    const tdb = new Database(path.join(ROOT_DIR, 'data/tasks.sqlite'));
-                    tdb.prepare("UPDATE tasks SET status = 'failed', updated_at = ?, metadata = ? WHERE id = ?").run(Date.now(), JSON.stringify({ reason: 'Manually failed via dashboard' }), taskId);
-                    tdb.close();
-                    res.setHeader('Content-Type', 'application/json');
-                    res.end(JSON.stringify({ status: 'success' }));
-                    return;
-                } catch (e) {
-                    res.statusCode = 500;
-                    res.end(JSON.stringify({ status: 'error', message: String(e) }));
-                    return;
-                }
-            }
-        }
-
-        res.statusCode = 404;
-        res.end('Not Found');
+      }
     }
 
-    private getStats() {
-        const stats: any = {
-            tasks: {},
-            complexity: { small: 0, medium: 0, large: 0, unknown: 0 },
-            rag: 0,
-            cron: 0,
-            logs: [],
-            maxNodes: 0,
-            timing: { first: '-', last: '-', avg: '-' },
-            models: {}
-        };
-        try {
-            const configPath = path.join(ROOT_DIR, 'config.json');
-            if (fs.existsSync(configPath)) {
-                const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-                stats.models = config.modelRouter || {};
-            }
-        } catch (e) { }
+    res.statusCode = 404;
+    res.end('Not Found');
+  }
 
-        try {
-            const tdb = new Database(path.join(ROOT_DIR, 'data/tasks.sqlite'), { readonly: true });
-            tdb.prepare('SELECT status, count(*) as c FROM tasks GROUP BY status').all().forEach((r: any) => stats.tasks[r.status] = r.c);
-            tdb.prepare('SELECT complexity, count(*) as c FROM tasks GROUP BY complexity').all().forEach((r: any) => {
-                const key = r.complexity ? r.complexity.toLowerCase() : 'unknown';
-                stats.complexity[key] = (stats.complexity[key] || 0) + r.c;
-            });
-            const peak = tdb.prepare('SELECT MAX(cnt) as m FROM (SELECT count(*) as cnt FROM task_nodes GROUP BY task_id)').get() as { m: number } | undefined;
-            stats.maxNodes = peak ? peak.m : 0;
+  private getStats() {
+    const stats: any = {
+      tasks: {},
+      complexity: { small: 0, medium: 0, large: 0, unknown: 0 },
+      rag: 0,
+      cron: 0,
+      logs: [],
+      maxNodes: 0,
+      timing: { first: '-', last: '-', avg: '-' },
+      models: {}
+    };
+    try {
+      const configPath = path.join(ROOT_DIR, 'config.json');
+      if (fs.existsSync(configPath)) {
+        const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+        stats.models = config.modelRouter || {};
+      }
+    } catch (e) { }
 
-            const times = tdb.prepare('SELECT MIN(created_at) as first, MAX(updated_at) as last FROM tasks').get() as { first: number, last: number } | undefined;
-            if (times?.first) {
-                stats.timing.first = new Date(times.first).toLocaleDateString() + ' ' + new Date(times.first).toLocaleTimeString();
-                stats.timing.last = new Date(times.last).toLocaleDateString() + ' ' + new Date(times.last).toLocaleTimeString();
-            }
+    try {
+      const tdb = new Database(path.join(ROOT_DIR, 'data/tasks.sqlite'), { readonly: true });
+      tdb.prepare('SELECT status, count(*) as c FROM tasks GROUP BY status').all().forEach((r: any) => stats.tasks[r.status] = r.c);
+      tdb.prepare('SELECT complexity, count(*) as c FROM tasks GROUP BY complexity').all().forEach((r: any) => {
+        const key = r.complexity ? r.complexity.toLowerCase() : 'unknown';
+        stats.complexity[key] = (stats.complexity[key] || 0) + r.c;
+      });
+      const peak = tdb.prepare('SELECT MAX(cnt) as m FROM (SELECT count(*) as cnt FROM task_nodes GROUP BY task_id)').get() as { m: number } | undefined;
+      stats.maxNodes = peak ? peak.m : 0;
 
-            const avg = tdb.prepare("SELECT AVG(updated_at - created_at) as a FROM tasks WHERE status = 'completed' AND updated_at > created_at").get() as { a: number } | undefined;
-            if (avg?.a) {
-                const sec = Math.round(avg.a / 1000);
-                stats.timing.avg = sec > 60 ? `${Math.floor(sec / 60)}m ${sec % 60}s` : `${sec}s`;
-            }
+      const times = tdb.prepare('SELECT MIN(created_at) as first, MAX(updated_at) as last FROM tasks').get() as { first: number, last: number } | undefined;
+      if (times?.first) {
+        stats.timing.first = new Date(times.first).toLocaleDateString() + ' ' + new Date(times.first).toLocaleTimeString();
+        stats.timing.last = new Date(times.last).toLocaleDateString() + ' ' + new Date(times.last).toLocaleTimeString();
+      }
 
-            stats.pendingTasks = tdb.prepare('SELECT id, goal, status, complexity, updated_at FROM tasks WHERE status IN (?, ?) ORDER BY updated_at DESC')
-                .all('pending', 'running');
+      const avg = tdb.prepare("SELECT AVG(updated_at - created_at) as a FROM tasks WHERE status = 'completed' AND updated_at > created_at").get() as { a: number } | undefined;
+      if (avg?.a) {
+        const sec = Math.round(avg.a / 1000);
+        stats.timing.avg = sec > 60 ? `${Math.floor(sec / 60)}m ${sec % 60}s` : `${sec}s`;
+      }
 
-            tdb.close();
-        } catch (e) { }
-        try {
-            const rdb = new Database(path.join(ROOT_DIR, 'data/rag.sqlite'), { readonly: true });
-            const row = rdb.prepare('SELECT count(*) as c FROM rag_documents').get() as { c: number } | undefined;
-            stats.rag = row ? row.c : 0;
-            rdb.close();
-        } catch (e) { }
-        try {
-            const cdb = new Database(path.join(ROOT_DIR, 'data/cron.sqlite'), { readonly: true });
-            const row = cdb.prepare('SELECT count(*) as c FROM cron_schedules WHERE enabled=1').get() as { c: number } | undefined;
-            stats.cron = row ? row.c : 0;
-            cdb.close();
-        } catch (e) { }
-        try {
-            const logPath = path.join(ROOT_DIR, 'logs/events.log');
-            if (fs.existsSync(logPath)) {
-                stats.logs = fs.readFileSync(logPath, 'utf8').trim().split('\n').slice(-20).map(line => {
-                    try { return JSON.parse(line); } catch (e) { return { message: line }; }
-                }).reverse();
-            }
-        } catch (e) { }
-        return stats;
-    }
+      stats.pendingTasks = tdb.prepare('SELECT id, goal, status, complexity, updated_at FROM tasks WHERE status IN (?, ?) ORDER BY updated_at DESC')
+        .all('pending', 'running');
 
-    private generateDonutChart(data: any, size = 200) {
-        const total = Object.values(data).reduce((a: any, b: any) => a + b, 0) as number;
-        if (!total) return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><text x="50%" y="50%" text-anchor="middle" fill="#8b8b8b">No Data</text></svg>`;
-        const radius = 75, circumference = 2 * Math.PI * radius;
-        let offset = 0;
-        const colors: any = { completed: '#0b6e4f', failed: '#df2a5f', pending: '#d9730d', running: '#2383e2' };
-        const slices = Object.entries(data).map(([k, v]: [string, any]) => {
-            const p = v / total, dash = (p * circumference) + ' ' + circumference, currentOffset = -offset;
-            offset += p * circumference;
-            return `<circle cx="100" cy="100" r="${radius}" fill="transparent" stroke="${colors[k] || '#2383e2'}" stroke-width="25" stroke-dasharray="${dash}" stroke-dashoffset="${currentOffset}" transform="rotate(-90 100 100)"></circle>`;
-        }).join('');
-        return `<svg width="100%" height="100%" viewBox="0 0 200 200" preserveAspectRatio="xMidYMid meet">${slices}<text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="currentColor" font-size="28" font-weight="700">${total}</text></svg>`;
-    }
+      tdb.close();
+    } catch (e) { }
+    try {
+      const rdb = new Database(path.join(ROOT_DIR, 'data/rag.sqlite'), { readonly: true });
+      const row = rdb.prepare('SELECT count(*) as c FROM rag_documents').get() as { c: number } | undefined;
+      stats.rag = row ? row.c : 0;
+      rdb.close();
+    } catch (e) { }
+    try {
+      const cdb = new Database(path.join(ROOT_DIR, 'data/cron.sqlite'), { readonly: true });
+      const row = cdb.prepare('SELECT count(*) as c FROM cron_schedules WHERE enabled=1').get() as { c: number } | undefined;
+      stats.cron = row ? row.c : 0;
+      cdb.close();
+    } catch (e) { }
+    try {
+      const logPath = path.join(ROOT_DIR, 'logs/events.log');
+      if (fs.existsSync(logPath)) {
+        stats.logs = fs.readFileSync(logPath, 'utf8').trim().split('\n').slice(-20).map(line => {
+          try { return JSON.parse(line); } catch (e) { return { message: line }; }
+        }).reverse();
+      }
+    } catch (e) { }
+    return stats;
+  }
 
-    private generateBarChart(labels: string[], values: number[], width = 400, height = 200) {
-        const max = Math.max(...values, 1), barWidth = (width / labels.length) * 0.5, gap = (width / labels.length) * 0.5;
-        const bars = labels.map((l, i) => {
-            const val = values[i] ?? 0;
-            const h = (val / max) * 120, x = i * (barWidth + gap) + gap / 2;
-            return `<rect x="${x}" y="${160 - h}" width="${barWidth}" height="${h}" fill="#2ea7ff" rx="4"></rect>` +
-                `<text x="${x + barWidth / 2}" y="180" text-anchor="middle" fill="#8b8b8b" font-size="10">${l}</text>` +
-                `<text x="${x + barWidth / 2}" y="${150 - h}" text-anchor="middle" fill="currentColor" font-size="10">${val}</text>`;
-        }).join('');
-        return `<svg width="100%" height="100%" viewBox="0 0 ${width} ${height}" preserveAspectRatio="xMidYMid meet">${bars}</svg>`;
-    }
+  private generateDonutChart(data: any, size = 200) {
+    const total = Object.values(data).reduce((a: any, b: any) => a + b, 0) as number;
+    if (!total) return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><text x="50%" y="50%" text-anchor="middle" fill="#8b8b8b">No Data</text></svg>`;
+    const radius = 75, circumference = 2 * Math.PI * radius;
+    let offset = 0;
+    const colors: any = { completed: '#0b6e4f', failed: '#df2a5f', pending: '#d9730d', running: '#2383e2' };
+    const slices = Object.entries(data).map(([k, v]: [string, any]) => {
+      const p = v / total, dash = (p * circumference) + ' ' + circumference, currentOffset = -offset;
+      offset += p * circumference;
+      return `<circle cx="100" cy="100" r="${radius}" fill="transparent" stroke="${colors[k] || '#2383e2'}" stroke-width="25" stroke-dasharray="${dash}" stroke-dashoffset="${currentOffset}" transform="rotate(-90 100 100)"></circle>`;
+    }).join('');
+    return `<svg width="100%" height="100%" viewBox="0 0 200 200" preserveAspectRatio="xMidYMid meet">${slices}<text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="currentColor" font-size="28" font-weight="700">${total}</text></svg>`;
+  }
 
-    private getHTML() {
-        return `<!DOCTYPE html>
+  private generateBarChart(labels: string[], values: number[], width = 400, height = 200) {
+    const max = Math.max(...values, 1), barWidth = (width / labels.length) * 0.5, gap = (width / labels.length) * 0.5;
+    const bars = labels.map((l, i) => {
+      const val = values[i] ?? 0;
+      const h = (val / max) * 120, x = i * (barWidth + gap) + gap / 2;
+      return `<rect x="${x}" y="${160 - h}" width="${barWidth}" height="${h}" fill="#2ea7ff" rx="4"></rect>` +
+        `<text x="${x + barWidth / 2}" y="180" text-anchor="middle" fill="#8b8b8b" font-size="10">${l}</text>` +
+        `<text x="${x + barWidth / 2}" y="${150 - h}" text-anchor="middle" fill="currentColor" font-size="10">${val}</text>`;
+    }).join('');
+    return `<svg width="100%" height="100%" viewBox="0 0 ${width} ${height}" preserveAspectRatio="xMidYMid meet">${bars}</svg>`;
+  }
+
+  private getHTML() {
+    return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -547,11 +550,11 @@ export class DashboardService extends BaseProcess {
                 <table id="queue-table">
                     <thead>
                         <tr>
-                            <th style="padding-left: 20px;">UPDATED</th>
-                            <th>STATUS</th>
-                            <th>COMPLEXITY</th>
+                            <th style="padding-left: 20px; width: 100px;">UPDATED</th>
+                            <th style="width: 100px;">STATUS</th>
+                            <th style="width: 120px;">COMPLEXITY</th>
                             <th>GOAL</th>
-                            <th style="padding-right: 20px; text-align: right;">ACTION</th>
+                            <th style="padding-right: 20px; text-align: right; width: 80px;">ACTION</th>
                         </tr>
                     </thead>
                     <tbody id="qt"></tbody>
@@ -565,8 +568,8 @@ export class DashboardService extends BaseProcess {
                 <table id="log-table">
                     <thead>
                         <tr>
-                            <th style="padding-left: 20px;">TIME</th>
-                            <th>TYPE</th>
+                            <th style="padding-left: 20px; width: 100px;">TIME</th>
+                            <th style="width: 120px;">TYPE</th>
                             <th style="padding-right: 20px;">CONTENT</th>
                         </tr>
                     </thead>
@@ -627,10 +630,10 @@ export class DashboardService extends BaseProcess {
                         const tc = isRunning ? "running" : "warning";
                         const indicator = isRunning ? '<div class="pulse"></div>' : '';
                         return \`<tr>
-                            <td style="padding-left: 20px; color: var(--text-muted);">\${new Date(t.updated_at).toLocaleTimeString()}</td>
-                            <td><span class="tag \${tc}">\${indicator}\${t.status.toUpperCase()}</span></td>
-                            <td><span class="tag complexity-\${t.complexity || 'unknown'}">\${(t.complexity || 'unknown').toUpperCase()}</span></td>
-                            <td style="font-weight: 500;">\${t.goal}</td>
+                            <td style="padding-left: 20px; color: var(--text-muted); white-space: nowrap;">\${new Date(t.updated_at).toLocaleTimeString()}</td>
+                            <td style="white-space: nowrap;"><span class="tag \${tc}">\${indicator}\${t.status.toUpperCase()}</span></td>
+                            <td style="white-space: nowrap;"><span class="tag complexity-\${t.complexity || 'unknown'}">\${(t.complexity || 'unknown').toUpperCase()}</span></td>
+                            <td style="font-weight: 500; word-break: break-word;">\${t.goal}</td>
                             <td style="padding-right: 20px; text-align: right;">
                                 <button onclick="failTask('\${t.id}')" style="cursor: pointer; font-size: 11px; padding: 2px 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--error);">FAIL</button>
                             </td>
@@ -665,9 +668,9 @@ export class DashboardService extends BaseProcess {
     </script>
 </body>
 </html>`;
-    }
+  }
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-    new DashboardService().start();
+  new DashboardService().start();
 }
