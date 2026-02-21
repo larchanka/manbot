@@ -33,9 +33,10 @@ const PROCESS_NAME = "file-processor";
 /** OCR system prompt — model auto-detects text vs. visual-only images. */
 const OCR_PROMPT =
     "Examine this image carefully. " +
-    "If it contains readable text (documents, screenshots, receipts, signs, code, etc.), " +
+    "Primary Goal: If it contains readable text (documents, screenshots, receipts, signs, code, etc.), " +
     "extract ALL text verbatim and return it. " +
-    "If it contains no significant text, describe the image in detail. " +
+    "Secondary Goal: If it contains no significant text, describe the image in detail (objects, people, scene, colors). " +
+    "Do NOT return generic messages like 'No OCR text extracted'. " +
     "Return ONLY the extracted text or description — no preamble, no commentary.";
 
 class FileProcessorService extends BaseProcess {
