@@ -3,7 +3,9 @@
  * Uses fetch; supports timeout and retry for network errors.
  */
 
+import { readFile } from "node:fs/promises";
 import { getConfig } from "../shared/config.js";
+
 
 export interface GenerateOptions {
   timeoutMs?: number;
@@ -142,8 +144,80 @@ export class OllamaAdapter {
   }
 
   /**
+   * Chat with an image attachment. Reads the image file at `imagePath`, encodes it
+   * as base64, and injects it into the last user message via Ollama's `images` field.
+   * Intended for vision/OCR models such as `glm-ocr:q8_0`.
+   *
+   * @param messages  Conversation messages (same format as `chat()`).
+   * @param model     Ollama model name supporting vision (must accept `images` field).
+   * @param imagePath Absolute local path to the image file (jpeg, png, webp, etc.).
+   * @param opts      Optional chat options (timeout, keep_alive, etc.).
+   */
+  async chatWithImage(
+    messages: ChatMessage[],
+    model: string,
+    imagePath: string,
+    opts: ChatOptions = {},
+  ): Promise<ChatResult> {
+    // Read and encode the image
+    let imageBytes: Buffer;
+    try {
+      imageBytes = await readFile(imagePath);
+    } catch (err) {
+      throw new Error(
+        `OllamaAdapter.chatWithImage: cannot read image at "${imagePath}": ${err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+    const base64Image = imageBytes.toString("base64");
+
+    // Clone messages; inject images into the last user message
+    const messagesWithImage: Array<Record<string, unknown>> = messages.map(
+      (msg, idx) => {
+        const clone: Record<string, unknown> = { ...msg };
+        if (idx === messages.length - 1 && msg.role === "user") {
+          clone.images = [base64Image];
+        }
+        return clone;
+      },
+    );
+
+    // If no user message was found at the end, append one with just the image
+    const lastMsg = messages[messages.length - 1];
+    if (!lastMsg || lastMsg.role !== "user") {
+      messagesWithImage.push({ role: "user", content: "", images: [base64Image] });
+    }
+
+    const timeoutMs = opts.timeoutMs ?? this.timeoutMs;
+    const url = `${this.baseUrl}/api/chat`;
+    const body: Record<string, unknown> = {
+      model,
+      messages: messagesWithImage,
+      stream: false,
+    };
+    if (opts.keep_alive !== undefined) body.keep_alive = opts.keep_alive;
+    if (opts.options !== undefined) body.options = opts.options;
+
+    const res = await this.fetchWithRetry(url, body, timeoutMs);
+    const data = (await res.json()) as {
+      message?: { role: string; content: string; tool_calls?: ToolCall[] };
+      done?: boolean;
+      prompt_eval_count?: number;
+      eval_count?: number;
+    };
+    const result: ChatResult = {
+      message: data.message ?? { role: "assistant", content: "" },
+      done: data.done ?? true,
+    };
+    if (data.prompt_eval_count !== undefined) result.prompt_eval_count = data.prompt_eval_count;
+    if (data.eval_count !== undefined) result.eval_count = data.eval_count;
+    return result;
+  }
+
+  /**
    * Generate embedding for text. Uses POST /api/embed.
    */
+
   async embed(input: string, model: string, opts: { timeoutMs?: number } = {}): Promise<EmbedResult> {
     const timeoutMs = opts.timeoutMs ?? this.timeoutMs;
     const url = `${this.baseUrl}/api/embed`;
