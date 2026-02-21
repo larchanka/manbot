@@ -2,27 +2,29 @@
 
 ## To Do
 
+
+
+## In Progress
+
 ### FP-15 End-to-End Verification
-  - tags: [todo, qa, e2e]
-  - defaultExpanded: false
+  - tags: [in-progress, qa, e2e]
+  - defaultExpanded: true
     ```md
     Manual verification of all file types, edge cases, and failure scenarios via Telegram.
     Source: FP-15_E2E_VERIFICATION.md
     ```
 
-## In Progress
-
-### FP-14 Update Documentation
-  - tags: [in-progress, docs]
-  - defaultExpanded: true
-    ```md
-    Update COMPONENTS.md, TECH.md, MESSAGE PROTOCOL SPEC.md, and README.md.
-    Source: FP-14_UPDATE_DOCS.md
-    ```
-
 
 
 ## Done
+
+### FP-14 Update Documentation
+  - tags: [done, docs]
+  - defaultExpanded: false
+    ```md
+    Updated COMPONENTS.md, TECH.md, MESSAGE PROTOCOL SPEC.md, and README.md.
+    Source: FP-14_UPDATE_DOCS.md
+    ```
 
 ### FP-13 Upload Directory Init and Cleanup
   - tags: [done, orchestrator, infra]
