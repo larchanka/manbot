@@ -243,6 +243,12 @@ export class TaskMemoryStore {
       )
       .run(status, output, startedAt, completedAt, taskId, nodeId);
 
+    // Also update task status to 'running' if it was 'pending'
+    this.db
+      .prepare(`UPDATE tasks SET status = 'running', updated_at = ? WHERE id = ? AND status = 'pending'`)
+      .run(now, taskId);
+
+    // Always touch updated_at even if status didn't change (e.g. from running to running with more nodes)
     this.db
       .prepare(`UPDATE tasks SET updated_at = ? WHERE id = ?`)
       .run(now, taskId);

@@ -213,6 +213,27 @@ const CSS = `
   .tag.success { background: rgba(11, 110, 79, 0.1); color: var(--success); }
   .tag.error { background: rgba(223, 42, 95, 0.1); color: var(--error); }
   .tag.warning { background: rgba(217, 115, 13, 0.1); color: var(--warning); }
+  .tag.running { 
+    background: rgba(35, 131, 226, 0.1); 
+    color: var(--primary);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .pulse {
+    width: 6px;
+    height: 6px;
+    background: var(--primary);
+    border-radius: 50%;
+    animation: pulse-ring 1.5s infinite;
+  }
+
+  @keyframes pulse-ring {
+    0% { transform: scale(0.7); opacity: 1; }
+    50% { transform: scale(1); opacity: 0.5; }
+    100% { transform: scale(0.7); opacity: 1; }
+  }
 
   .btn-refresh {
     font-size: 14px;
@@ -597,10 +618,12 @@ export class DashboardService extends BaseProcess {
                 if (d.pendingTasks && d.pendingTasks.length > 0) {
                     qs.style.display = "block";
                     qt.innerHTML = d.pendingTasks.map(t => {
-                        const tc = t.status === 'running' ? "success" : "warning";
+                        const isRunning = t.status === 'running';
+                        const tc = isRunning ? "running" : "warning";
+                        const indicator = isRunning ? '<div class="pulse"></div>' : '';
                         return \`<tr>
                             <td style="padding-left: 20px; color: var(--text-muted);">\${new Date(t.updated_at).toLocaleTimeString()}</td>
-                            <td><span class="tag \${tc}">\${t.status.toUpperCase()}</span></td>
+                            <td><span class="tag \${tc}">\${indicator}\${t.status.toUpperCase()}</span></td>
                             <td style="font-weight: 500;">\${t.goal}</td>
                             <td style="padding-right: 20px; text-align: right;">
                                 <button onclick="failTask('\${t.id}')" style="cursor: pointer; font-size: 11px; padding: 2px 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--error);">FAIL</button>
