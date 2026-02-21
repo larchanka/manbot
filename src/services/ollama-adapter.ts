@@ -76,12 +76,14 @@ export class OllamaAdapter {
   private readonly baseUrl: string;
   private readonly timeoutMs: number;
   private readonly retries: number;
+  private readonly numCtx: number;
 
   constructor(options: OllamaAdapterOptions = {}) {
     const c = getConfig().ollama;
     this.baseUrl = options.baseUrl ?? c.baseUrl;
     this.timeoutMs = options.timeoutMs ?? c.timeoutMs;
     this.retries = options.retries ?? c.retries;
+    this.numCtx = c.numCtx;
   }
 
   /**
@@ -94,9 +96,16 @@ export class OllamaAdapter {
   ): Promise<GenerateResult> {
     const timeoutMs = opts.timeoutMs ?? this.timeoutMs;
     const url = `${this.baseUrl}/api/generate`;
-    const body: Record<string, unknown> = { model, prompt, stream: false };
+    const body: Record<string, unknown> = {
+      model,
+      prompt,
+      stream: false,
+      options: {
+        num_ctx: this.numCtx,
+        ...opts.options,
+      },
+    };
     if (opts.keep_alive !== undefined) body.keep_alive = opts.keep_alive;
-    if (opts.options !== undefined) body.options = opts.options;
     const res = await this.fetchWithRetry(url, body, timeoutMs);
     const data = (await res.json()) as {
       response?: string;
@@ -132,9 +141,12 @@ export class OllamaAdapter {
       prompt,
       images: [base64Image],
       stream: false,
+      options: {
+        num_ctx: this.numCtx,
+        ...opts.options,
+      },
     };
     if (opts.keep_alive !== undefined) body.keep_alive = opts.keep_alive;
-    if (opts.options !== undefined) body.options = opts.options;
 
     const res = await this.fetchWithRetry(url, body, timeoutMs);
     const data = (await res.json()) as {
@@ -163,10 +175,17 @@ export class OllamaAdapter {
   ): Promise<ChatResult> {
     const timeoutMs = opts.timeoutMs ?? this.timeoutMs;
     const url = `${this.baseUrl}/api/chat`;
-    const body: Record<string, unknown> = { model, messages, stream: false };
+    const body: Record<string, unknown> = {
+      model,
+      messages,
+      stream: false,
+      options: {
+        num_ctx: this.numCtx,
+        ...opts.options,
+      },
+    };
     if (opts.keep_alive !== undefined) body.keep_alive = opts.keep_alive;
     if (opts.tools) body.tools = opts.tools;
-    if (opts.options !== undefined) body.options = opts.options;
     const res = await this.fetchWithRetry(url, body, timeoutMs);
     const data = (await res.json()) as {
       message?: { role: string; content: string; tool_calls?: ToolCall[] };
@@ -234,9 +253,12 @@ export class OllamaAdapter {
       model,
       messages: messagesWithImage,
       stream: false,
+      options: {
+        num_ctx: this.numCtx,
+        ...opts.options,
+      },
     };
     if (opts.keep_alive !== undefined) body.keep_alive = opts.keep_alive;
-    if (opts.options !== undefined) body.options = opts.options;
 
     const res = await this.fetchWithRetry(url, body, timeoutMs);
     const data = (await res.json()) as {
