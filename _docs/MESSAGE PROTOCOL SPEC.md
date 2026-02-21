@@ -142,6 +142,11 @@ interface Envelope<T = any> {
 ### Logging
 - `event.*`
 
+### File Processing
+- `file.ingest` (telegram-adapter → core): files downloaded and ready for processing; payload: `FileIngestPayload`
+- `file.process` (core → file-processor): single file processing request; payload: `FileProcessRequest`
+- `event.file.processed` (file-processor → logger): fire-and-forget audit event; payload: `FileProcessedEventPayload`
+
 ---
 
 ## Reliability Rules
