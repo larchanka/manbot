@@ -30,14 +30,11 @@ import type {
 
 const PROCESS_NAME = "file-processor";
 
-/** OCR system prompt — model auto-detects text vs. visual-only images. */
+/** OCR system prompt — optimized for glm-ocr as per user feedback. */
 const OCR_PROMPT =
-    "Examine this image carefully. " +
-    "Primary Goal: If it contains readable text (documents, screenshots, receipts, signs, code, etc.), " +
-    "extract ALL text verbatim and return it. " +
-    "Secondary Goal: If it contains no significant text, describe the image in detail (objects, people, scene, colors). " +
-    "Do NOT return generic messages like 'No OCR text extracted'. " +
-    "Return ONLY the extracted text or description — no preamble, no commentary.";
+    "Text Recognition: Extract all text from this image. " +
+    "If it contains tables or figures, describe them precisely. " +
+    "If no text is found, describe the visual content in detail.";
 
 class FileProcessorService extends BaseProcess {
     private readonly ollama: OllamaAdapter;
@@ -64,10 +61,23 @@ class FileProcessorService extends BaseProcess {
                 if (processedFile.content.length > 65536) {
                     processedFile.content = processedFile.content.slice(0, 65536) + "\n\n[...content truncated due to excessive length]";
                 }
-                // Sanity check: Strip anything that looks like a huge base64 or hex string (likely model barf or leaked data)
-                const base64Regex = /[A-Za-z0-9+/]{200,}/g;
-                if (base64Regex.test(processedFile.content)) {
-                    processedFile.content = processedFile.content.replace(base64Regex, "[...large data-string removed...]");
+
+                // Sanity check: Strip anything that looks like a huge base64 or hex string
+                const dataStringRegex = /[A-Za-z0-9+/]{200,}/g;
+                if (dataStringRegex.test(processedFile.content)) {
+                    processedFile.content = processedFile.content.replace(dataStringRegex, "[...large data-string removed...]");
+                }
+
+                // Stutter filter: Detect and clean up extremely repetitive model hallucinations
+                if (processedFile.content.length > 100) {
+                    const words = processedFile.content.split(/\s+/);
+                    if (words.length > 20) {
+                        const uniqueWords = new Set(words.map(w => w.toLowerCase()));
+                        // If more than 70% of words are repeats in a long string, it's likely a loop
+                        if (uniqueWords.size < words.length * 0.3) {
+                            processedFile.content = words.slice(0, 20).join(" ") + "... [Repetitive model output truncated]";
+                        }
+                    }
                 }
             } catch (err) {
                 const msg = err instanceof Error ? err.message : String(err);
@@ -195,7 +205,9 @@ class FileProcessorService extends BaseProcess {
 
         const result = await this.ollama.chatWithImage(messages, ocrModel, req.localPath);
         const content = result.message?.content?.trim() ?? "";
-        process.stderr.write(`[file-processor] [DEBUG] OCR Result for ${req.fileName} (length: ${content.length}): ${content.substring(0, 100).replace(/\n/g, " ")}...\n`);
+
+        // Log basic info for debugging without leaking full sensitive content
+        process.stderr.write(`[file-processor] [DEBUG] OCR Result for ${req.fileName} (len: ${content.length}, words: ${content.split(/\s+/).length}): ${content.substring(0, 150).replace(/\n/g, " ")}...\n`);
 
         return {
             fileId: req.fileId,
