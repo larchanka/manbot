@@ -115,7 +115,11 @@ Ensure `config.json` has a valid **telegram.botToken** and Ollama is running.
 - **Telegram adapter only**: `npm run start:telegram` or `npm run dev:telegram`
 - **Generator (model-router)**: `npm run start:generator`
 
+![Telegram Screenshot](_images/telegram-chat.png | width=300)
+
 Other services (task-memory, logger, planner, executor, critic-agent, rag-service, tool-host, cron-manager) are normally started by the Orchestrator; run them manually only if you are wiring your own pipeline.
+
+![Terminal Screenshot](_images/terminal-run.jpg)
 
 ## Tests
 
@@ -233,6 +237,10 @@ ManBot includes a real-time internal monitoring dashboard with a clean, Notion-i
 ### Access
 The dashboard is automatically started by the Orchestrator and is available at:
 **`http://localhost:3001`**
+
+![Dashboard Screenshot](_images/dashboard-1.png)
+
+![Dashboard Screenshot](_images/dashboard-2.png)
 
 You can configure the port using the `DASHBOARD_PORT` environment variable or by editing `config.json` (planned).
 
