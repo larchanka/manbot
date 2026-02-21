@@ -10,7 +10,7 @@ import TelegramBot from "node-telegram-bot-api";
 import { randomUUID } from "node:crypto";
 import { mkdir, createWriteStream } from "node:fs";
 import { pipeline } from "node:stream/promises";
-import { join } from "node:path";
+import { resolve, extname } from "node:path";
 import { PROTOCOL_VERSION } from "../shared/protocol.js";
 import type { Envelope } from "../shared/protocol.js";
 import { BaseProcess } from "../shared/base-process.js";
@@ -186,7 +186,7 @@ function main(): void {
         }
 
         const cfg = getConfig();
-        const uploadDir = cfg.fileProcessor.uploadDir;
+        const uploadDir = resolve(process.cwd(), cfg.fileProcessor.uploadDir);
         const maxSize = cfg.fileProcessor.maxFileSizeBytes;
         const conversationId = getOrCreateConversationId(chatId);
         const caption = msg.caption?.trim();
@@ -250,12 +250,13 @@ function main(): void {
             if (!filePath) continue;
 
             // Determine local save path
-            const convSubdir = join(uploadDir, conversationId);
+            const convSubdir = resolve(uploadDir, conversationId);
             await new Promise<void>((res, rej) =>
               mkdir(convSubdir, { recursive: true }, (err) => (err ? rej(err) : res())),
             );
-            const localFileName = `${tgFile.fileId}-${tgFile.fileName.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
-            const localPath = join(convSubdir, localFileName);
+            const ext = extname(tgFile.fileName) || (tgFile.mimeType.startsWith("image/") ? ".jpg" : "");
+            const localFileName = `${tgFile.fileId}${ext}`;
+            const localPath = resolve(convSubdir, localFileName);
 
             // Download the file
             const downloadUrl = `https://api.telegram.org/file/bot${cfg.telegram.botToken}/${filePath}`;
@@ -402,7 +403,7 @@ function main(): void {
         // Escape text ONLY if explicitly requested MarkdownV2
         const escapedText = pl.parseMode === "MarkdownV2" ? escapeMarkdownV2(pl.text) : pl.text;
         const opts: TelegramBot.SendMessageOptions = {
-          parse_mode: pl.parseMode ?? "Markdown",
+          parse_mode: pl.parseMode as any,
           ...(pl.silent === true && { disable_notification: true }),
         };
         sendToUser(pl.chatId, escapedText, opts, pl.text);
@@ -416,7 +417,7 @@ function main(): void {
       if (typeof pl.chatId === "number" && typeof pl.text === "string") {
         const escapedText = pl.parseMode === "MarkdownV2" ? escapeMarkdownV2(pl.text) : pl.text;
         const opts: TelegramBot.SendMessageOptions = {
-          parse_mode: pl.parseMode ?? "Markdown",
+          parse_mode: pl.parseMode as any,
         };
         sendToUser(pl.chatId, escapedText, opts, pl.text);
       }
@@ -431,7 +432,7 @@ function main(): void {
         if (typeof r.chatId === "number" && typeof r.text === "string") {
           const escapedText = r.parseMode === "MarkdownV2" ? escapeMarkdownV2(r.text) : r.text;
           const opts: TelegramBot.SendMessageOptions = {
-            parse_mode: r.parseMode ?? "Markdown",
+            parse_mode: r.parseMode as any,
           };
           sendToUser(r.chatId, escapedText, opts, r.text);
         } else if (typeof r.chatId === "number" && r.reminders) {

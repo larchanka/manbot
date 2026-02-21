@@ -14,6 +14,7 @@
 
 import { randomUUID } from "node:crypto";
 import { readFile, unlink } from "node:fs/promises";
+import { resolve } from "node:path";
 import { BaseProcess } from "../shared/base-process.js";
 import type { Envelope } from "../shared/protocol.js";
 import { PROTOCOL_VERSION } from "../shared/protocol.js";
@@ -230,11 +231,12 @@ class FileProcessorService extends BaseProcess {
     // -------------------------------------------------------------------------
 
     private async processAudio(req: FileProcessRequest): Promise<ProcessedFile> {
-        const wavPath = req.localPath.replace(/\.[^.]+$/, "") + "_converted.wav";
+        const absoluteLocalPath = resolve(process.cwd(), req.localPath);
+        const wavPath = absoluteLocalPath.replace(/\.[^.]+$/, "") + "_converted.wav";
         let wavDeleted = false;
 
         try {
-            await convertToWav(req.localPath, wavPath);
+            await convertToWav(absoluteLocalPath, wavPath);
             const transcript = await transcribeAudio(wavPath);
 
             return {
