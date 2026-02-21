@@ -14,6 +14,9 @@ AI-Agent/
 │   ├── _BOARD.md               # Task board (To Do / In Progress / Done)
 │   ├── INSTRUCTIONS.md         # Workflow for task execution
 │   └── TASKS/                  # Task specs (P1-01, P2-01, …)
+├── skills/                     # Dynamic Skills System
+│   ├── CONFIG.md               # Skill manifest and descriptions
+│   └── [skill-name]/           # SKILL.md for each skill
 ├── _docs/
 │   ├── ARCHITECTURE.md         # Architectural patterns
 │   ├── CAPABILITY GRAPH.md     # DAG format and node types
@@ -46,7 +49,8 @@ AI-Agent/
 │   │   ├── logger-service.ts   # event.* → pino file log
 │   │   ├── rag-service.ts     # Embeddings + SQLite; sqlite-vss KNN when available, else dot-product; memory.semantic.*, node.execute semantic_search
 │   │   ├── tool-host.ts        # shell, http_get (Playwright), http_search; sandbox; tool.execute / node.execute tool
-│   │   └── cron-manager.ts    # node-cron + SQLite schedules; event.cron.* to Logger
+│   │   ├── cron-manager.ts    # node-cron + SQLite schedules; event.cron.* to Logger
+│   │   └── dashboard-service.ts # Notion-style web monitoring; reads DBs/logs on demand
 │   └── shared/
 │       ├── config.ts           # Central config: config.json + env overrides
 │       ├── protocol.ts         # Zod schemas: Envelope, Response, Error, Event
@@ -100,6 +104,7 @@ AI-Agent/
 - **RAG Service**: Ollama embed; SQLite-backed document store; **sqlite-vss** for KNN vector search when extension loads (macOS/Linux x64), else in-DB dot-product; configurable `rag.embeddingDimensions` (768); `memory.semantic.insert`, `memory.semantic.search`; search is session-scoped by default to prevent cross-chat leakage; `node.execute` for `semantic_search` returns snippets for downstream nodes.
 - **Tool Host**: Registry of tools (shell, http_get, http_search); sandbox dir from config; `tool.execute` and `node.execute` for type `tool`; shell tool executes commands with sandbox restrictions; browsing supports persistent context (cookies) via `userDataDir`.
 - **Cron Manager**: SQLite schedule table; node-cron; `cron.schedule.add/list/remove`; emits `event.cron.started/completed/failed` to Logger.
+- **Dashboard Service**: Standalone internal monitoring web dashboard; provides real-time overview of tasks, system stats, and event logs via a Notion-inspired UI.
 
 ### Adapters
 
@@ -107,7 +112,7 @@ AI-Agent/
 
 ### Core
 
-- **Orchestrator**: Spawns all processes (task-memory, logger, planner, executor, critic-agent, telegram-adapter, model-router, rag-service, tool-host, cron-manager); multiplexes stdout → route by `to`; resolves pending requests by `correlationId`; implements task pipeline for `task.create` from Telegram: fetches session history (short-term memory) → plan.create → task.create (with conversationId) → plan.execute → telegram.send with result; on `chat.new`: runArchivingPipeline (getTasksByConversationId → format history → summarize → memory.semantic.insert → telegram.send "Archived").
+- **Orchestrator**: Spawns all processes (task-memory, logger, planner, executor, critic-agent, telegram-adapter, model-router, rag-service, tool-host, cron-manager, dashboard); multiplexes stdout → route by `to`; resolves pending requests by `correlationId`; implements task pipeline for `task.create` from Telegram.
 
 ### Data flow (high level)
 
