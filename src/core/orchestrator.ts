@@ -532,6 +532,8 @@ export class Orchestrator {
       enrichedGoal = enrichedGoal.slice(0, MAX_GOAL_CHARS) + "\n\n[...content truncated for context limit]";
     }
 
+    // Run the task pipeline with the enriched goal
+    ConsoleLogger.debug("core", `Running task pipeline with enriched goal (length: ${enrichedGoal.length})`);
     await this.runTaskPipeline(chatId, userId, enrichedGoal, conversationId);
   }
 
