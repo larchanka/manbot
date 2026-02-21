@@ -96,6 +96,28 @@ export interface SkillsConfig {
   skillsDir: string;
 }
 
+export interface WhisperConfig {
+  /** Whisper model to use for transcription (e.g. "base.en", "small", "medium"). */
+  modelName: string;
+  /** Language code for transcription ("auto" for auto-detect). */
+  language: string;
+  /** Directory where Whisper model files are stored (downloaded on first use). */
+  modelDir: string;
+}
+
+export interface FileProcessorConfig {
+  /** Directory where uploaded files are temporarily stored during processing. */
+  uploadDir: string;
+  /** Maximum allowed file size in bytes (default: 52428800 = 50 MB). */
+  maxFileSizeBytes: number;
+  /** Files with text content shorter than this are inlined into the planner goal directly. */
+  textMaxInlineChars: number;
+  /** Ollama model used for image OCR and description. */
+  ocrModel: string;
+  /** Whether image OCR/description is enabled. */
+  ocrEnabled: boolean;
+}
+
 export interface AppConfig {
   ollama: OllamaConfig;
   telegram: TelegramConfig;
@@ -109,6 +131,8 @@ export interface AppConfig {
   browserService: BrowserServiceConfig;
   modelManager: ModelManagerConfig;
   skills: SkillsConfig;
+  whisper: WhisperConfig;
+  fileProcessor: FileProcessorConfig;
 }
 
 const DEFAULT_CONFIG: AppConfig = {
@@ -163,6 +187,18 @@ const DEFAULT_CONFIG: AppConfig = {
   },
   skills: {
     skillsDir: "skills",
+  },
+  whisper: {
+    modelName: "base",
+    language: "auto",
+    modelDir: "data/whisper-models",
+  },
+  fileProcessor: {
+    uploadDir: "data/uploads",
+    maxFileSizeBytes: 52_428_800, // 50 MB
+    textMaxInlineChars: 8_000,
+    ocrModel: "glm-ocr:q8_0",
+    ocrEnabled: true,
   },
 };
 
@@ -233,6 +269,18 @@ function mergeEnv(config: AppConfig): AppConfig {
     },
     skills: {
       skillsDir: process.env.SKILLS_DIR ?? config.skills.skillsDir,
+    },
+    whisper: {
+      modelName: process.env.WHISPER_MODEL_NAME ?? config.whisper.modelName,
+      language: process.env.WHISPER_LANGUAGE ?? config.whisper.language,
+      modelDir: process.env.WHISPER_MODEL_DIR ?? config.whisper.modelDir,
+    },
+    fileProcessor: {
+      uploadDir: process.env.FILE_PROCESSOR_UPLOAD_DIR ?? config.fileProcessor.uploadDir,
+      maxFileSizeBytes: Number(process.env.FILE_PROCESSOR_MAX_FILE_SIZE_BYTES) || config.fileProcessor.maxFileSizeBytes,
+      textMaxInlineChars: Number(process.env.FILE_PROCESSOR_TEXT_MAX_INLINE_CHARS) || config.fileProcessor.textMaxInlineChars,
+      ocrModel: process.env.FILE_PROCESSOR_OCR_MODEL ?? config.fileProcessor.ocrModel,
+      ocrEnabled: process.env.FILE_PROCESSOR_OCR_ENABLED === "false" ? false : config.fileProcessor.ocrEnabled,
     },
   };
 }
