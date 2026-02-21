@@ -333,7 +333,7 @@ export class DashboardService extends BaseProcess {
     }
 
     private getStats() {
-        const stats: any = { tasks: {}, complexity: { low: 0, medium: 0, high: 0, unknown: 0 }, rag: 0, cron: 0, logs: [], maxNodes: 0 };
+        const stats: any = { tasks: {}, complexity: { small: 0, medium: 0, high: 0, unknown: 0 }, rag: 0, cron: 0, logs: [], maxNodes: 0 };
         try {
             const tdb = new Database(path.join(ROOT_DIR, 'data/tasks.sqlite'), { readonly: true });
             tdb.prepare('SELECT status, count(*) as c FROM tasks GROUP BY status').all().forEach((r: any) => stats.tasks[r.status] = r.c);
