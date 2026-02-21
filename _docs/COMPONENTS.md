@@ -146,6 +146,19 @@ Stores:
 
 ---
 
+### File Processor
+- `src/services/file-processor.ts` — independent `BaseProcess` subprocess
+- Receives `file.process` envelopes from Core Orchestrator
+- Routes by file category:
+  - **text** → reads file content; inlines if short, returns `text_long` if long (orchestrator handles RAG)
+  - **image** → OCR/description via `OllamaAdapter.chatWithImage()` with configured vision model (`glm-ocr:q8_0`)
+  - **audio** → `convertToWav()` (ffmpeg-static) → `transcribeAudio()` (Whisper local inference)
+  - **unknown** → returns `ignored` with reason
+- Deletes every uploaded file from disk after processing (succeed or fail)
+- Emits `event.file.processed` audit event for logging
+
+---
+
 ## Integration Flow
 
 1. Telegram → Core
@@ -165,3 +178,15 @@ Stores:
 2. Core: get tasks by `conversationId`, format history, call model-router `summarize`, insert summary into RAG
 3. Core → Telegram Adapter: "Archived. Conversation summary has been stored..."
 
+### File Upload Flow
+
+1. User sends file(s) to Telegram (photo, document, voice, audio)
+2. Telegram Adapter: detect attachment type, guard against max size, download to `data/uploads/<conversationId>/`
+3. Telegram Adapter → Core: `file.ingest` envelope (FileIngestPayload)
+4. Core Orchestrator: notify user "Processing N file(s)..."
+5. Core → File Processor: `file.process` per file (parallel, Promise.allSettled)
+6. File Processor: routes by category, calls Ollama/Whisper/readFile, deletes original, responds
+7. Core: collects results, builds `enrichedGoal` (inline context + transcript + caption)
+   - Long text files (> textMaxInlineChars) → indexLongText() → model-router chunk summaries → rag-service
+8. Core → Planner → Executor: runs normal task pipeline with `enrichedGoal`
+9. Response sent to Telegram
