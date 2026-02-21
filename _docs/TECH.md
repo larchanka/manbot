@@ -72,6 +72,14 @@
 
 ---
 
+## File Processing
+
+- **nodejs-whisper** (`^0.2.9`) — local Whisper speech-to-text inference; model auto-downloaded on first use
+- **ffmpeg-static** (`^5.3.0`) — bundled ffmpeg binary for audio format conversion (any → 16 kHz mono WAV)
+- **OllamaAdapter.chatWithImage()** — multimodal image OCR/description via configured vision model
+
+---
+
 ## Dev Tools
 
 - tsup or esbuild

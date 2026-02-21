@@ -13,6 +13,7 @@ A multi-process AI platform with type-safe IPC and capability-graph execution. U
 - **Session-Scoped RAG**: Memory searches are session-scoped by default to prevent context leakage after `/new`, with an optional `global` scope.
 - **Telegram adapter**: Commands `/start`, `/task`, `/new`, `/help`; session tracking and conversation archiving; robust message delivery with automatic plain-text fallback.
 - **Reminder System**: Schedule one-time or recurring reminders via natural language; cron-based scheduling with Telegram delivery
+- **File Processing**: Upload photos, documents, voice notes, or audio files via Telegram. Images are OCR'd locally (Ollama vision model), audio is transcribed locally (Whisper), and text files are inlined or chunked into RAG — all without any cloud calls.
 - **Monitoring Dashboard**: A Notion-style internal web dashboard for real-time tracking of tasks, system stats, and event logs.
 
 ## Requirements
@@ -61,6 +62,13 @@ ollama pull mistral
    - **modelManager.mediumModelKeepAlive** — Keep-alive for medium model (default: `"30m"`)
    - **modelManager.largeModelKeepAlive** — Keep-alive for large model after on-demand use (default: `"60m"`)
    - **modelManager.warmupPrompt** — Minimal prompt sent during warmup (default: `"hello"`)
+   - **whisper.modelName** — Whisper model for transcription (default: `"base.en"`; downloaded on first use)
+   - **whisper.language** — Transcription language, `"auto"` for auto-detect (default: `"auto"`)
+   - **fileProcessor.uploadDir** — Temp directory for uploaded files (default: `"data/uploads"`)
+   - **fileProcessor.maxFileSizeBytes** — Max upload size allowed (default: `52428800` = 50 MB)
+   - **fileProcessor.textMaxInlineChars** — Files shorter than this are inlined in the goal (default: `8000`)
+   - **fileProcessor.ocrModel** — Ollama vision model for image OCR (default: `"glm-ocr:q8_0"`)
+   - **fileProcessor.ocrEnabled** — Enable/disable image OCR (default: `true`)
 
 Environment variables override `config.json`. Supported env vars:
 
@@ -72,6 +80,8 @@ Environment variables override `config.json`. Supported env vars:
 - `MODEL_ROUTER_SMALL`, `MODEL_ROUTER_MEDIUM`, `MODEL_ROUTER_LARGE`
 - `BROWSER_SERVICE_HEADLESS`, `BROWSER_SERVICE_TIMEOUT`, `BROWSER_SERVICE_ENABLE_STEALTH`, `BROWSER_SERVICE_REUSE_CONTEXT`, `BROWSER_SERVICE_USER_DATA_DIR`
 - `MODEL_MANAGER_SMALL_KEEP_ALIVE`, `MODEL_MANAGER_MEDIUM_KEEP_ALIVE`, `MODEL_MANAGER_LARGE_KEEP_ALIVE`, `MODEL_MANAGER_WARMUP_PROMPT`
+- `WHISPER_MODEL_NAME`, `WHISPER_LANGUAGE`, `WHISPER_MODEL_DIR`
+- `FILE_PROCESSOR_UPLOAD_DIR`, `FILE_PROCESSOR_MAX_FILE_SIZE_BYTES`, `FILE_PROCESSOR_TEXT_MAX_INLINE_CHARS`, `FILE_PROCESSOR_OCR_MODEL`, `FILE_PROCESSOR_OCR_ENABLED`
 
 `config.json` is gitignored; do not commit secrets.
 
@@ -250,15 +260,50 @@ You can configure the port using the `DASHBOARD_PORT` environment variable or by
 
 ## Project layout
 
-- **src/core/** — Core Orchestrator (process spawning, message routing, task pipeline)
+- **src/core/** — Core Orchestrator (process spawning, message routing, task pipeline, file ingest)
 - **src/agents/** — Planner, Executor, Critic; **prompts/** for system prompts (planner, critic, summarizer)
-- **src/adapters/** — Telegram adapter
-- **src/services/** — Task Memory, Logger, Ollama adapter, Model Router, Generator, RAG (SQLite), Tool Host, Cron Manager, Dashboard Service
-- **src/shared/** — Protocol (Zod schemas), BaseProcess, graph-utils, config
+- **src/adapters/** — Telegram adapter (including file detection and download)
+- **src/services/** — Task Memory, Logger, Ollama adapter (with vision), Model Router, Generator, RAG (SQLite), Tool Host, Cron Manager, Dashboard Service, **File Processor**
+- **src/utils/** — Console logger, audio-converter (ffmpeg-static), whisper-transcriber (nodejs-whisper)
+- **src/shared/** — Protocol (Zod schemas), BaseProcess, graph-utils, config, **file-protocol**
 - **_docs/** — Architecture and protocol specs
 - **_board/** — Task board and task specs
 
 See **AI-Agent.md** for full folder/file structure and architecture. The agent users interact with is **🧬 ManBot**.
+
+## File Processing
+
+ManBot can process file attachments sent directly in Telegram — no cloud services required, all processing runs locally.
+
+### Supported Types
+
+| Type | Telegram attachment | Processing |
+|---|---|---|
+| **Text** | Any document (`.txt`, `.md`, `.json`, `.pdf`, etc.) | Content read directly; short files inlined into goal, long files chunked + summarised + indexed in RAG |
+| **Image** | Photo or image document | OCR/description via Ollama vision model (`glm-ocr:q8_0`) |
+| **Voice / Audio** | Voice message or audio file | Converted to WAV (ffmpeg-static) → transcribed (OpenAI Whisper, local) |
+| **Video** | Video or video note | ⚠️ Not supported yet |
+
+### How it works
+
+1. Send any supported file to the bot, optionally with a caption as your instruction
+2. The bot downloads the file locally to `data/uploads/`
+3. Processing runs in the dedicated `file-processor` subprocess:
+   - Images → `OllamaAdapter.chatWithImage()` with the configured OCR model
+   - Audio → `convertToWav()` (ffmpeg-static) → `transcribeAudio()` (Whisper `base.en` by default)
+   - Text → `readFile()`, check length against `textMaxInlineChars`
+4. Extracted content is injected into the planner goal as structured context
+5. Long text files are chunked, each chunk summarised, and summaries stored in RAG for semantic retrieval
+6. The original file is deleted from disk after processing
+
+### First-use note for audio
+The Whisper model (~75 MB for `base.en`) is automatically downloaded on first voice/audio transcription. Retry if the first request fails — the model downloads in the background.
+
+### Requirements for image OCR
+Pull the vision model from Ollama before use:
+```bash
+ollama pull glm-ocr:q8_0
+```
 
 ## Troubleshooting
 
