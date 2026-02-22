@@ -133,6 +133,19 @@ export class Orchestrator {
 
     ConsoleLogger.warn("core", `Process [${name}] exited unexpectedly (code ${code}, signal ${signal}). Restarting in ${delay}ms... (attempt ${entry.restartCount + 1})`);
 
+    const dashboard = this.children.get("dashboard");
+    if (dashboard?.stdin.writable) {
+      dashboard.stdin.write(JSON.stringify({
+        id: randomUUID(),
+        timestamp: Date.now(),
+        from: "core",
+        to: "dashboard",
+        type: "event.system.process_restart",
+        version: "1.0",
+        payload: { processName: name, restartCount: entry.restartCount + 1 }
+      }) + "\n");
+    }
+
     setTimeout(() => {
       this.spawnProcess(name, entry.scriptPath, entry.restartCount + 1);
     }, delay);
@@ -233,7 +246,19 @@ export class Orchestrator {
   private handleCoreMessage(fromProcess: string, envelope: Envelope): void {
     const type = envelope.type;
     const payload = envelope.payload as Record<string, unknown>;
-    ConsoleLogger.info("core", `handleCoreMessage: type=${type}, fromProcess=${fromProcess}`);
+
+    if (type !== "event.system.heartbeat") {
+      ConsoleLogger.info("core", `handleCoreMessage: type=${type}, fromProcess=${fromProcess}`);
+    }
+
+    if (type === "event.system.heartbeat") {
+      const dashboard = this.children.get("dashboard");
+      if (dashboard?.stdin.writable && fromProcess !== "dashboard") {
+        dashboard.stdin.write(JSON.stringify({ ...envelope, to: "dashboard" }) + "\n");
+      }
+      return;
+    }
+
     if (type === "chat.new" && fromProcess === "telegram-adapter") {
       const chatId = payload.chatId as number | undefined;
       const conversationId = payload.conversationId as string | undefined;
