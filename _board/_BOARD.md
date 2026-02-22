@@ -2,119 +2,147 @@
 
 ## To Do
 
-### AO-01 Standardize BaseProcess Lifecycle
-  - tags: [todo, infra, core]
-  - defaultExpanded: true
-    ```md
-    Add health checks, heartbeats, and standardized status reporting to BaseProcess.
-    Source: _board/TASKS/AO-01_BASE_PROCESS_LIFECYCLE.md
-    ```
 
-### AO-02 Implement Process Supervisor
-  - tags: [todo, orchestrator, core]
-  - defaultExpanded: false
-    ```md
-    Implement monitoring and auto-restart logic for child processes in Orchestrator.
-    Source: _board/TASKS/AO-02_PROCESS_SUPERVISOR.md
-    ```
-
-### AO-03 CLI Interactive Mode
-  - tags: [todo, shared, devtools]
-  - defaultExpanded: false
-    ```md
-    Support --interactive flag for manual service testing via stdin.
-    Source: _board/TASKS/AO-03_CLI_INTERACTIVE_MODE.md
-    ```
-
-### AO-04 Standalone Router Service
-  - tags: [todo, service, bus]
-  - defaultExpanded: false
-    ```md
-    Create a lightweight dedicated process for message routing.
-    Source: _board/TASKS/AO-04_ROUTER_SERVICE.md
-    ```
-
-### AO-05 Integrate Router in Orchestrator
-  - tags: [todo, orchestrator, bus]
-  - defaultExpanded: false
-    ```md
-    Refactor Orchestrator to use the Router for IPC distribution.
-    Source: _board/TASKS/AO-05_INTEGRATE_ROUTER.md
-    ```
-
-### AO-06 Dashboard Process Health Monitoring
-  - tags: [todo, dashboard, admin]
-  - defaultExpanded: false
-    ```md
-    Extend UI to show status, restarts, and metrics for all child processes.
-    Source: _board/TASKS/AO-06_DASHBOARD_HEALTH.md
-    ```
-
-### AO-07 Real-time IPC Log Viewer
-  - tags: [todo, dashboard, debug]
-  - defaultExpanded: false
-    ```md
-    Add a live log streaming interface to dashboard for IPC debugging.
-    Source: _board/TASKS/AO-07_IPC_LOG_VIEWER.md
-    ```
-
-### AO-08 SQLite Schema Update for Cron
-  - tags: [todo, services, database]
-  - defaultExpanded: false
-    ```md
-    Add ai_query task type support to the cron database.
-    Source: _board/TASKS/AO-08_CRON_SCHEMA_UPDATE.md
-    ```
-
-### AO-09 CronManager AI Query Support
-  - tags: [todo, services, cron]
-  - defaultExpanded: false
-    ```md
-    Implement event.cron.ai_query emission for scheduled AI tasks.
-    Source: _board/TASKS/AO-09_CRON_AI_QUERY.md
-    ```
-
-### AO-10 Orchestrator Synthetic Task Pipeline
-  - tags: [todo, orchestrator, ai]
-  - defaultExpanded: false
-    ```md
-    Connect cron AI events to the full agent task pipeline.
-    Source: _board/TASKS/AO-10_SYNTHETIC_TASK_PIPELINE.md
-    ```
-
-### AO-11 Cron Job Management UI
-  - tags: [todo, dashboard, cron]
-  - defaultExpanded: false
-    ```md
-    Add UI section to manage scheduled AI queries.
-    Source: _board/TASKS/AO-11_CRON_MGMT_UI.md
-    ```
-
-### AO-12 Test: Supervisor Auto-Restart
-  - tags: [todo, testing, qa]
-  - defaultExpanded: false
-    ```md
-    Automated verification of process restart capability.
-    Source: _board/TASKS/AO-12_TEST_AUTO_RESTART.md
-    ```
-
-### AO-13 Test: Cron-Driven AI Task
-  - tags: [todo, testing, integration]
-  - defaultExpanded: false
-    ```md
-    Verify full flow from cron trigger to autonomous AI execution.
-    Source: _board/TASKS/AO-13_TEST_CRON_AI_FLOW.md
-    ```
-
-### AO-14 E2E Verification
-  - tags: [todo, testing, e2e]
-  - defaultExpanded: false
-    ```md
-    Final manual verification of the new architecture and features.
-    Source: _board/TASKS/AO-14_E2E_VERIFICATION.md
-    ```
 
 ## In Progress
 
+### FP-15 End-to-End Verification
+  - tags: [in-progress, qa, e2e]
+  - defaultExpanded: true
+    ```md
+    Manual verification of all file types, edge cases, and failure scenarios via Telegram.
+    Source: FP-15_E2E_VERIFICATION.md
+    ```
+
+
+
 ## Done
-*(Previous tasks moved to archive or deleted as per request)*
+
+### FP-14 Update Documentation
+  - tags: [done, docs]
+  - defaultExpanded: false
+    ```md
+    Updated COMPONENTS.md, TECH.md, MESSAGE PROTOCOL SPEC.md, and README.md.
+    Source: FP-14_UPDATE_DOCS.md
+    ```
+
+### FP-13 Upload Directory Init and Cleanup
+  - tags: [done, orchestrator, infra]
+  - defaultExpanded: false
+    ```md
+    initUploadDirectory() creates upload dir and purges orphaned files (>1h) on startup.
+    Source: FP-13_UPLOAD_DIR_CLEANUP.md
+    ```
+
+### FP-12 Update Planner Prompt for File Context
+  - tags: [done, planner, prompt]
+  - defaultExpanded: false
+    ```md
+    Added <file_context_awareness> block to PLANNER_SYSTEM_PROMPT.
+    Documents text/image/audio/indexed file fences and guidance.
+    Source: FP-12_PLANNER_PROMPT_FILE_CONTEXT.md
+    ```
+
+### FP-11 Long Text Chunking and RAG Indexing
+  - tags: [done, orchestrator, rag]
+  - defaultExpanded: false
+    ```md
+    indexLongText(): 2k-char chunks, 3-at-a-time summarisation, RAG insert with metadata.
+    Source: FP-11_LONG_TEXT_RAG_INDEXING.md
+    ```
+
+### FP-10 Orchestrator — file.ingest Handler
+  - tags: [done, orchestrator, core]
+  - defaultExpanded: false
+    ```md
+    handleFileIngest(): parallel processing, enrichedGoal builder, 32k char cap, user warnings.
+    Source: FP-10_ORCHESTRATOR_FILE_INGEST.md
+    ```
+
+### FP-09 Telegram Adapter — File Detection and Download
+  - tags: [done, telegram, adapter]
+  - defaultExpanded: false
+    ```md
+    Detects photo/document/voice/audio, size-guards, downloads, classifies, emits file.ingest.
+    Source: FP-09_TELEGRAM_FILE_DOWNLOAD.md
+    ```
+
+### FP-08 Register File Processor in Orchestrator
+  - tags: [done, orchestrator, infra]
+  - defaultExpanded: false
+    ```md
+    Added 'file-processor' to PROCESS_SCRIPTS; spawned at startup alongside other services.
+    Source: FP-08_REGISTER_FILE_PROCESSOR.md
+    ```
+
+### FP-07 Build the File Processor Service
+  - tags: [done, service, core]
+  - defaultExpanded: false
+    ```md
+    file-processor.ts BaseProcess: routes text/image/audio/unknown, deletes files, emits audit events.
+    Source: FP-07_FILE_PROCESSOR_SERVICE.md
+    ```
+
+
+### FP-06 Implement Whisper Transcription Utility
+  - tags: [done, util, audio]
+  - defaultExpanded: false
+    ```md
+    Created src/utils/whisper-transcriber.ts. transcribeAudio() with 5-min timeout,
+    auto-download, first-run UX. Build clean, 156 tests pass.
+    Source: FP-06_WHISPER_TRANSCRIBER.md
+    ```
+
+### FP-05 Implement Audio Conversion Utility
+  - tags: [done, util, audio]
+  - defaultExpanded: false
+    ```md
+    Created src/utils/audio-converter.ts. convertToWav() with ffmpeg-static,
+    60s timeout, stderr capture. Build clean, 156 tests pass.
+    Source: FP-05_AUDIO_CONVERTER.md
+    ```
+
+### FP-04 Extend OllamaAdapter with Vision Support
+  - tags: [done, service, ollama]
+  - defaultExpanded: false
+    ```md
+    Added chatWithImage() with base64 image injection into Ollama multimodal messages.
+    Reuses fetchWithRetry. Build clean, 156 tests pass.
+    Source: FP-04_OLLAMA_VISION.md
+    ```
+
+### FP-03 Define File Processing Protocol Types
+  - tags: [done, infra, protocol]
+  - defaultExpanded: false
+    ```md
+    Created src/shared/file-protocol.ts with all shared types and classifyMimeType() helper.
+    Updated MESSAGE PROTOCOL SPEC.md. Build and tests pass.
+    Source: FP-03_PROTOCOL_TYPES.md
+    ```
+
+### FP-02 Add Config Types and Defaults
+  - tags: [done, infra, config]
+  - defaultExpanded: false
+    ```md
+    Added WhisperConfig and FileProcessorConfig interfaces, defaults, env var overrides.
+    Updated config.json.example. All 156 tests pass.
+    Source: FP-02_CONFIG_TYPES.md
+    ```
+
+### FP-01 Add npm Dependencies
+  - tags: [done, infra, deps]
+  - defaultExpanded: false
+    ```md
+    Installed nodejs-whisper ^0.2.9, ffmpeg-static ^5.3.0, @types/ffmpeg-static ^5.1.0.
+    Both confirmed ESM-compatible. Build passes.
+    Source: FP-01_ADD_DEPENDENCIES.md
+    ```
+
+### DB-07 Orchestrator Integration & Notion UI
+  - tags: [done, ui, orchestrator]
+  - defaultExpanded: false
+    ```md
+    Converted the dashboard to a TypeScript service, integrated it into the Orchestrator, added IPC logging, and implemented a Notion-like UI with light/dark theme support.
+
+    Source: src/services/dashboard-service.ts
+    ```
