@@ -57,6 +57,17 @@ export class Orchestrator {
   private readonly pending = new Map<string, { resolve: PendingResolve; reject: PendingReject }>();
   private readonly modelManager: ModelManagerService;
 
+  // Concurrency & Queueing
+  private taskQueue: Array<{
+    chatId: number;
+    userId: number;
+    goal: string;
+    conversationId?: string | undefined;
+    initialTaskId?: string | undefined;
+    priority: number;
+  }> = [];
+  private activeTaskCount = 0;
+
   constructor() {
     const ollama = new OllamaAdapter();
     const modelRouter = new ModelRouter();
@@ -264,20 +275,70 @@ export class Orchestrator {
       const userId = payload.userId as number | undefined;
       if (goal != null && chatId != null) {
         const conversationId = payload.conversationId as string | undefined;
-        this.runTaskPipeline(chatId, userId ?? 0, goal, conversationId).catch((err) => {
-          ConsoleLogger.error("core", "Task pipeline error", err instanceof Error ? err : String(err), envelope);
-          this.sendToTelegram(chatId, `Error: ${err instanceof Error ? err.message : String(err)}`);
+        // Route to task queue (priority 1 for human)
+        this.enqueueTask({
+          chatId,
+          userId: userId ?? 0,
+          goal,
+          conversationId,
+          priority: 1
         });
       }
+      return;
     }
 
     // FP-10: Handle file ingest from Telegram adapter
     if (type === "file.ingest" && fromProcess === "telegram-adapter") {
-      const p = (payload as unknown) as FileIngestPayload;
+      const p = payload as unknown as FileIngestPayload;
       this.handleFileIngest(p).catch((err) => {
         ConsoleLogger.error("core", "File ingest error", err instanceof Error ? err : String(err), envelope);
         this.sendToTelegram(p.chatId, `File processing error: ${err instanceof Error ? err.message : String(err)}`);
       });
+      return;
+    }
+  }
+
+  private enqueueTask(task: {
+    chatId: number;
+    userId: number;
+    goal: string;
+    conversationId?: string | undefined;
+    initialTaskId?: string | undefined;
+    priority: number;
+  }): void {
+    const limit = getConfig().maxConcurrentTasks;
+
+    if (limit === 0) {
+      // Infinite concurrency
+      this.runTaskPipeline(task.chatId, task.userId, task.goal, task.conversationId, task.initialTaskId);
+      return;
+    }
+
+    // Insert into queue with priority (Human priority 1 > Synthetic priority 0)
+    if (task.priority > 0) {
+      // Human goals go to the front
+      this.taskQueue.unshift(task);
+    } else {
+      // Synthetic goals go to the back
+      this.taskQueue.push(task);
+    }
+
+    this.processQueue();
+  }
+
+  private processQueue(): void {
+    const limit = getConfig().maxConcurrentTasks;
+    if (limit === 0) return; // Managed by direct execution in enqueueTask
+
+    while (this.activeTaskCount < limit && this.taskQueue.length > 0) {
+      const task = this.taskQueue.shift()!;
+      this.activeTaskCount++;
+
+      this.runTaskPipeline(task.chatId, task.userId, task.goal, task.conversationId, task.initialTaskId)
+        .finally(() => {
+          this.activeTaskCount--;
+          this.processQueue();
+        });
     }
   }
 
@@ -801,10 +862,14 @@ export class Orchestrator {
 
     ConsoleLogger.info("core", `Triggering autonomous AI task: "${query}" for chatId ${chatIdNum} (taskId: ${taskId})`);
 
-    // Route to task pipeline
-    this.runTaskPipeline(chatIdNum, userIdNum, query, String(chatIdNum), taskId).catch((err) => {
-      ConsoleLogger.error("core", "Autonomous task pipeline error", err instanceof Error ? err : String(err), envelope);
-      this.sendToTelegram(chatIdNum, `Autonomous Task Failed: ${err instanceof Error ? err.message : String(err)}`);
+    // Route to task queue (priority 0 for synthetic)
+    this.enqueueTask({
+      chatId: chatIdNum,
+      userId: userIdNum,
+      goal: query,
+      conversationId: String(chatIdNum),
+      initialTaskId: taskId,
+      priority: 0
     });
   }
 
@@ -1075,4 +1140,6 @@ function main(): void {
   });
 }
 
-main();
+if (typeof require !== 'undefined' && require.main === module) {
+  main();
+}
