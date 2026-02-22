@@ -26,10 +26,10 @@ describe("CronManager Integration Tests", () => {
     mkdirSync(TEST_DIR, { recursive: true });
     dbPath = freshDbPath();
     sentMessages = [];
-    
+
     // Create manager and capture sent messages
     manager = new CronManager(dbPath);
-    
+
     // Override send to capture messages
     const originalSend = manager.send.bind(manager);
     manager.send = (envelope: Envelope) => {
@@ -247,7 +247,7 @@ describe("CronManager Integration Tests", () => {
     it("emits event.cron.completed with reminder payload when cron job runs", async () => {
       // Use a cron expression that runs every second for testing
       const cronExpr = "* * * * * *"; // Every second (6-field format)
-      
+
       const addRequest = createEnvelope("cron.schedule.add", {
         cronExpr,
         taskType: "reminder",
@@ -295,7 +295,7 @@ describe("CronManager Integration Tests", () => {
 
     it("emits event.cron.completed with structured fields for reminder task type", async () => {
       const cronExpr = "* * * * * *";
-      
+
       const addRequest = createEnvelope("cron.schedule.add", {
         cronExpr,
         taskType: "reminder",
@@ -333,7 +333,7 @@ describe("CronManager Integration Tests", () => {
 
     it("emits event.cron.completed without reminder fields for non-reminder tasks", async () => {
       const cronExpr = "* * * * * *";
-      
+
       const addRequest = createEnvelope("cron.schedule.add", {
         cronExpr,
         taskType: "generic",
@@ -362,6 +362,46 @@ describe("CronManager Integration Tests", () => {
       expect(payload.reminderMessage).toBeUndefined();
       expect(payload.taskType).toBe("generic");
       expect(payload.payload).toMatchObject({ someData: "value" });
+
+      // Clean up
+      const removeRequest = createEnvelope("cron.schedule.remove", { id: scheduleId });
+      (manager as any).handleEnvelope(removeRequest);
+    });
+
+    it("emits event.cron.ai_query when ai_query task type runs", async () => {
+      const cronExpr = "* * * * * *";
+
+      const addRequest = createEnvelope("cron.schedule.add", {
+        cronExpr,
+        taskType: "ai_query",
+        payload: {
+          chatId: "chat-ai",
+          reminderMessage: "What is the weather today?",
+          userId: "user-ai",
+        },
+      });
+      (manager as any).handleEnvelope(addRequest);
+      const addResponse = sentMessages.find(
+        (msg) => msg.correlationId === addRequest.id && msg.type === "response",
+      );
+      const scheduleId = (addResponse?.payload as { result: { id: string } })?.result?.id;
+      sentMessages.length = 0;
+
+      await new Promise((resolve) => setTimeout(resolve, 2100));
+
+      // Find ai_query events for this specific schedule
+      const aiQueryEvents = sentMessages.filter(
+        (msg) =>
+          msg.type === "event.cron.ai_query" &&
+          (msg.payload as { scheduleId: string })?.scheduleId === scheduleId,
+      );
+      expect(aiQueryEvents.length).toBeGreaterThan(0);
+
+      const event = aiQueryEvents[0];
+      const payload = event?.payload as Record<string, unknown>;
+      expect(payload.chatId).toBe("chat-ai");
+      expect(payload.query).toBe("What is the weather today?");
+      expect(payload.userId).toBe("user-ai");
 
       // Clean up
       const removeRequest = createEnvelope("cron.schedule.remove", { id: scheduleId });
