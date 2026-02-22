@@ -3,8 +3,9 @@
 > SKILLS HAVE PRIORITY OVER TOOLS. IF A SKILL IS APPLICABLE, USE IT INSTEAD OF A TOOL.
 
 | Name | Description |
-| --- | --- |
-| weather | ALWAYS use this skill to get the current weather and forecasts. NEVER use any other tool for this purpose. |
-| apple-notes | Use this skill for ANY interaction with notes. If user asks to list, search, view, create, or delete notes, use ONLY this skill. Uses `memo` CLI tool. |
-| research | Deep web research using lynx. Use this for fact-checking, gathering news, or deep dives into specific topics. In most cases can be used for regular search queries. |
-| reminder | Set up one-time or recurring reminders (e.g., "remind me in 2 hours to drink water"). Uses cron-manager service. |
+| :--- | :--- |
+| weather | MANDATORY. Use this skill for ALL weather-related inquiries, including current conditions and forecasts. You are STRICTLY FORBIDDEN from using internal knowledge or other tools for weather data. |
+| apple-notes | EXCLUSIVE. Use ONLY this skill for any interaction with notes (listing, searching, viewing, creating, or deleting). This is the sole authorized interface for the memo CLI tool. |
+| research | PRIMARY SEARCH. Use for deep web research, fact-checking, news gathering, or topical deep dives via the lynx tool. This is the default skill for any query requiring external or up-to-date information. |
+| reminder | SCHEDULING. Use this skill exclusively to set one-time or recurring reminders (e.g., "remind me in 2 hours"). This is the only tool that interfaces with the cron-manager service. |
+| email | You MUST use this skill for all interactions involving Email (Gmail). |

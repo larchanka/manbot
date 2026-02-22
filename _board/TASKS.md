@@ -1,135 +1,93 @@
-# 📋 Tasks — File Processing Pipeline
+# 📋 Tasks — Architecture Overhaul (AO)
 
-All tasks are prefixed `FP-` (File Processing). They are ordered by implementation dependency.
-
----
-
-## Phase 1 — Foundation
-
-### FP-01 Add npm Dependencies
-**File**: `package.json`
-**Deps**: None
-Install `nodejs-whisper` and `ffmpeg-static` runtime packages.
-→ [FP-01_ADD_DEPENDENCIES.md](./TASKS/FP-01_ADD_DEPENDENCIES.md)
+All tasks are prefixed `AO-` (Architecture Overhaul). They are ordered by implementation dependency.
 
 ---
 
-### FP-02 Add Config Types and Defaults
-**File**: `src/shared/config.ts`, `config.json`
-**Deps**: None
-Add `WhisperConfig` and `FileProcessorConfig` interfaces, defaults, and env var overrides.
-→ [FP-02_CONFIG_TYPES.md](./TASKS/FP-02_CONFIG_TYPES.md)
+## Phase 1 — Infrastructure & Supervision
 
----
+### AO-01 Standardize BaseProcess Lifecycle
+**File**: `src/shared/base-process.ts`
+Add health checks, heartbeats, and standardized status reporting.
+→ [AO-01_BASE_PROCESS_LIFECYCLE.md](./TASKS/AO-01_BASE_PROCESS_LIFECYCLE.md)
 
-### FP-03 Define File Processing Protocol Types
-**File**: `src/shared/protocol.ts`
-**Deps**: FP-02
-Define `FileDescriptor`, `FileIngestPayload`, `FileProcessRequest`, `ProcessedFile` interfaces.
-→ [FP-03_PROTOCOL_TYPES.md](./TASKS/FP-03_PROTOCOL_TYPES.md)
-
----
-
-## Phase 2 — Core Services
-
-### FP-04 Extend OllamaAdapter with Vision Support
-**File**: `src/services/ollama-adapter.ts`
-**Deps**: FP-02, FP-03
-Add `chatWithImage(messages, model, imagePath)` method using Ollama multimodal API.
-→ [FP-04_OLLAMA_VISION.md](./TASKS/FP-04_OLLAMA_VISION.md)
-
----
-
-### FP-05 Implement Audio Conversion Utility
-**File**: `src/utils/audio-converter.ts`
-**Deps**: FP-01, FP-02
-`convertToWav(inputPath, outputPath)` — wraps `ffmpeg-static` to produce 16kHz mono WAV.
-→ [FP-05_AUDIO_CONVERTER.md](./TASKS/FP-05_AUDIO_CONVERTER.md)
-
----
-
-### FP-06 Implement Whisper Transcription Utility
-**File**: `src/utils/whisper-transcriber.ts`
-**Deps**: FP-01, FP-02, FP-05
-`transcribeAudio(wavPath)` — calls `nodejs-whisper` with configured model and language.
-→ [FP-06_WHISPER_TRANSCRIBER.md](./TASKS/FP-06_WHISPER_TRANSCRIBER.md)
-
----
-
-## Phase 3 — File Processor Process
-
-### FP-07 Build the File Processor Service
-**File**: `src/services/file-processor.ts`
-**Deps**: FP-03, FP-04, FP-05, FP-06
-New `BaseProcess` subprocess. Routes files by category: text read, image OCR, audio transcription, unknown ignored. Deletes files after processing.
-→ [FP-07_FILE_PROCESSOR_SERVICE.md](./TASKS/FP-07_FILE_PROCESSOR_SERVICE.md)
-
----
-
-### FP-08 Register File Processor in Orchestrator
+### AO-02 Implement Process Supervisor
 **File**: `src/core/orchestrator.ts`
-**Deps**: FP-07
-Add `file-processor` to `PROCESS_SCRIPTS` and spawn it at startup.
-→ [FP-08_REGISTER_FILE_PROCESSOR.md](./TASKS/FP-08_REGISTER_FILE_PROCESSOR.md)
+Implement monitoring and auto-restart logic for child processes.
+→ [AO-02_PROCESS_SUPERVISOR.md](./TASKS/AO-02_PROCESS_SUPERVISOR.md)
+
+### AO-03 CLI Interactive Mode
+**File**: `src/shared/base-process.ts`
+Support `--interactive` mode to allow manual stdin/stdout testing of any service.
+→ [AO-03_CLI_INTERACTIVE_MODE.md](./TASKS/AO-03_CLI_INTERACTIVE_MODE.md)
 
 ---
 
-## Phase 4 — Telegram Integration
+## Phase 2 — Message Bus & Router
 
-### FP-09 Telegram Adapter — File Detection and Download
-**File**: `src/adapters/telegram-adapter.ts`
-**Deps**: FP-02, FP-03
-Detect photo/document/voice/audio, download to sandbox, classify MIME type, emit `file.ingest`.
-→ [FP-09_TELEGRAM_FILE_DOWNLOAD.md](./TASKS/FP-09_TELEGRAM_FILE_DOWNLOAD.md)
+### AO-04 Standalone Router Service
+**File**: `src/core/router-service.ts`
+Create a lightweight dedicated process for message routing.
+→ [AO-04_ROUTER_SERVICE.md](./TASKS/AO-04_ROUTER_SERVICE.md)
 
----
-
-### FP-10 Orchestrator — file.ingest Handler and Context Building
+### AO-05 Integrate Router in Orchestrator
 **File**: `src/core/orchestrator.ts`
-**Deps**: FP-08, FP-09
-Handle `file.ingest`: dispatch to file-processor in parallel, collect results, warn on failures, build enrichedGoal, call `runTaskPipeline`.
-→ [FP-10_ORCHESTRATOR_FILE_INGEST.md](./TASKS/FP-10_ORCHESTRATOR_FILE_INGEST.md)
+Refactor Orchestrator to use the Router for IPC distribution.
+→ [AO-05_INTEGRATE_ROUTER.md](./TASKS/AO-05_INTEGRATE_ROUTER.md)
 
 ---
 
-### FP-11 Long Text Chunking, Summarization, and RAG Indexing
+## Phase 3 — Cron-Driven AI Queries
+
+### AO-08 SQLite Schema Update for Cron
+**File**: `src/services/cron-manager.ts`
+Add `ai_query` task type support to the database and types.
+→ [AO-08_CRON_SCHEMA_UPDATE.md](./TASKS/AO-08_CRON_SCHEMA_UPDATE.md)
+
+### AO-09 CronManager AI Query Support
+**File**: `src/services/cron-manager.ts`
+Implement `event.cron.ai_query` emission when scheduled query fires.
+→ [AO-09_CRON_AI_QUERY.md](./TASKS/AO-09_CRON_AI_QUERY.md)
+
+### AO-10 Orchestrator Synthetic Task Pipeline
 **File**: `src/core/orchestrator.ts`
-**Deps**: FP-10, rag-service
-Chunk long text → summarize each chunk via model-router → insert summaries into rag-service with file metadata.
-→ [FP-11_LONG_TEXT_RAG_INDEXING.md](./TASKS/FP-11_LONG_TEXT_RAG_INDEXING.md)
+Implement `handleCronAiQuery` to trigger full AI task pipeline from cron events.
+→ [AO-10_SYNTHETIC_TASK_PIPELINE.md](./TASKS/AO-10_SYNTHETIC_TASK_PIPELINE.md)
 
 ---
 
-## Phase 5 — Planner Integration and Cleanup
+## Phase 4 — Monitoring & UI
 
-### FP-12 Update Planner Prompt for File Context Awareness
-**File**: `src/agents/prompts/planner.ts`
-**Deps**: FP-10
-Add `<file_context_instructions>` section and two new few-shot examples (inline context, indexed file).
-→ [FP-12_PLANNER_PROMPT_FILE_CONTEXT.md](./TASKS/FP-12_PLANNER_PROMPT_FILE_CONTEXT.md)
+### AO-06 Dashboard Process Health Monitoring
+**File**: `src/services/dashboard-service.ts`
+Extend UI to show status, restarts, and metrics for all child processes.
+→ [AO-06_DASHBOARD_HEALTH.md](./TASKS/AO-06_DASHBOARD_HEALTH.md)
 
----
+### AO-07 Real-time IPC Log Viewer
+**File**: `src/services/dashboard-service.ts`
+Add a live log streaming interface to view cross-process communication.
+→ [AO-07_IPC_LOG_VIEWER.md](./TASKS/AO-07_IPC_LOG_VIEWER.md)
 
-### FP-13 Upload Directory Initialization and Cleanup
-**File**: `src/core/orchestrator.ts`
-**Deps**: FP-02, FP-07
-Create upload dir at startup; clear orphaned files (older than 1h) at startup.
-→ [FP-13_UPLOAD_DIR_CLEANUP.md](./TASKS/FP-13_UPLOAD_DIR_CLEANUP.md)
-
----
-
-## Phase 6 — Documentation and Verification
-
-### FP-14 Update Documentation
-**Files**: `_docs/COMPONENTS.md`, `_docs/TECH.md`, `_docs/MESSAGE PROTOCOL SPEC.md`, `README.md`
-**Deps**: FP-07, FP-09, FP-10
-Document the new subsystem in all architecture and user-facing docs.
-→ [FP-14_UPDATE_DOCS.md](./TASKS/FP-14_UPDATE_DOCS.md)
+### AO-11 Cron Job Management UI
+**File**: `src/services/dashboard-service.ts`
+Add UI section to list, add, and manage scheduled AI queries.
+→ [AO-11_CRON_MGMT_UI.md](./TASKS/AO-11_CRON_MGMT_UI.md)
 
 ---
 
-### FP-15 End-to-End Verification
-**Files**: Manual testing
-**Deps**: FP-01 through FP-14
-Manual verification of all file types: text (short + long), image (OCR + description), audio (voice + mp3), mixed, and edge/failure cases.
-→ [FP-15_E2E_VERIFICATION.md](./TASKS/FP-15_E2E_VERIFICATION.md)
+## Phase 5 — Verification
+
+### AO-12 Test: Supervisor Auto-Restart
+**File**: `src/tests/supervisor.test.ts`
+Verify that killing a process triggers an automatic restart by the supervisor.
+→ [AO-12_TEST_AUTO_RESTART.md](./TASKS/AO-12_TEST_AUTO_RESTART.md)
+
+### AO-13 Test: Cron-Driven AI Task
+**File**: `src/tests/cron-ai.test.ts`
+Verify the full flow from cron trigger to task completion and Telegram notification.
+→ [AO-13_TEST_CRON_AI_FLOW.md](./TASKS/AO-13_TEST_CRON_AI_FLOW.md)
+
+### AO-14 E2E Verification
+**File**: Manual
+Final validation of all "Advanced Architecture" features.
+→ [AO-14_E2E_VERIFICATION.md](./TASKS/AO-14_E2E_VERIFICATION.md)

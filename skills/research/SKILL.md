@@ -24,8 +24,9 @@ Web research is a multi-step process. Do not stop at the first page of search re
 2.  **Search**:  Execute search queries one by one using `lynx -dump` command.
 3.  **Analyze**: Scan the search results after each query. Identify 2-10 most promising links. If needed go to the next page of search results.
 4.  **Browse**: Visit those links one by one.
-5.  **Recurse**: If a page contains a "References" section or promising links to deeper info, follow them.
-6.  **Summarize**: Gather all key findings and provide a comprehensive response.
+5.  **Data Analysis**: Analyze the data you have collected. Identify key findings and insights. Find missing information and plan additional search queries. Repeat this step until you have enough information to fulfill the user's request.
+6.  **Recurse**: If a page contains a "References" section or promising links to deeper info, follow them.
+7.  **Summarize**: Gather all key findings, insights, valuable details and provide a comprehensive response.
 
 **!!! IMPORTANT !!!** If you think that you dont have enough information to answer the user's request, you can generate new search queries and repeat the process.
 

@@ -245,20 +245,31 @@ const CSS = `
   .node-map {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 12px;
     margin-top: 8px;
     align-items: center;
+  }
+  .node-stage {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    padding: 4px;
+    border-radius: 6px;
+    border: 1px dashed var(--border);
+    background: rgba(0,0,0,0.02);
   }
   .node-chip {
     font-size: 11px;
     padding: 2px 8px;
     border-radius: 4px;
     border: 1px solid var(--border);
-    background: var(--subtle);
+    background: var(--bg);
     color: var(--text-muted);
     display: flex;
     align-items: center;
     gap: 6px;
+    white-space: nowrap;
   }
   .node-chip.running {
     border-color: var(--primary);
@@ -275,6 +286,17 @@ const CSS = `
     border-color: var(--error);
     color: var(--error);
     background: rgba(223, 42, 95, 0.05);
+  }
+
+  .goal-text {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: 500;
+    line-height: 1.4;
+    max-height: 2.8em;
   }
 
   .btn-refresh {
@@ -333,6 +355,43 @@ const CSS = `
       padding: 40px 20px;
     }
   }
+
+  /* Tooltip bubble using data-title */
+  [data-title] {
+    position: relative;
+  }
+
+  [data-title]:hover::after {
+    content: attr(data-title);
+    position: absolute;
+    bottom: 125%;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 6px 10px;
+    background: #1e1e1e;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 500;
+    border-radius: 6px;
+    white-space: nowrap;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    border: 1px solid rgba(255,255,255,0.1);
+    pointer-events: none;
+  }
+
+  [data-title]:hover::before {
+    content: '';
+    position: absolute;
+    bottom: 115%;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 5px;
+    border-style: solid;
+    border-color: #1e1e1e transparent transparent transparent;
+    z-index: 1001;
+    pointer-events: none;
+  }
 `;
 
 export class DashboardService extends BaseProcess {
@@ -349,7 +408,6 @@ export class DashboardService extends BaseProcess {
       this.logEvent('info', `Dashboard server started on port ${PORT}`);
     });
 
-    // Send initial log announcement to orchestrator
     this.send({
       id: randomUUID(),
       timestamp: Date.now(),
@@ -401,7 +459,7 @@ export class DashboardService extends BaseProcess {
         const files = fs.readdirSync(logDir)
           .filter(f => f.startsWith('events-') && f.endsWith('.log'))
           .map(f => f.replace('events-', '').replace('.log', ''))
-          .sort((a, b) => b.localeCompare(a)); // Newest first
+          .sort((a, b) => b.localeCompare(a));
 
         res.setHeader('Content-Type', 'application/json');
         res.end(JSON.stringify(files));
@@ -487,11 +545,13 @@ export class DashboardService extends BaseProcess {
 
       stats.pendingTasks = tdb.prepare(`
         SELECT t.id, t.goal, t.status, t.complexity, t.updated_at,
-        (SELECT json_group_array(json_object('id', id, 'type', type, 'status', status)) FROM task_nodes WHERE task_id = t.id ORDER BY id) as nodes
+        (SELECT json_group_array(json_object('id', id, 'type', type, 'status', status, 'input', input)) FROM task_nodes WHERE task_id = t.id ORDER BY started_at ASC) as nodes,
+        (SELECT json_group_array(json_object('from', from_node, 'to', to_node)) FROM task_edges WHERE task_id = t.id) as edges
         FROM tasks t WHERE t.status IN (?, ?) ORDER BY t.updated_at DESC
       `).all('pending', 'running').map((t: any) => ({
         ...t,
-        nodes: JSON.parse(t.nodes || '[]')
+        nodes: JSON.parse(t.nodes || '[]'),
+        edges: JSON.parse(t.edges || '[]')
       }));
 
       tdb.close();
@@ -665,6 +725,44 @@ export class DashboardService extends BaseProcess {
     <script>
         let allLogs = [];
         let showingAll = false;
+        let lastDashboardState = {};
+
+        function getGraphLayout(nodes, edges) {
+            if (!nodes || nodes.length === 0) return [];
+            const nodeMap = {};
+            nodes.forEach(n => nodeMap[n.id] = { ...n, incoming: 0, outgoing: [], level: 0 });
+            (edges || []).forEach(e => {
+                if (nodeMap[e.from] && nodeMap[e.to]) {
+                    nodeMap[e.from].outgoing.push(e.to);
+                    nodeMap[e.to].incoming++;
+                }
+            });
+            
+            // Assign levels
+            let changed = true;
+            let iterations = 0;
+            while (changed && iterations < 100) {
+                changed = false;
+                iterations++;
+                nodes.forEach(n => {
+                    const current = nodeMap[n.id];
+                    current.outgoing.forEach(nextId => {
+                        const next = nodeMap[nextId];
+                        if (next.level <= current.level) {
+                            next.level = current.level + 1;
+                            changed = true;
+                        }
+                    });
+                });
+            }
+            
+            const levels = [];
+            Object.values(nodeMap).forEach(n => {
+                if (!levels[n.level]) levels[n.level] = [];
+                levels[n.level].push(n);
+            });
+            return levels.filter(l => l && l.length > 0);
+        }
 
         function fmtDate(d) {
             const date = new Date(d);
@@ -695,6 +793,11 @@ export class DashboardService extends BaseProcess {
             const lt = document.getElementById("lt");
             const logsToRender = showingAll ? allLogs : allLogs.slice(0, 20);
             
+            // Check if logs actually changed before rendering
+            const currentLogsHash = JSON.stringify(logsToRender);
+            if (lastDashboardState.logsHash === currentLogsHash) return;
+            lastDashboardState.logsHash = currentLogsHash;
+
             lt.innerHTML = logsToRender.map(l => {
                 const tc = l.type?.includes("failed") ? "error" : (l.type?.includes("completed") ? "success" : "warning");
                 const typeLabel = (l.type || "EVENT").split(".").pop();
@@ -727,83 +830,125 @@ export class DashboardService extends BaseProcess {
             fetch(\`/api/stats\${date ? '?date=' + date : ''}\`)
                 .then(r => r.json())
                 .then(d => {
-                    const total = Object.values(d.tasks).reduce((a, b) => a + b, 0);
-                    document.getElementById("task-total").textContent = total;
-                    document.getElementById("rag-count").textContent = d.rag;
-                    document.getElementById("cron-count").textContent = d.cron;
-                    document.getElementById("max-nodes").textContent = d.maxNodes || 0;
-                    
-                    document.getElementById("time-first").textContent = d.timing.first;
-                    document.getElementById("time-last").textContent = d.timing.last;
-                    document.getElementById("time-avg").textContent = d.timing.avg;
+                    // 1. Update Stats
+                    const statsChanged = 
+                        lastDashboardState.rag !== d.rag || 
+                        lastDashboardState.cron !== d.cron || 
+                        lastDashboardState.maxNodes !== d.maxNodes ||
+                        JSON.stringify(lastDashboardState.tasks) !== JSON.stringify(d.tasks) ||
+                        JSON.stringify(lastDashboardState.timing) !== JSON.stringify(d.timing);
 
-                    const modelsSection = document.getElementById("model-list");
-                    modelsSection.innerHTML = Object.entries(d.models)
-                        .filter(([k]) => ['small', 'medium', 'large'].includes(k))
-                        .map(([k, v]) => \`<div class="model-pill"><span>\${k.toUpperCase()}:</span><b>\${v}</b></div>\`)
-                        .join("");
-                    
-                    document.getElementById("c1").innerHTML = d.charts.taskDonut;
-                    document.getElementById("c2").innerHTML = d.charts.compBar;
+                    if (statsChanged) {
+                        const total = Object.values(d.tasks).reduce((a, b) => a + b, 0);
+                        document.getElementById("task-total").textContent = total;
+                        document.getElementById("rag-count").textContent = d.rag;
+                        document.getElementById("cron-count").textContent = d.cron;
+                        document.getElementById("max-nodes").textContent = d.maxNodes || 0;
+                        document.getElementById("time-first").textContent = d.timing.first;
+                        document.getElementById("time-last").textContent = d.timing.last;
+                        document.getElementById("time-avg").textContent = d.timing.avg;
+                        
+                        lastDashboardState.rag = d.rag;
+                        lastDashboardState.cron = d.cron;
+                        lastDashboardState.maxNodes = d.maxNodes;
+                        lastDashboardState.tasks = d.tasks;
+                        lastDashboardState.timing = d.timing;
+                    }
 
-                    // Active Queue
-                    const qt = document.getElementById("qt");
-                    const qs = document.getElementById("active-queue-section");
-                    if (d.pendingTasks && d.pendingTasks.length > 0) {
-                        qs.style.display = "block";
-                        qt.innerHTML = d.pendingTasks.map(t => {
-                            const isRunning = t.status === 'running';
-                            const tc = isRunning ? "running" : "warning";
-                            const indicator = isRunning ? '<div class="pulse"></div>' : '';
-                            return \`<tr>
-                                <td style="padding-left: 20px; color: var(--text-muted); white-space: nowrap; vertical-align: top; padding-top: 15px; border-bottom: none;">\${fmtDate(t.updated_at)}</td>
-                                <td style="white-space: nowrap; vertical-align: top; padding-top: 15px; border-bottom: none;"><span class="tag \${tc}">\${indicator}\${t.status.toUpperCase()}</span></td>
-                                <td style="white-space: nowrap; vertical-align: top; padding-top: 15px; border-bottom: none;"><span class="tag complexity-\${t.complexity || 'unknown'}">\${(t.complexity || 'unknown').toUpperCase()}</span></td>
-                                <td style="padding-top: 15px; border-bottom: none;">
-                                    <div style="font-weight: 500; word-break: break-word;">\${t.goal}</div>
-                                </td>
-                                <td style="padding-right: 20px; text-align: right; vertical-align: top; padding-top: 15px; border-bottom: none;">
-                                    <button onclick="failTask('\${t.id}')" style="cursor: pointer; font-size: 11px; padding: 2px 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--error);">FAIL</button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td colspan="3" style="border-top: none;"></td>
-                                <td colspan="2" style="padding-bottom: 20px; border-top: none;">
-                                    <div class="node-map">
-                                        \${(t.nodes || []).map(n => {
-                                            const activeIndicator = n.status === 'running' ? '<div class="pulse"></div>' : '';
-                                            const typeLabel = n.type.split('.').pop().toUpperCase();
-                                            return \`<div class="node-chip \${n.status}">\${activeIndicator}\${typeLabel}</div>\`;
-                                        }).join('<span style="color: var(--border); font-size: 10px;">➔</span>')}
-                                    </div>
-                                </td>
-                            </tr>\`;
-                        }).join("");
-                    } else {
-                        qs.style.display = "none";
+                    // 2. Update Models
+                    const modelsHash = JSON.stringify(d.models);
+                    if (lastDashboardState.modelsHash !== modelsHash) {
+                        const modelsSection = document.getElementById("model-list");
+                        modelsSection.innerHTML = Object.entries(d.models)
+                            .filter(([k]) => ['small', 'medium', 'large'].includes(k))
+                            .map(([k, v]) => \`<div class="model-pill"><span>\${k.toUpperCase()}:</span><b>\${v}</b></div>\`)
+                            .join("");
+                        lastDashboardState.modelsHash = modelsHash;
                     }
                     
+                    // 3. Update Charts
+                    const chartsHash = JSON.stringify(d.charts);
+                    if (lastDashboardState.chartsHash !== chartsHash) {
+                        document.getElementById("c1").innerHTML = d.charts.taskDonut;
+                        document.getElementById("c2").innerHTML = d.charts.compBar;
+                        lastDashboardState.chartsHash = chartsHash;
+                    }
+
+                    // 4. Update Active Queue
+                    const queueHash = JSON.stringify(d.pendingTasks);
+                    if (lastDashboardState.queueHash !== queueHash) {
+                        const qt = document.getElementById("qt");
+                        const qs = document.getElementById("active-queue-section");
+                        if (d.pendingTasks && d.pendingTasks.length > 0) {
+                            qs.style.display = "block";
+                            qt.innerHTML = d.pendingTasks.map(t => {
+                                const isRunning = t.status === 'running';
+                                const tc = isRunning ? "running" : "warning";
+                                const indicator = isRunning ? '<div class="pulse"></div>' : '';
+                                return \`<tr>
+                                    <td style="padding-left: 20px; color: var(--text-muted); white-space: nowrap; vertical-align: top; padding-top: 15px; border-bottom: none;">\${fmtDate(t.updated_at)}</td>
+                                    <td style="white-space: nowrap; vertical-align: top; padding-top: 15px; border-bottom: none;"><span class="tag \${tc}">\${indicator}\${t.status.toUpperCase()}</span></td>
+                                    <td style="white-space: nowrap; vertical-align: top; padding-top: 15px; border-bottom: none;"><span class="tag complexity-\${t.complexity || 'unknown'}">\${(t.complexity || 'unknown').toUpperCase()}</span></td>
+                                    <td style="padding-top: 15px; border-bottom: none;">
+                                        <div class="goal-text" data-title="\${t.goal.replace(/"/g, '&quot;')}">\${t.goal}</div>
+                                    </td>
+                                    <td style="padding-right: 20px; text-align: right; vertical-align: top; padding-top: 15px; border-bottom: none;">
+                                        <button onclick="failTask('\${t.id}')" style="cursor: pointer; font-size: 11px; padding: 2px 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--error);">FAIL</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td colspan="5" style="padding-left: 20px; padding-right: 20px; padding-bottom: 20px; border-top: none;">
+                                        <div class="node-map">
+                                            \${(() => {
+                                                const levels = getGraphLayout(t.nodes || [], t.edges || []);
+                                                return levels.map(level => \`
+                                                    <div class="node-stage">
+                                                        \${level.map(n => {
+                                                            const activeIndicator = n.status === 'running' ? '<div class="pulse"></div>' : '';
+                                                            const typeLabel = n.type.split('.').pop().toUpperCase();
+                                                            let chipAttr = '';
+                                                            if (n.type === 'skill' && n.input) {
+                                                                try {
+                                                                    const input = typeof n.input === 'string' ? JSON.parse(n.input) : n.input;
+                                                                    const skillName = input.skillName || input.skill;
+                                                                    if (skillName) chipAttr = \` data-title="Skill: \${skillName}"\`;
+                                                                } catch(e) {}
+                                                            }
+                                                            return \`<div class="node-chip \${n.status}"\${chipAttr}>\${activeIndicator}\${typeLabel}</div>\`;
+                                                        }).join('')}
+                                                    </div>
+                                                \`).join('<span style="color: var(--border); font-size: 14px; font-weight: 700;">➔</span>');
+                                            })()}
+                                        </div>
+                                    </td>
+                                </tr>\`;
+                            }).join("");
+                        } else {
+                            qs.style.display = "none";
+                        }
+                        lastDashboardState.queueHash = queueHash;
+                    }
+                    
+                    // 5. Update Logs
                     allLogs = d.logs;
                     renderLogs();
                 });
         }
 
-// Initial load
-fetch("/api/log-files")
-  .then(r => r.json())
-  .then(files => {
-    const dateSelect = document.getElementById("log-date-select");
-    const today = new Date().toISOString().split('T')[0];
-
-    // Add today if not in files
-    if (!files.includes(today)) {
-      files.unshift(today);
-    }
-
-    dateSelect.innerHTML = files.map(f => \`<option value="\${f}" \${f === today ? 'selected' : ''}>\${f}</option>\`).join("");
+        // Initial load
+        fetch("/api/log-files")
+            .then(r => r.json())
+            .then(files => {
+                const dateSelect = document.getElementById("log-date-select");
+                const today = new Date().toISOString().split('T')[0];
+                
+                if (!files.includes(today)) {
+                    files.unshift(today);
+                }
+                
+                dateSelect.innerHTML = files.map(f => \`<option value="\${f}" \${f === today ? 'selected' : ''}>\${f}</option>\`).join("");
                 updateDashboard();
                 
-                // Auto-refresh every 5 seconds
                 setInterval(updateDashboard, 5000);
             });
     </script>

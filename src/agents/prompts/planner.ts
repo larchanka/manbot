@@ -209,6 +209,25 @@ User: "think of a 3-day workout plan and save it to my notes"
     { "from": "gen-plan", "to": "save-notes" }
   ]
 }
+## Example: Email/Calendar
+User: "check my inbox for unread messages"
+{
+  "taskId": "task-gog-01",
+  "complexity": "small",
+  "reflectionMode": "OFF",
+  "nodes": [
+    {
+      "id": "check-mail",
+      "type": "skill",
+      "service": "executor",
+      "input": {
+        "skillName": "gog",
+        "task": "check my inbox for unread messages"
+      }
+    }
+  ],
+  "edges": []
+}
 </examples>`;
 
 export interface PlannerPromptOptions {
@@ -230,6 +249,12 @@ export function buildPlannerPrompt(userMessage: string, options?: PlannerPromptO
 [CRITICAL] Use these instead of raw tools whenever possible:
 ${options.skills.map(s => `- **${s.name}**: ${s.description}`).join("\n")}
 </available_skills>
+<skill_variables>
+${Object.entries(process.env)
+        .filter(([key]) => key.startsWith("SKILL_"))
+        .map(([key, value]) => `${key}: ${value}`)
+        .join("\n")}
+</skill_variables>
 
 <skill_node_template>
 {
