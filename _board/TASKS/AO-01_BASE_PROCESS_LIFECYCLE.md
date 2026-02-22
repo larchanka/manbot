@@ -1,14 +1,12 @@
 # AO-01 Standardize BaseProcess Lifecycle
 
 ## Context
-Every child process should follow a strict lifecycle protocol to ensure the Supervisor can monitor health.
+Independent processes need a standardized way to report health to the supervisor.
 
 ## Proposed Changes
-- [ ] Implement `status` enum in `BaseProcess`.
-- [ ] Add `heartbeat` mechanism (emit `event.system.heartbeat` periodically).
-- [ ] Add `getMetrics()` method to report memory/resource usage.
-- [ ] Ensure all existing services benefit from these changes.
+- [ ] Implement `status` enum: `starting`, `ready`, `degraded`, `stopping`.
+- [ ] Add `heartbeat()` method in `BaseProcess` that emits `event.system.heartbeat` periodically.
+- [ ] Add basic resource reporting (memory usage) in the heartbeat.
 
 ## Verification
-- Unit tests for lifecycle transitions.
-- Verify heartbeat events in logs.
+- Run a service and observe heartbeat events on the IPC bus.

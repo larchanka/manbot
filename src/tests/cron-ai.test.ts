@@ -34,7 +34,7 @@ describe("Cron-to-AI Flow (E2E Mocked)", () => {
         orchestrator = new Orchestrator();
 
         // Mock child processes for PIPELINE
-        const mockChild = (name: string) => ({
+        const mockChild = (_name: string) => ({
             stdin: { writable: true, write: vi.fn() },
             cp: { pid: randomUUID() },
             scriptPath: "mock.js",
@@ -50,7 +50,7 @@ describe("Cron-to-AI Flow (E2E Mocked)", () => {
         orchestrator.children.set("model-router", mockChild("model-router"));
 
         // Mock sendAndWait to return successful responses from these mock processes
-        orchestrator.sendAndWait = vi.fn().mockImplementation((target: any, type: string, payload: any) => {
+        orchestrator.sendAndWait = vi.fn().mockImplementation((_target: any, type: string, _payload: any) => {
             if (type === "plan.create") {
                 return Promise.resolve({
                     payload: {

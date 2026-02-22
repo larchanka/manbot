@@ -3,47 +3,6 @@
 ## To Do
 
 
-
-### AO-08 Dashboard Health View
-  - tags: [todo, dashboard]
-  - defaultExpanded: false
-    ```md
-    Show real-time status of all child processes.
-    Source: _board/TASKS/AO-08_DASHBOARD_HEALTH.md
-    ```
-
-### AO-09 Live IPC Log Streamer
-  - tags: [todo, dashboard, debug]
-  - defaultExpanded: false
-    ```md
-    Implement live internal bus traffic monitoring.
-    Source: _board/TASKS/AO-09_IPC_LOG_STREAMER.md
-    ```
-
-### AO-10 Cron management UI
-  - tags: [todo, dashboard, cron]
-  - defaultExpanded: false
-    ```md
-    Manage AI query cron jobs from the UI.
-    Source: _board/TASKS/AO-10_CRON_MGMT_UI.md
-    ```
-
-### AO-11 Test: Auto-Restart logic
-  - tags: [todo, testing, qa]
-  - defaultExpanded: false
-    ```md
-    Verify process recovery and backoff.
-    Source: _board/TASKS/AO-11_TEST_AUTO_RESTART.md
-    ```
-
-### AO-12 Test: Cron-to-AI E2E
-  - tags: [todo, testing, integration]
-  - defaultExpanded: false
-    ```md
-    E2E integration for scheduled AI tasks.
-    Source: _board/TASKS/AO-12_TEST_CRON_AI_FLOW.md
-    ```
-
 ### AO-13 Final Verification Walkthrough
   - tags: [todo, testing, e2e]
   - defaultExpanded: false
@@ -55,6 +14,26 @@
 ## In Progress
 
 ## Done
+
+### AO-12 Test: Cron-to-AI E2E
+- Status: Completed
+- Commit: 5e2ab2c
+- Date: 2026-02-22
+
+### AO-11 Test: Auto-Restart logic
+- Status: Completed
+- Commit: f147bb7
+- Date: 2026-02-22
+
+### AO-09 Live IPC Log Streamer
+- Status: Completed
+- Commit: dbe54c2
+- Date: 2026-02-22
+
+### AO-08 Dashboard Health View
+- Status: Completed
+- Commit: dac2aeb
+- Date: 2026-02-22
 
 ### AO-03 CLI Interactive Mode
 - Status: Completed
