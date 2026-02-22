@@ -1140,6 +1140,9 @@ function main(): void {
   });
 }
 
-if (typeof require !== 'undefined' && require.main === module) {
+const isESMMain = typeof import.meta !== 'undefined' && import.meta.url && process.argv[1] === fileURLToPath(import.meta.url);
+const isCJSMain = typeof require !== 'undefined' && require.main === module;
+
+if (isESMMain || isCJSMain) {
   main();
 }
