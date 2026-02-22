@@ -1,14 +1,13 @@
 # AO-02 Implement Process Supervisor
 
 ## Context
-The Orchestrator currently spawns processes but doesn't actively manage their lifecycle or recover from crashes.
+Orchestrator needs to ensure system uptime by monitoring and restarting child processes.
 
 ## Proposed Changes
-- [ ] Implement a `Supervisor` module within the Orchestrator.
-- [ ] Track child process uptime and exit codes.
-- [ ] Implement auto-restart logic (with backoff).
-- [ ] Emit `event.system.process_restart` for observability.
+- [ ] Enhance child process tracking to include spawn time and restart counts.
+- [ ] Detect unexpected process exits and trigger auto-restart.
+- [ ] Implement exponential backoff for processes that fail repeatedly.
 
 ## Verification
-- Kill a child process (e.g., `model-router`) and verify it restarts automatically.
-- Check logs for restart events.
+- sigkill a service process and verify Orchestrator restarts it.
+- Observe restart events in the debug logs.

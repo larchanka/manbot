@@ -30,4 +30,6 @@ To ensure a structured and consistent development process, ManBot must follow th
 - Clear any specific status tags or update them as appropriate for the completed state.
 
 ## 7. Iteration
+- Verify `_BOARD.md` is correctly updated.
+- Read `_board/INSTRUCTIONS.md`.
 - Proceed to the next task in the `## To Do` column and repeat the process.

@@ -1,13 +1,12 @@
 # AO-03 CLI Interactive Mode
 
 ## Context
-Debugging IPC is hard. Services should be testable via direct stdin.
+Enable easy manual testing of any service without running the full orchestrator.
 
 ## Proposed Changes
-- [ ] Detect `--interactive` flag in `main()` of services.
-- [ ] When in interactive mode, use a simpler `readline` interface for manual input.
-- [ ] Pretty-print outgoing envelopes to stderr for human readability.
+- [ ] Add `--interactive` flag support to `BaseProcess`.
+- [ ] When active, provide a prompt for manual JSONL input.
+- [ ] Enable colorful, human-readable output to stderr for responses.
 
 ## Verification
-- Run `node dist/services/rag-service.js --interactive` and manually type a JSON envelope.
-- Verify response is printed correctly.
+- Run `node dist/services/rag-service.js --interactive` and manually test semantic search.
