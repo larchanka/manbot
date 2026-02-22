@@ -1,7 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { BaseProcess } from "../base-process.js";
-import { envelopeSchema } from "../../protocol.js";
-
 describe("BaseProcess", () => {
     let bp: BaseProcess;
     const processName = "test-process";
@@ -53,7 +51,7 @@ describe("BaseProcess", () => {
 
         await new Promise(resolve => setTimeout(resolve, 50));
 
-        const line = stdoutSpy.mock.calls[0][0].toString();
+        const line = stdoutSpy.mock.calls[0]?.[0]?.toString() || "{}";
         const env = JSON.parse(line);
 
         expect(env.payload.memory).toBeDefined();

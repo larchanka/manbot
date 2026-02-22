@@ -34,6 +34,7 @@ export class BaseProcess extends EventEmitter {
   private heartbeatTimer: NodeJS.Timeout | null = null;
   private readonly heartbeatInterval: number;
   private readonly startTime: number;
+  private interactive = false;
 
   constructor(options: BaseProcessOptions) {
     super();
@@ -49,9 +50,27 @@ export class BaseProcess extends EventEmitter {
     if (this.running) return;
     this.running = true;
     this.status = "ready";
+    this.interactive = process.argv.includes("--interactive");
 
-    this.rl = createInterface({ input: process.stdin, terminal: false });
-    this.rl.on("line", (line: string) => this.handleLine(line));
+    this.rl = createInterface({
+      input: process.stdin,
+      output: this.interactive ? process.stderr : undefined,
+      prompt: this.interactive ? "\x1b[36m[Interactive Mode] Enter JSONL:\x1b[0m\n> " : "",
+      terminal: this.interactive
+    });
+
+    if (this.interactive) {
+      this.rl.prompt();
+    }
+
+    this.rl.on("line", (line: string) => {
+      this.handleLine(line);
+      if (this.interactive && this.rl) {
+        this.rl.setPrompt("> ");
+        this.rl.prompt();
+      }
+    });
+
     this.rl.on("close", () => this.handleClose());
 
     this.startHeartbeat();
@@ -136,8 +155,16 @@ export class BaseProcess extends EventEmitter {
     try {
       const raw = JSON.parse(trimmed) as unknown;
       const envelope = envelopeSchema.parse(raw) as Envelope;
+
+      if (this.interactive) {
+        process.stderr.write(`\x1b[32m[RECV]\x1b[0m \x1b[33m[${envelope.type}]\x1b[0m \x1b[34m<- ${envelope.from}\x1b[0m\n`);
+      }
+
       this.handleEnvelope(envelope);
     } catch (error) {
+      if (this.interactive) {
+        process.stderr.write(`\x1b[31m[Parse Error]\x1b[0m ${error instanceof Error ? error.message : String(error)}\n`);
+      }
       this.handleParseError(line, error);
     }
   }
@@ -155,6 +182,18 @@ export class BaseProcess extends EventEmitter {
     const parsed = envelopeSchema.parse(envelope) as Envelope;
     const line = JSON.stringify(parsed) + "\n";
     process.stdout.write(line);
+
+    if (this.interactive && parsed.type !== "event.system.heartbeat") {
+      const typeStr = `\x1b[33m[${parsed.type}]\x1b[0m`;
+      const toStr = `\x1b[34m-> ${parsed.to}\x1b[0m`;
+      let payloadStr = "";
+      try {
+        payloadStr = JSON.stringify(parsed.payload, null, 2);
+      } catch {
+        payloadStr = String(parsed.payload);
+      }
+      process.stderr.write(`\n\x1b[36m[SEND]\x1b[0m ${typeStr} ${toStr}\n${payloadStr}\n> `);
+    }
   }
 
   /**

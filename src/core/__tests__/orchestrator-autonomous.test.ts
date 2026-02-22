@@ -9,7 +9,8 @@ vi.mock("../../shared/config.js", () => ({
         ollama: { baseUrl: "http://localhost:11434" },
         modelRouter: { plannerComplexity: "small" },
         taskMemory: { dbPath: ":memory:" },
-        cron: { dbPath: ":memory:" }
+        cron: { dbPath: ":memory:" },
+        maxConcurrentTasks: 0
     })
 }));
 

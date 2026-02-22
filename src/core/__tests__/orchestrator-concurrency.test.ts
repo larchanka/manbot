@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { Orchestrator } from '../orchestrator';
-import { getConfig } from '../../shared/config';
+import { Orchestrator } from '../orchestrator.js';
+import { getConfig } from '../../shared/config.js';
 
 // Mock dependencies
 vi.mock('../../shared/config', () => ({
