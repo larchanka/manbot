@@ -77,19 +77,19 @@ function formatProcessName(processName: string): string {
  */
 function formatEnvelope(envelope: Envelope): string {
   const parts: string[] = [];
-  
+
   // from → to
   const fromColor = getProcessColor(envelope.from);
   const toColor = getProcessColor(envelope.to);
   parts.push(`${fromColor(envelope.from)} → ${toColor(envelope.to)}`);
-  
+
   // type
   parts.push(`type=${colors.purple(envelope.type)}`);
-  
+
   // correlationId or id
   const cid = envelope.correlationId ?? envelope.id;
   parts.push(`cid=${colors.gray(cid.substring(0, 8))}`);
-  
+
   return parts.join(" ");
 }
 
@@ -100,7 +100,7 @@ function formatError(error: Error | string): string {
   if (typeof error === "string") {
     return colors.red(error);
   }
-  
+
   let output = colors.red(error.message);
   if (error.stack) {
     output += "\n" + colors.gray(error.stack);
@@ -125,17 +125,17 @@ export class ConsoleLogger {
     const timestamp = formatTimestamp();
     const levelStr = formatLevel(level);
     const processStr = formatProcessName(processName);
-    
+
     let output = `${timestamp} ${levelStr} ${processStr} ${message}`;
-    
+
     if (envelope) {
       output += ` | ${formatEnvelope(envelope)}`;
     }
-    
+
     if (error) {
       output += `\n${formatError(error)}`;
     }
-    
+
     // Write to stderr for all logs to avoid interfering with stdout IPC
     process.stderr.write(output + "\n");
   }
@@ -176,22 +176,22 @@ export class ConsoleLogger {
     const level = envelope.type === "error" ? "ERROR" : envelope.type === "response" ? "INFO" : "DEBUG";
     const levelStr = formatLevel(level);
     const processStr = formatProcessName(processName);
-    
+
     const directionSymbol = direction === "→" ? colors.green("→") : colors.purple("←");
     const envelopeStr = formatEnvelope(envelope);
-    
+
     let output = `${timestamp} ${levelStr} ${processStr} ${directionSymbol} ${envelopeStr}`;
-    
+
     // For error envelopes, display full payload details
     if (envelope.type === "error") {
       const payload = envelope.payload as { code?: string; message?: string; details?: Record<string, unknown> };
       const code = payload?.code ?? "UNKNOWN";
       const message = payload?.message ?? "Unknown error";
       const details = payload?.details ?? {};
-      
+
       output += `\n  ${colors.red(`ERROR CODE: ${code}`)}`;
       output += `\n  ${colors.red(`MESSAGE: ${message}`)}`;
-      
+
       if (Object.keys(details).length > 0) {
         output += `\n  ${colors.yellow("DETAILS:")}`;
         for (const [key, value] of Object.entries(details)) {
@@ -212,7 +212,7 @@ export class ConsoleLogger {
         }
       }
     }
-    
+
     process.stderr.write(output + "\n");
   }
 
@@ -223,11 +223,11 @@ export class ConsoleLogger {
     const timestamp = formatTimestamp();
     const processStr = formatProcessName(processName);
     const dataStr = typeof data === "string" ? data : data.toString("utf-8");
-    
+
     // Remove trailing newlines for cleaner output
     const cleaned = dataStr.trimEnd();
     if (!cleaned) return;
-    
+
     const output = `${timestamp} ${formatLevel("DEBUG")} ${processStr} ${colors.gray(cleaned)}`;
     process.stderr.write(output + "\n");
   }
@@ -235,16 +235,19 @@ export class ConsoleLogger {
   /**
    * Log process lifecycle events (spawn, exit, error)
    */
-  static processEvent(processName: string, event: "spawn" | "exit" | "error", details?: string | number | Error): void {
+  static processEvent(processName: string, event: "spawn" | "exit" | "error" | "restart", details?: string | number | Error): void {
     const timestamp = formatTimestamp();
     const processStr = formatProcessName(processName);
-    
+
     let eventStr: string;
     let level: LogLevel = "INFO";
-    
+
     switch (event) {
       case "spawn":
         eventStr = colors.green("spawned");
+        break;
+      case "restart":
+        eventStr = colors.yellow("restarting");
         break;
       case "exit":
         eventStr = colors.yellow(`exited`);
@@ -257,15 +260,15 @@ export class ConsoleLogger {
         level = "ERROR";
         break;
     }
-    
+
     let output = `${timestamp} ${formatLevel(level)} ${processStr} Process ${eventStr}`;
-    
+
     if (details instanceof Error) {
       output += `: ${formatError(details)}`;
     } else if (typeof details === "string") {
       output += `: ${details}`;
     }
-    
+
     process.stderr.write(output + "\n");
   }
 }

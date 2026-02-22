@@ -43,6 +43,10 @@ interface ChildEntry {
   process: ChildProcess;
   name: string;
   stdin: NodeJS.WritableStream;
+  scriptPath: string;
+  startTime: number;
+  restartCount: number;
+  lastRestartTime: number | undefined;
 }
 
 type PendingResolve = (env: Envelope) => void;
@@ -59,7 +63,7 @@ export class Orchestrator {
     this.modelManager = new ModelManagerService({ ollama, modelRouter });
   }
 
-  private spawnProcess(name: string, scriptPath: string): ChildEntry {
+  private spawnProcess(name: string, scriptPath: string, restartCount = 0): ChildEntry {
     const env = { ...process.env };
     // FP-PATH: Ensure common macOS paths are present for tool execution
     // Prepend homebrew paths but preserve the current Node version path at the very front
@@ -85,12 +89,42 @@ export class Orchestrator {
       ConsoleLogger.processEvent(name, "error", err);
     });
     child.on("exit", (code, signal) => {
-      ConsoleLogger.processEvent(name, "exit", code ?? signal ?? undefined);
+      this.handleProcessExit(name, code, signal);
     });
-    const entry: ChildEntry = { process: child, name, stdin };
+    const entry: ChildEntry = {
+      process: child,
+      name,
+      stdin,
+      scriptPath,
+      startTime: Date.now(),
+      restartCount,
+      lastRestartTime: restartCount > 0 ? Date.now() : undefined
+    };
     this.children.set(name, entry);
-    ConsoleLogger.processEvent(name, "spawn");
+    ConsoleLogger.processEvent(name, restartCount > 0 ? "restart" : "spawn");
     return entry;
+  }
+
+  private handleProcessExit(name: string, code: number | null, signal: string | null): void {
+    ConsoleLogger.processEvent(name, "exit", code ?? signal ?? undefined);
+
+    // Don't restart if it was a clean exit (code 0) or if we're shutting down
+    if (code === 0 || signal === "SIGTERM" || signal === "SIGINT") {
+      this.children.delete(name);
+      return;
+    }
+
+    const entry = this.children.get(name);
+    if (!entry) return;
+
+    const backoffTable = [1000, 2000, 5000, 10000, 30000]; // ms
+    const delay = backoffTable[Math.min(entry.restartCount, backoffTable.length - 1)];
+
+    ConsoleLogger.warn("core", `Process [${name}] exited unexpectedly (code ${code}, signal ${signal}). Restarting in ${delay}ms... (attempt ${entry.restartCount + 1})`);
+
+    setTimeout(() => {
+      this.spawnProcess(name, entry.scriptPath, entry.restartCount + 1);
+    }, delay);
   }
 
   private handleLine(fromProcess: string, line: string): void {
