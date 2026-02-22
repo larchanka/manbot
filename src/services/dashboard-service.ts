@@ -397,6 +397,7 @@ const CSS = `
 export class DashboardService extends BaseProcess {
   private readonly server: http.Server;
   private processStats: Record<string, any> = {};
+  private readonly ipcLogBuffer: any[] = [];
 
   constructor() {
     super({ processName: 'dashboard' });
@@ -420,6 +421,9 @@ export class DashboardService extends BaseProcess {
         const existing = this.processStats[pName] || { restartCount: 0 };
         this.processStats[pName] = { ...existing, restartCount: p.restartCount, lastRestart: Date.now() };
       }
+    } else if (envelope.type === 'event.dashboard.ipc_log') {
+      this.ipcLogBuffer.push(envelope.payload);
+      if (this.ipcLogBuffer.length > 500) this.ipcLogBuffer.shift();
     }
     super.handleEnvelope(envelope);
   }
@@ -467,6 +471,14 @@ export class DashboardService extends BaseProcess {
           compBar: this.generateBarChart(Object.keys(s.complexity), Object.values(s.complexity))
         }
       }));
+      return;
+    }
+
+    if (url.pathname === '/api/ipc-logs') {
+      const since = parseInt(url.searchParams.get('since') || '0', 10);
+      const logs = this.ipcLogBuffer.filter(log => log.message.timestamp > since);
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify(logs));
       return;
     }
 
@@ -710,6 +722,26 @@ export class DashboardService extends BaseProcess {
             </div>
         </div>
 
+        <div class="logs-section" id="ipc-stream-section" style="margin-bottom: 60px;">
+            <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 20px; padding-bottom: 8px;">
+                <h3 style="margin: 0; flex: 1;">Live Internal Traffic (IPC)</h3>
+                <span class="tag success" style="display: inline-flex; align-items: center; gap: 6px;"><div class="pulse" style="margin:0;"></div> Live</span>
+            </div>
+            <div class="card" style="padding: 0;">
+                <table id="ipc-table" style="table-layout: fixed;">
+                    <thead>
+                        <tr>
+                            <th style="padding-left: 20px; width: 15%;">TIME</th>
+                            <th style="width: 25%;">ROUTING</th>
+                            <th style="width: 25%;">TYPE</th>
+                            <th style="padding-right: 20px; width: 35%;">PAYLOAD</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ipc-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+
         <div class="logs-section" id="active-queue-section" style="margin-bottom: 60px; display: none;">
             <h3>Active Tasks Queue</h3>
             <div class="card" style="padding: 0;">
@@ -756,6 +788,49 @@ export class DashboardService extends BaseProcess {
         let allLogs = [];
         let showingAll = false;
         let lastDashboardState = {};
+        
+        let lastIpcLogTimestamp = 0;
+        function updateIpcLogs() {
+            fetch(\`/api/ipc-logs?since=\${lastIpcLogTimestamp}\`)
+                .then(r => r.json())
+                .then(logs => {
+                    if (!logs || !logs.length) return;
+                    lastIpcLogTimestamp = Math.max(...logs.map(l => l.message.timestamp));
+                    const tbody = document.getElementById("ipc-table-body");
+                    if (!tbody) return;
+                    
+                    logs.forEach(log => {
+                        const tr = document.createElement("tr");
+                        const ts = new Date(log.message.timestamp);
+                        const tsStr = ts.getHours().toString().padStart(2, '0') + ':' + ts.getMinutes().toString().padStart(2, '0') + ':' + ts.getSeconds().toString().padStart(2, '0') + '.' + ts.getMilliseconds().toString().padStart(3, '0');
+                        
+                        let color = "var(--text)";
+                        if (log.message.type && log.message.type.includes("error")) color = "var(--error)";
+                        else if (log.message.type && log.message.type.includes("heartbeat")) color = "var(--text-muted)";
+                        else if (log.message.type && log.message.type.includes("event")) color = "var(--warning)";
+                        else if (log.message.type && log.message.type.includes("response")) color = "var(--success)";
+                        
+                        let routeHtml = '';
+                        if (log.direction === '←') {
+                            routeHtml = \`<span style="color:var(--text-muted)">\${log.fromProcess}</span> <strong style="color:var(--primary)">→</strong> <span style="color:var(--text)">\${log.toProcess}</span>\`;
+                        } else {
+                            routeHtml = \`<span style="color:var(--text)">\${log.fromProcess}</span> <strong style="color:var(--primary)">→</strong> <span style="color:var(--text-muted)">\${log.toProcess}</span>\`;
+                        }
+
+                        tr.innerHTML = \`
+                            <td style="color: var(--text-muted); font-size: 11px; font-family: monospace; padding-left: 20px;">\${tsStr}</td>
+                            <td style="font-size: 11px; font-family: monospace;">\${routeHtml}</td>
+                            <td style="color: \${color}; font-size: 11px; font-family: monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="\${log.message.type}">\${log.message.type}</td>
+                            <td style="font-size: 11px; font-family: monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 20px;" title='\${JSON.stringify(log.message.payload || {})}'>\${JSON.stringify(log.message.payload || {})}</td>
+                        \`;
+                        tbody.insertBefore(tr, tbody.firstChild);
+                    });
+                    
+                    while (tbody.children.length > 200) tbody.removeChild(tbody.lastChild);
+                }).catch(e => console.error(e));
+        }
+        setInterval(updateIpcLogs, 1000);
+        updateIpcLogs();
 
         function getGraphLayout(nodes, edges) {
             if (!nodes || nodes.length === 0) return [];

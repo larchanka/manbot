@@ -160,6 +160,7 @@ export class Orchestrator {
 
       // Log incoming IPC message
       ConsoleLogger.ipc("core", "←", envelope);
+      this.broadcastIpcLog("←", fromProcess, "core", envelope);
 
       const to = envelope.to;
       const cid = envelope.correlationId ?? envelope.id;
@@ -189,6 +190,7 @@ export class Orchestrator {
         if (logger?.stdin.writable) {
           logger.stdin.write(trimmed + "\n");
           ConsoleLogger.ipc("core", "→", envelope);
+          this.broadcastIpcLog("→", "core", "logger", envelope);
         }
         return;
       }
@@ -202,6 +204,7 @@ export class Orchestrator {
         target.stdin.write(trimmed + "\n");
         // Log outgoing IPC message
         ConsoleLogger.ipc("core", "→", envelope);
+        this.broadcastIpcLog("→", "core", to, envelope);
       } else {
         ConsoleLogger.warn("core", `Unknown target or process not writable: ${to}`, envelope);
         // If it's a request (has an ID and is not a response/error/event), send error back to sender
@@ -220,6 +223,7 @@ export class Orchestrator {
     if (target?.stdin.writable) {
       target.stdin.write(JSON.stringify(envelope) + "\n");
       ConsoleLogger.ipc("core", "→", envelope);
+      this.broadcastIpcLog("→", "core", envelope.to, envelope);
     } else {
       ConsoleLogger.warn("core", `Unknown target or process not writable: ${envelope.to}`, envelope);
     }
@@ -241,6 +245,25 @@ export class Orchestrator {
     };
     target.stdin.write(JSON.stringify(envelope) + "\n");
     ConsoleLogger.ipc("core", "→", envelope);
+    this.broadcastIpcLog("→", "core", to, envelope);
+  }
+
+  private broadcastIpcLog(direction: "←" | "→", fromP: string, toP: string, envelope: Envelope) {
+    if (fromP === "dashboard" || toP === "dashboard" || envelope.to === "dashboard" || envelope.from === "dashboard") return;
+    if (envelope.type === "event.system.heartbeat" || envelope.type === "event.dashboard.ipc_log") return;
+
+    const dashboard = this.children.get("dashboard");
+    if (dashboard?.stdin.writable) {
+      dashboard.stdin.write(JSON.stringify({
+        id: randomUUID(),
+        timestamp: Date.now(),
+        from: "core",
+        to: "dashboard",
+        type: "event.dashboard.ipc_log",
+        version: "1.0",
+        payload: { direction, fromProcess: fromP, toProcess: toP, message: envelope }
+      }) + "\n");
+    }
   }
 
   private handleCoreMessage(fromProcess: string, envelope: Envelope): void {
