@@ -396,10 +396,32 @@ const CSS = `
 
 export class DashboardService extends BaseProcess {
   private readonly server: http.Server;
+  private processStats: Record<string, any> = {};
 
   constructor() {
     super({ processName: 'dashboard' });
     this.server = http.createServer((req, res) => this.handleRequest(req, res));
+  }
+
+  override handleEnvelope(envelope: any): void {
+    if (envelope.type === 'event.system.heartbeat') {
+      const p = envelope.payload;
+      this.processStats[envelope.from] = {
+        ...this.processStats[envelope.from],
+        status: p.status,
+        uptime: p.uptime,
+        memory: p.memory,
+        lastHeartbeat: Date.now()
+      };
+    } else if (envelope.type === 'event.system.process_restart') {
+      const p = envelope.payload;
+      const pName = p.processName;
+      if (pName) {
+        const existing = this.processStats[pName] || { restartCount: 0 };
+        this.processStats[pName] = { ...existing, restartCount: p.restartCount, lastRestart: Date.now() };
+      }
+    }
+    super.handleEnvelope(envelope);
   }
 
   override start(): void {
@@ -500,6 +522,7 @@ export class DashboardService extends BaseProcess {
 
   private getStats(date?: string) {
     const stats: any = {
+      processes: this.processStats,
       tasks: {},
       complexity: { small: 0, medium: 0, large: 0, unknown: 0 },
       rag: 0,
@@ -662,7 +685,14 @@ export class DashboardService extends BaseProcess {
             </div>
         </div>
 
+        <div class="processes-section" style="margin-bottom: 60px;">
+            <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 20px; padding-bottom: 8px; border-bottom: 1px solid var(--border);">Processes</h3>
+            <div id="processes-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;">
+            </div>
+        </div>
+
         <div class="chart-section">
+
             <h3>Analytics</h3>
             <div class="charts-grid">
                 <div class="card">
@@ -853,6 +883,34 @@ export class DashboardService extends BaseProcess {
                         lastDashboardState.maxNodes = d.maxNodes;
                         lastDashboardState.tasks = d.tasks;
                         lastDashboardState.timing = d.timing;
+                    }
+
+                    // 1.5 Update Processes
+                    const procsHash = JSON.stringify(d.processes);
+                    if (lastDashboardState.procsHash !== procsHash) {
+                        const pg = document.getElementById("processes-grid");
+                        if (pg && d.processes) {
+                            const html = Object.keys(d.processes).sort().map(pName => {
+                                const p = d.processes[pName];
+                                const isDown = (Date.now() - (p.lastHeartbeat || 0)) > 30000;
+                                const status = isDown ? "OFFLINE" : (p.status || "UNKNOWN").toUpperCase();
+                                const tc = status === "OFFLINE" ? "error" : (status === "READY" ? "success" : "warning");
+                                const indicator = status === "READY" ? '<div class="pulse"></div>' : '';
+                                const restartLabel = p.restartCount ? \`<div style="font-size: 11px; color: var(--error); margin-top: 5px; font-weight: 500;">Restarts: \${p.restartCount}</div>\` : '';
+                                const mem = p.memory && p.memory.rss ? \`<div style="font-size: 11px; color: var(--text-muted); margin-top: 5px;">Mem: \${Math.round(p.memory.rss / 1024 / 1024)}MB</div>\` : '';
+                                const up = p.uptime ? \`<div style="font-size: 11px; color: var(--text-muted);">Uptime: \${p.uptime}s</div>\` : '';
+                                return \`<div class="card" style="padding: 15px;">
+                                    <h2 style="margin-bottom: 10px;">\${pName}</h2>
+                                    <div style="display: flex; gap: 8px; flex-direction: column;">
+                                        <div><span class="tag \${tc}">\${indicator}\${status}</span></div>
+                                        <div>\${mem}\${up}</div>
+                                    </div>
+                                    \${restartLabel}
+                                </div>\`;
+                            }).join("");
+                            pg.innerHTML = html;
+                        }
+                        lastDashboardState.procsHash = procsHash;
                     }
 
                     // 2. Update Models
