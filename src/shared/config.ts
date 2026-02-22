@@ -133,6 +133,7 @@ export interface AppConfig {
   skills: SkillsConfig;
   whisper: WhisperConfig;
   fileProcessor: FileProcessorConfig;
+  maxConcurrentTasks: number;
 }
 
 const DEFAULT_CONFIG: AppConfig = {
@@ -200,6 +201,7 @@ const DEFAULT_CONFIG: AppConfig = {
     ocrModel: "glm-ocr:q8_0",
     ocrEnabled: true,
   },
+  maxConcurrentTasks: 1,
 };
 
 function loadConfigFile(): Partial<AppConfig> {
@@ -282,6 +284,7 @@ function mergeEnv(config: AppConfig): AppConfig {
       ocrModel: process.env.FILE_PROCESSOR_OCR_MODEL ?? config.fileProcessor.ocrModel,
       ocrEnabled: process.env.FILE_PROCESSOR_OCR_ENABLED === "false" ? false : config.fileProcessor.ocrEnabled,
     },
+    maxConcurrentTasks: Number(process.env.MAX_CONCURRENT_TASKS) || config.maxConcurrentTasks,
   };
 }
 
