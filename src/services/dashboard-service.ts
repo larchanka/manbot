@@ -242,6 +242,41 @@ const CSS = `
     100% { transform: scale(0.7); opacity: 1; }
   }
 
+  .node-map {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+    align-items: center;
+  }
+  .node-chip {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: var(--subtle);
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .node-chip.running {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: rgba(35, 131, 226, 0.05);
+    font-weight: 600;
+  }
+  .node-chip.completed {
+    border-color: var(--success);
+    color: var(--success);
+    background: rgba(11, 110, 79, 0.05);
+  }
+  .node-chip.failed {
+    border-color: var(--error);
+    color: var(--error);
+    background: rgba(223, 42, 95, 0.05);
+  }
+
   .btn-refresh {
     font-size: 14px;
     font-weight: 500;
@@ -450,8 +485,14 @@ export class DashboardService extends BaseProcess {
         stats.timing.avg = sec > 60 ? `${Math.floor(sec / 60)}m ${sec % 60}s` : `${sec}s`;
       }
 
-      stats.pendingTasks = tdb.prepare('SELECT id, goal, status, complexity, updated_at FROM tasks WHERE status IN (?, ?) ORDER BY updated_at DESC')
-        .all('pending', 'running');
+      stats.pendingTasks = tdb.prepare(`
+        SELECT t.id, t.goal, t.status, t.complexity, t.updated_at,
+        (SELECT json_group_array(json_object('id', id, 'type', type, 'status', status)) FROM task_nodes WHERE task_id = t.id ORDER BY id) as nodes
+        FROM tasks t WHERE t.status IN (?, ?) ORDER BY t.updated_at DESC
+      `).all('pending', 'running').map((t: any) => ({
+        ...t,
+        nodes: JSON.parse(t.nodes || '[]')
+      }));
 
       tdb.close();
     } catch (e) { }
@@ -715,11 +756,20 @@ export class DashboardService extends BaseProcess {
                             const tc = isRunning ? "running" : "warning";
                             const indicator = isRunning ? '<div class="pulse"></div>' : '';
                             return \`<tr>
-                                <td style="padding-left: 20px; color: var(--text-muted); white-space: nowrap;">\${fmtDate(t.updated_at)}</td>
-                                <td style="white-space: nowrap;"><span class="tag \${tc}">\${indicator}\${t.status.toUpperCase()}</span></td>
-                                <td style="white-space: nowrap;"><span class="tag complexity-\${t.complexity || 'unknown'}">\${(t.complexity || 'unknown').toUpperCase()}</span></td>
-                                <td style="font-weight: 500; word-break: break-word;">\${t.goal}</td>
-                                <td style="padding-right: 20px; text-align: right;">
+                                <td style="padding-left: 20px; color: var(--text-muted); white-space: nowrap; vertical-align: top; padding-top: 15px;">\${fmtDate(t.updated_at)}</td>
+                                <td style="white-space: nowrap; vertical-align: top; padding-top: 15px;"><span class="tag \${tc}">\${indicator}\${t.status.toUpperCase()}</span></td>
+                                <td style="white-space: nowrap; vertical-align: top; padding-top: 15px;"><span class="tag complexity-\${t.complexity || 'unknown'}">\${(t.complexity || 'unknown').toUpperCase()}</span></td>
+                                <td style="padding-top: 15px; padding-bottom: 15px;">
+                                    <div style="font-weight: 500; word-break: break-word;">\${t.goal}</div>
+                                    <div class="node-map">
+                                        \${(t.nodes || []).map(n => {
+                                            const activeIndicator = n.status === 'running' ? '<div class="pulse"></div>' : '';
+                                            const typeLabel = n.type.split('.').pop().toUpperCase();
+                                            return \`<div class="node-chip \${n.status}">\${activeIndicator}\${typeLabel}</div>\`;
+                                        }).join('<span style="color: var(--border); font-size: 10px;">➔</span>')}
+                                    </div>
+                                </td>
+                                <td style="padding-right: 20px; text-align: right; vertical-align: top; padding-top: 15px;">
                                     <button onclick="failTask('\${t.id}')" style="cursor: pointer; font-size: 11px; padding: 2px 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--error);">FAIL</button>
                                 </td>
                             </tr>\`;
@@ -733,19 +783,19 @@ export class DashboardService extends BaseProcess {
                 });
         }
 
-        // Initial load
-        fetch("/api/log-files")
-            .then(r => r.json())
-            .then(files => {
-                const dateSelect = document.getElementById("log-date-select");
-                const today = new Date().toISOString().split('T')[0];
-                
-                // Add today if not in files
-                if (!files.includes(today)) {
-                    files.unshift(today);
-                }
-                
-                dateSelect.innerHTML = files.map(f => \`<option value="\${f}" \${f === today ? 'selected' : ''}>\${f}</option>\`).join("");
+// Initial load
+fetch("/api/log-files")
+  .then(r => r.json())
+  .then(files => {
+    const dateSelect = document.getElementById("log-date-select");
+    const today = new Date().toISOString().split('T')[0];
+
+    // Add today if not in files
+    if (!files.includes(today)) {
+      files.unshift(today);
+    }
+
+    dateSelect.innerHTML = files.map(f => \`<option value="\${f}" \${f === today ? 'selected' : ''}>\${f}</option>\`).join("");
                 updateDashboard();
                 
                 // Auto-refresh every 5 seconds
