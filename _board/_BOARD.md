@@ -3,17 +3,14 @@
 ## To Do
 
 
-### AO-13 Final Verification Walkthrough
-  - tags: [todo, testing, e2e]
-  - defaultExpanded: false
-    ```md
-    Manual walkthrough of the new architecture.
-    Source: _board/TASKS/AO-13_E2E_VERIFICATION.md
-    ```
-
 ## In Progress
 
 ## Done
+
+### AO-13 Final Verification Walkthrough
+- Status: Completed
+- Commit: dbe54c2
+- Date: 2026-02-22
 
 ### AO-12 Test: Cron-to-AI E2E
 - Status: Completed
