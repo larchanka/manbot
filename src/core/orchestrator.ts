@@ -60,10 +60,20 @@ export class Orchestrator {
   }
 
   private spawnProcess(name: string, scriptPath: string): ChildEntry {
-    const child = spawn("node", [scriptPath], {
+    const env = { ...process.env };
+    // FP-PATH: Ensure common macOS paths are present for tool execution
+    // Prepend homebrew paths but preserve the current Node version path at the very front
+    const commonPaths = ["/opt/homebrew/bin", "/opt/homebrew/sbin", "/usr/local/bin"];
+    const existingPath = env.PATH || "/usr/bin:/bin:/usr/sbin:/sbin";
+
+    // Ensure we don't lose the path to the current node process
+    const nodeDir = dirname(process.execPath);
+    env.PATH = Array.from(new Set([nodeDir, ...commonPaths, ...existingPath.split(":")])).join(":");
+
+    const child = spawn(process.execPath, [scriptPath], {
       cwd: ROOT,
       stdio: ["pipe", "pipe", "pipe"],
-      env: { ...process.env },
+      env,
     });
     const stdin = child.stdin!;
     const rl = createInterface({ input: child.stdout!, terminal: false });
@@ -138,6 +148,16 @@ export class Orchestrator {
     } catch (err) {
       // skip malformed - log as debug/error
       ConsoleLogger.error("core", `Malformed JSON line from ${fromProcess}: ${trimmed.substring(0, 100)}`, err instanceof Error ? err : String(err));
+    }
+  }
+
+  private send(envelope: Envelope): void {
+    const target = this.children.get(envelope.to);
+    if (target?.stdin.writable) {
+      target.stdin.write(JSON.stringify(envelope) + "\n");
+      ConsoleLogger.ipc("core", "→", envelope);
+    } else {
+      ConsoleLogger.warn("core", `Unknown target or process not writable: ${envelope.to}`, envelope);
     }
   }
 
@@ -630,9 +650,12 @@ export class Orchestrator {
     const tasksPayload = tasksEnv.payload as { status?: string; result?: { tasks?: Array<{ id: string; goal: string; status: string }> } };
     const tasks = tasksPayload.result?.tasks ?? [];
     if (tasks.length === 0) {
-      this.sendToTelegram(chatId, "Archived. (No previous tasks in this conversation.)");
+      this.sendToTelegram(chatId, "✅ Archived. (No previous tasks found in this session.)");
       return;
     }
+
+    this.sendToTelegram(chatId, `🧠 Archiving ${tasks.length} task(s)...`, true);
+
     const historyParts: string[] = [];
     for (const t of tasks) {
       let taskDetail: Envelope;
@@ -671,10 +694,22 @@ export class Orchestrator {
         metadata: { conversationId, chatId, archivedAt: Date.now(), source: "archiving" },
       });
     } catch {
-      this.sendToTelegram(chatId, "Summary produced but storage failed. Check logs.");
+      this.sendToTelegram(chatId, "⚠️ Summary produced but RAG storage failed. Check logs.");
       return;
     }
-    this.sendToTelegram(chatId, "Archived. Conversation summary has been stored for later retrieval.");
+
+    // Emit success event
+    this.send({
+      id: randomUUID(),
+      timestamp: Date.now(),
+      from: "core",
+      to: "logger",
+      type: "event.archiving.completed",
+      version: "1.0",
+      payload: { chatId, conversationId, taskCount: tasks.length }
+    });
+
+    this.sendToTelegram(chatId, "✅ Archived. Conversation summary has been stored in your long-term memory.");
   }
 
   private handleCronReminderEvent(envelope: Envelope): void {

@@ -326,18 +326,26 @@ function main(): void {
 
     // /new — reset session and trigger archiving
     if (text === "/new") {
-      const oldConversationId = conversationIdByChat.get(chatId);
+      const oldConversationId = conversationIdByChat.get(chatId) || String(chatId);
       const newConversationId = randomUUID();
       conversationIdByChat.set(chatId, newConversationId);
-      if (oldConversationId != null) {
-        base.send(
-          createEnvelope<ChatNewPayload>("chat.new", "core", {
-            chatId,
-            conversationId: oldConversationId,
-          })
-        );
-      }
-      sendToUser(chatId, "New session started. Previous conversation has been archived.");
+
+      // Emit event for logging
+      base.send(createEnvelope("event.chat.reset", "logger", {
+        chatId,
+        oldConversationId,
+        newConversationId
+      }));
+
+      // Trigger archiving in Core
+      base.send(
+        createEnvelope<ChatNewPayload>("chat.new", "core", {
+          chatId,
+          conversationId: oldConversationId,
+        })
+      );
+
+      sendToUser(chatId, "🔄 New session started. Previous conversation is being archived...");
       return;
     }
 

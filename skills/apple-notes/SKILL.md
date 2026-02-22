@@ -25,6 +25,40 @@ Mandatory tool: Use the `shell` tool to execute `memo` commands.
 5. **No Attachments**: This tool only supports plain text.
 6. **macOS Only**: Ensure you are on a macOS environment.
 
+## Tool Call Examples (JSON)
+
+When using this skill, format your tool calls as follows:
+
+### List All Notes
+```json
+{
+  "name": "shell",
+  "arguments": {
+    "command": "memo notes"
+  }
+}
+```
+
+### Search for "Project Phoenix"
+```json
+{
+  "name": "shell",
+  "arguments": {
+    "command": "echo \"Project Phoenix\" | memo notes -s"
+  }
+}
+```
+
+### Create a Quick Note
+```json
+{
+  "name": "shell",
+  "arguments": {
+    "command": "memo notes -a \"Meeting Notes\""
+  }
+}
+```
+
 ## Example Commands
 - `memo notes` (List everything - Default action)
 - `echo "project X" | memo notes -s` (Search for project X)

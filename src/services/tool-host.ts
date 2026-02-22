@@ -335,17 +335,22 @@ export class ToolHost extends BaseProcess {
 
         const result = await tool(args);
         const duration = Date.now() - startTime;
+        const exitCode = (result && typeof result === "object" && "exitCode" in result) ? (result as any).exitCode : 0;
+        const success = exitCode === 0;
 
-        // Log tool execution success
+        // Log tool execution completion with actual success status
         this.emitEvent("event.tool.completed", {
           toolName: name,
           arguments: this.sanitizeArguments(args),
           durationMs: duration,
-          success: true,
+          success,
+          exitCode,
           taskId: (envelope.payload as Record<string, unknown>).taskId,
           nodeId: (envelope.payload as Record<string, unknown>).nodeId,
         });
-        ConsoleLogger.info(PROCESS_NAME, `Tool execution completed: ${name} (${duration}ms)`, envelope);
+
+        const logMethod = success ? ConsoleLogger.info : ConsoleLogger.warn;
+        logMethod.call(ConsoleLogger, PROCESS_NAME, `Tool execution finished: ${name} (${duration}ms, exitCode=${exitCode})`, envelope);
 
         this.sendResponse(envelope, result);
       } catch (err) {
