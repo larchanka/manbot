@@ -68,6 +68,25 @@ export const eventSchema = envelopeSchema.extend({
 
 export type Event<T = unknown> = z.infer<typeof eventSchema> & { payload: T };
 
+// --- System Events ---
+
+export const processStatusSchema = z.enum(["starting", "ready", "degraded", "stopping"]);
+export type ProcessStatus = z.infer<typeof processStatusSchema>;
+
+export const heartbeatPayloadSchema = z.object({
+  status: processStatusSchema,
+  uptime: z.number(),
+  memory: z.object({
+    rss: z.number(),
+    heapTotal: z.number(),
+    heapUsed: z.number(),
+    external: z.number(),
+  }),
+  version: z.string(),
+});
+
+export type HeartbeatPayload = z.infer<typeof heartbeatPayloadSchema>;
+
 // --- Helpers ---
 
 export const PROTOCOL_VERSION = VERSION;
