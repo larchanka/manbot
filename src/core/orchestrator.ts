@@ -151,6 +151,12 @@ export class Orchestrator {
         }
         return;
       }
+      // Handle cron AI query events from cron-manager
+      if (fromProcess === "cron-manager" && envelope.type === "event.cron.ai_query") {
+        this.handleCronAIQueryEvent(envelope);
+        return;
+      }
+
       // Handle cron reminder events from cron-manager
       if (fromProcess === "cron-manager" && envelope.type === "event.cron.completed") {
         this.handleCronReminderEvent(envelope);
@@ -277,7 +283,13 @@ export class Orchestrator {
 
   private static readonly MAX_PLAN_RETRIES = 2; // 3 attempts total (0, 1, 2)
 
-  private async runTaskPipeline(chatId: number, userId: number, goal: string, conversationId?: string): Promise<void> {
+  private async runTaskPipeline(
+    chatId: number,
+    userId: number,
+    goal: string,
+    conversationId?: string,
+    initialTaskId?: string
+  ): Promise<void> {
     const planner = this.children.get("planner");
     const taskMemory = this.children.get("task-memory");
     const executor = this.children.get("executor");
@@ -330,7 +342,7 @@ export class Orchestrator {
     }
 
     for (let attempt = 0; attempt <= Orchestrator.MAX_PLAN_RETRIES; attempt++) {
-      const taskId = randomUUID();
+      const taskId = (attempt === 0 && initialTaskId) ? initialTaskId : randomUUID();
       const isRetry = attempt > 0;
       if (isRetry) {
         this.sendToTelegram(chatId, "Re-planning with error feedback...", true);
@@ -770,6 +782,30 @@ export class Orchestrator {
     }
 
     this.sendToTelegram(chatIdNum, formattedMessage);
+  }
+
+  private handleCronAIQueryEvent(envelope: Envelope): void {
+    const payload = envelope.payload as Record<string, unknown>;
+    const query = payload.query as string | undefined;
+    const chatId = payload.chatId as number | string | undefined;
+    const userId = payload.userId as number | string | undefined;
+
+    if (!query || !chatId) {
+      ConsoleLogger.warn("core", "event.cron.ai_query missing query or chatId", envelope);
+      return;
+    }
+
+    const chatIdNum = typeof chatId === "string" ? parseInt(chatId, 10) : chatId;
+    const userIdNum = typeof userId === "string" ? parseInt(userId, 10) : (userId ?? 0);
+    const taskId = randomUUID();
+
+    ConsoleLogger.info("core", `Triggering autonomous AI task: "${query}" for chatId ${chatIdNum} (taskId: ${taskId})`);
+
+    // Route to task pipeline
+    this.runTaskPipeline(chatIdNum, userIdNum, query, String(chatIdNum), taskId).catch((err) => {
+      ConsoleLogger.error("core", "Autonomous task pipeline error", err instanceof Error ? err : String(err), envelope);
+      this.sendToTelegram(chatIdNum, `Autonomous Task Failed: ${err instanceof Error ? err.message : String(err)}`);
+    });
   }
 
   private async handleListReminders(chatId: number, _request: Envelope): Promise<void> {
