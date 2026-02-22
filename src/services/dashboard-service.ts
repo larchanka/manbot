@@ -756,11 +756,19 @@ export class DashboardService extends BaseProcess {
                             const tc = isRunning ? "running" : "warning";
                             const indicator = isRunning ? '<div class="pulse"></div>' : '';
                             return \`<tr>
-                                <td style="padding-left: 20px; color: var(--text-muted); white-space: nowrap; vertical-align: top; padding-top: 15px;">\${fmtDate(t.updated_at)}</td>
-                                <td style="white-space: nowrap; vertical-align: top; padding-top: 15px;"><span class="tag \${tc}">\${indicator}\${t.status.toUpperCase()}</span></td>
-                                <td style="white-space: nowrap; vertical-align: top; padding-top: 15px;"><span class="tag complexity-\${t.complexity || 'unknown'}">\${(t.complexity || 'unknown').toUpperCase()}</span></td>
-                                <td style="padding-top: 15px; padding-bottom: 15px;">
+                                <td style="padding-left: 20px; color: var(--text-muted); white-space: nowrap; vertical-align: top; padding-top: 15px; border-bottom: none;">\${fmtDate(t.updated_at)}</td>
+                                <td style="white-space: nowrap; vertical-align: top; padding-top: 15px; border-bottom: none;"><span class="tag \${tc}">\${indicator}\${t.status.toUpperCase()}</span></td>
+                                <td style="white-space: nowrap; vertical-align: top; padding-top: 15px; border-bottom: none;"><span class="tag complexity-\${t.complexity || 'unknown'}">\${(t.complexity || 'unknown').toUpperCase()}</span></td>
+                                <td style="padding-top: 15px; border-bottom: none;">
                                     <div style="font-weight: 500; word-break: break-word;">\${t.goal}</div>
+                                </td>
+                                <td style="padding-right: 20px; text-align: right; vertical-align: top; padding-top: 15px; border-bottom: none;">
+                                    <button onclick="failTask('\${t.id}')" style="cursor: pointer; font-size: 11px; padding: 2px 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--error);">FAIL</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td colspan="3" style="border-top: none;"></td>
+                                <td colspan="2" style="padding-bottom: 20px; border-top: none;">
                                     <div class="node-map">
                                         \${(t.nodes || []).map(n => {
                                             const activeIndicator = n.status === 'running' ? '<div class="pulse"></div>' : '';
@@ -768,9 +776,6 @@ export class DashboardService extends BaseProcess {
                                             return \`<div class="node-chip \${n.status}">\${activeIndicator}\${typeLabel}</div>\`;
                                         }).join('<span style="color: var(--border); font-size: 10px;">➔</span>')}
                                     </div>
-                                </td>
-                                <td style="padding-right: 20px; text-align: right; vertical-align: top; padding-top: 15px;">
-                                    <button onclick="failTask('\${t.id}')" style="cursor: pointer; font-size: 11px; padding: 2px 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--error);">FAIL</button>
                                 </td>
                             </tr>\`;
                         }).join("");
