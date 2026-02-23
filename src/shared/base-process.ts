@@ -118,7 +118,7 @@ export class BaseProcess extends EventEmitter {
         heapUsed: memory.heapUsed,
         external: memory.external,
       },
-      version: "1.0.1", // TODO: pull from package.json or config
+      version: "1.0.2", // TODO: pull from package.json or config
     };
 
     const envelope: Envelope<HeartbeatPayload> = {
