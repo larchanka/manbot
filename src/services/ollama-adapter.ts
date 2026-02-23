@@ -394,14 +394,21 @@ export class OllamaAdapter {
           (err.name === "AbortError" ||
             err.message.includes("fetch") ||
             err.message.includes("ECONNREFUSED") ||
-            err.message.includes("network"));
+            err.message.includes("network") ||
+            err.message.includes("reset") ||
+            err.message.includes("hangup"));
 
         if (attempt === this.retries || !isRetryable) {
           if (err instanceof Error && (err as any).cause) {
-            err.message += ` (Cause: ${(err as any).cause})`;
+            const cause = (err as any).cause;
+            const causeMsg = cause instanceof Error ? cause.message : String(cause);
+            err.message += ` (Cause: ${causeMsg})`;
           }
           throw err;
         }
+        // Wait before retry: 1s, 2s...
+        console.warn(`[ollama-adapter] Fetch failed: ${err.message}. Retrying in ${(attempt + 1)}s... (Attempt ${attempt + 1}/${this.retries})`);
+        await new Promise((resolve) => setTimeout(resolve, (attempt + 1) * 1000));
       }
     }
     throw lastError;
