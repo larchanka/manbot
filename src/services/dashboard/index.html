@@ -19,123 +19,136 @@
             </div>
         </header>
 
-        <div class="grid">
-            <div class="card">
-                <h2>Total Tasks</h2>
-                <div class="metric-value" id="task-total">0</div>
-            </div>
-            <div class="card">
-                <h2>Knowledge Base</h2>
-                <div class="metric-value"><span id="rag-count">0</span> <small style="font-size: 14px; font-weight: 400; color: var(--text-muted);">docs</small></div>
-            </div>
-            <div class="card">
-                <h2>Active Schedules</h2>
-                <div class="metric-value" id="cron-count">0</div>
-            </div>
-            <div class="card">
-                <h2>Peak Nodes</h2>
-                <div class="metric-value" id="max-nodes">0</div>
-            </div>
-        </div>
+        <nav class="tabs">
+            <button class="tab-btn active" onclick="showTab('main')">Main Overview</button>
+            <button class="tab-btn" onclick="showTab('ipc')">Live Internal Traffic</button>
+            <button class="tab-btn" onclick="showTab('pipeline')">Intelligence Pipeline</button>
+        </nav>
 
-        <div class="grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 60px;">
-            <div class="card">
-                <h2>First Task</h2>
-                <div class="metric-value" id="time-first" style="font-size: 20px;">-</div>
-            </div>
-            <div class="card">
-                <h2>Last Active</h2>
-                <div class="metric-value" id="time-last" style="font-size: 20px;">-</div>
-            </div>
-            <div class="card">
-                <h2>Avg Duration</h2>
-                <div class="metric-value" id="time-avg" style="font-size: 20px;">-</div>
-            </div>
-        </div>
-
-        <div class="processes-section" style="margin-bottom: 60px;">
-            <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 20px; padding-bottom: 8px; border-bottom: 1px solid var(--border);">Processes</h3>
-            <div id="processes-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;">
-            </div>
-        </div>
-
-        <div class="chart-section">
-
-            <h3>Analytics</h3>
-            <div class="charts-grid">
+        <!-- MAIN TAB -->
+        <div id="main-tab" class="tab-content active">
+            <div class="grid">
                 <div class="card">
-                    <h2>Task Distribution</h2>
-                    <div id="c1" class="chart-container"></div>
+                    <h2>Total Tasks</h2>
+                    <div class="metric-value" id="task-total">0</div>
                 </div>
                 <div class="card">
-                    <h2>Task Complexity</h2>
-                    <div id="c2" class="chart-container"></div>
+                    <h2>Knowledge Base</h2>
+                    <div class="metric-value"><span id="rag-count">0</span> <small style="font-size: 14px; font-weight: 400; color: var(--text-muted);">docs</small></div>
+                </div>
+                <div class="card">
+                    <h2>Active Schedules</h2>
+                    <div class="metric-value" id="cron-count">0</div>
+                </div>
+                <div class="card">
+                    <h2>Peak Nodes</h2>
+                    <div class="metric-value" id="max-nodes">0</div>
                 </div>
             </div>
-            
-            <div class="models-section" id="model-mapping" style="border-top: none; margin-top: 20px;">
-                <div id="model-list"></div>
+
+            <div class="grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 60px;">
+                <div class="card">
+                    <h2>First Task</h2>
+                    <div class="metric-value" id="time-first" style="font-size: 20px;">-</div>
+                </div>
+                <div class="card">
+                    <h2>Last Active</h2>
+                    <div class="metric-value" id="time-last" style="font-size: 20px;">-</div>
+                </div>
+                <div class="card">
+                    <h2>Avg Duration</h2>
+                    <div class="metric-value" id="time-avg" style="font-size: 20px;">-</div>
+                </div>
+            </div>
+
+            <div class="processes-section" style="margin-bottom: 60px;">
+                <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 20px; padding-bottom: 8px; border-bottom: 1px solid var(--border);">Processes</h3>
+                <div id="processes-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;">
+                </div>
+            </div>
+
+            <div class="logs-section" id="active-queue-section" style="margin-bottom: 60px; display: none;">
+                <h3>Active Tasks Queue</h3>
+                <div class="card" style="padding: 0;">
+                    <table id="queue-table">
+                        <thead>
+                            <tr>
+                                <th style="padding-left: 20px; width: 100px;">UPDATED</th>
+                                <th style="width: 100px;">STATUS</th>
+                                <th style="width: 120px;">COMPLEXITY</th>
+                                <th>GOAL</th>
+                                <th style="padding-right: 20px; text-align: right; width: 80px;">ACTION</th>
+                            </tr>
+                        </thead>
+                        <tbody id="qt"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="chart-section">
+                <h3>Analytics</h3>
+                <div class="charts-grid">
+                    <div class="card">
+                        <h2>Task Distribution</h2>
+                        <div id="c1" class="chart-container"></div>
+                    </div>
+                    <div class="card">
+                        <h2>Task Complexity</h2>
+                        <div id="c2" class="chart-container"></div>
+                    </div>
+                </div>
+                <div class="models-section" id="model-mapping" style="border-top: none; margin-top: 20px;">
+                    <div id="model-list"></div>
+                </div>
             </div>
         </div>
 
-        <div class="logs-section" id="ipc-stream-section" style="margin-bottom: 60px;">
-            <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 20px; padding-bottom: 8px;">
-                <h3 style="margin: 0; flex: 1;">Live Internal Traffic (IPC)</h3>
-                <span class="tag success" style="display: inline-flex; align-items: center; gap: 6px;"><div class="pulse" style="margin:0;"></div> Live</span>
-            </div>
-            <div class="card" style="padding: 0;">
-                <table id="ipc-table" style="table-layout: fixed;">
-                    <thead>
-                        <tr>
-                            <th style="padding-left: 20px; width: 15%;">TIME</th>
-                            <th style="width: 25%;">ROUTING</th>
-                            <th style="width: 25%;">TYPE</th>
-                            <th style="padding-right: 20px; width: 35%;">PAYLOAD</th>
-                        </tr>
-                    </thead>
-                    <tbody id="ipc-table-body"></tbody>
-                </table>
-            </div>
-        </div>
-
-        <div class="logs-section" id="active-queue-section" style="margin-bottom: 60px; display: none;">
-            <h3>Active Tasks Queue</h3>
-            <div class="card" style="padding: 0;">
-                <table id="queue-table">
-                    <thead>
-                        <tr>
-                            <th style="padding-left: 20px; width: 100px;">UPDATED</th>
-                            <th style="width: 100px;">STATUS</th>
-                            <th style="width: 120px;">COMPLEXITY</th>
-                            <th>GOAL</th>
-                            <th style="padding-right: 20px; text-align: right; width: 80px;">ACTION</th>
-                        </tr>
-                    </thead>
-                    <tbody id="qt"></tbody>
-                </table>
+        <!-- IPC TAB -->
+        <div id="ipc-tab" class="tab-content">
+            <div class="logs-section" id="ipc-stream-section" style="margin-bottom: 60px;">
+                <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 20px; padding-bottom: 8px;">
+                    <h3 style="margin: 0; flex: 1;">Live Internal Traffic (IPC)</h3>
+                    <span class="tag success" style="display: inline-flex; align-items: center; gap: 6px;"><div class="pulse" style="margin:0;"></div> Live</span>
+                </div>
+                <div class="card" style="padding: 0;">
+                    <table id="ipc-table" style="table-layout: fixed;">
+                        <thead>
+                            <tr>
+                                <th style="padding-left: 20px; width: 15%;">TIME</th>
+                                <th style="width: 25%;">ROUTING</th>
+                                <th style="width: 25%;">TYPE</th>
+                                <th style="padding-right: 20px; width: 35%;">PAYLOAD</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ipc-table-body"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
-        <div class="logs-section">
-            <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 20px; padding-bottom: 8px;">
-                <h3 style="margin: 0; flex: 1;">Intelligence Pipeline</h3>
-                <select id="log-date-select" onchange="updateDashboard()" style="width: 140px; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--subtle); color: var(--text); font-family: inherit; font-size: 13px; cursor: pointer; height: 32px;">
-                </select>
-            </div>
-            <div class="card" style="padding: 0;">
-                <table id="log-table" style="table-layout: fixed;">
-                    <thead>
-                        <tr>
-                            <th style="padding-left: 20px; width: 25%;">TIME</th>
-                            <th style="width: 25%;">TYPE</th>
-                            <th style="padding-right: 20px; width: 50%;">CONTENT</th>
-                        </tr>
-                    </thead>
-                    <tbody id="lt"></tbody>
-                </table>
-            </div>
-            <div style="text-align: center; margin-top: 20px;">
-                <button id="show-more-btn" class="btn-refresh" style="display: none;" onclick="toggleLogs()">Show More</button>
+        <!-- PIPELINE TAB -->
+        <div id="pipeline-tab" class="tab-content">
+            <div class="logs-section">
+                <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 20px; padding-bottom: 8px;">
+                    <h3 style="margin: 0; flex: 1;">Intelligence Pipeline</h3>
+                    <select id="log-date-select" onchange="updateDashboard()" style="width: 140px; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--subtle); color: var(--text); font-family: inherit; font-size: 13px; cursor: pointer; height: 32px;">
+                    </select>
+                </div>
+                <div class="card" style="padding: 0;">
+                    <table id="log-table" style="table-layout: fixed;">
+                        <thead>
+                            <tr>
+                                <th style="padding-left: 20px; width: 25%;">TIME</th>
+                                <th style="width: 25%;">TYPE</th>
+                                <th style="padding-right: 20px; width: 50%;">CONTENT</th>
+                            </tr>
+                        </thead>
+                        <tbody id="lt"></tbody>
+                    </table>
+                </div>
+                <div style="text-align: center; margin-top: 20px;">
+                    <button id="show-more-btn" class="btn-refresh" style="display: none;" onclick="toggleLogs()">Show More</button>
+                </div>
             </div>
         </div>
     </div>
