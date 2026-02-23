@@ -7,6 +7,11 @@
 
 ## Done
 
+### AO-14 Refactor Dashboard Service (Split UI/Logic)
+- Status: Completed
+- Commit: (current)
+- Date: 2026-02-23
+
 ### AO-13 Final Verification Walkthrough
 - Status: Completed
 - Commit: dbe54c2

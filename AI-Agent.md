@@ -50,7 +50,8 @@ AI-Agent/
 │   │   ├── rag-service.ts     # Embeddings + SQLite; sqlite-vss KNN when available, else dot-product; memory.semantic.*, node.execute semantic_search
 │   │   ├── tool-host.ts        # shell, http_get (Playwright), http_search; sandbox; tool.execute / node.execute tool
 │   │   ├── cron-manager.ts    # node-cron + SQLite schedules; event.cron.* to Logger
-│   │   └── dashboard-service.ts # Notion-style web monitoring; reads DBs/logs on demand
+│   │   ├── dashboard/         # Dashboard UI (static files: index.html, app.js, styles.css)
+│   │   └── dashboard-service.ts # Serves Dashboard UI and API for system monitoring
 │   └── shared/
 │       ├── config.ts           # Central config: config.json + env overrides
 │       ├── protocol.ts         # Zod schemas: Envelope, Response, Error, Event
@@ -104,7 +105,7 @@ AI-Agent/
 - **RAG Service**: Ollama embed; SQLite-backed document store; **sqlite-vss** for KNN vector search when extension loads (macOS/Linux x64), else in-DB dot-product; configurable `rag.embeddingDimensions` (768); `memory.semantic.insert`, `memory.semantic.search`; search is session-scoped by default to prevent cross-chat leakage; `node.execute` for `semantic_search` returns snippets for downstream nodes.
 - **Tool Host**: Registry of tools (shell, http_get, http_search); sandbox dir from config; `tool.execute` and `node.execute` for type `tool`; shell tool executes commands with sandbox restrictions; browsing supports persistent context (cookies) via `userDataDir`.
 - **Cron Manager**: SQLite schedule table; node-cron; `cron.schedule.add/list/remove`; emits `event.cron.started/completed/failed` to Logger.
-- **Dashboard Service**: Standalone internal monitoring web dashboard; provides real-time overview of tasks, system stats, and event logs via a Notion-inspired UI.
+- **Dashboard Service**: Standalone monitoring web dashboard; provides real-time overview of tasks, processes, and IPC logs. UI is served from static files in `src/services/dashboard/`.
 
 ### Adapters
 
