@@ -141,7 +141,7 @@ const DEFAULT_CONFIG: AppConfig = {
     baseUrl: "http://127.0.0.1:11434",
     timeoutMs: 600_000, // 10 minutes default
     retries: 2,
-    numCtx: 32768,
+    numCtx: 16384,
   },
   telegram: {
     botToken: "",

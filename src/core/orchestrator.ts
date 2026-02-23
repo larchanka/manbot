@@ -809,10 +809,12 @@ export class Orchestrator {
       return;
     }
 
-    this.sendToTelegram(chatId, `🧠 Archiving ${tasks.length} task(s)...`, true);
+    // Only archive the last 20 tasks to avoid prompt explosion while still capturing recent context
+    const recentTasks = tasks.slice(-20);
+    this.sendToTelegram(chatId, `🧠 Archiving ${recentTasks.length} task(s)...`, true);
 
     const historyParts: string[] = [];
-    for (const t of tasks) {
+    for (const t of recentTasks) {
       let taskDetail: Envelope;
       try {
         taskDetail = await this.sendAndWait(taskMemory, "task.get", { taskId: t.id });
@@ -823,7 +825,13 @@ export class Orchestrator {
       const getTaskResult = (taskDetail.payload as { result?: { nodes?: Array<{ output?: string }> } }).result;
       const nodes = getTaskResult?.nodes ?? [];
       const lastOutput = nodes.filter((n) => n.output != null && n.output !== "").pop()?.output ?? "";
-      const resultText = typeof lastOutput === "string" ? lastOutput : JSON.stringify(lastOutput);
+      const resultTextRaw = typeof lastOutput === "string" ? lastOutput : JSON.stringify(lastOutput);
+
+      // Truncate individual task outputs to 2000 chars for summarization
+      const resultText = resultTextRaw.length > 2000
+        ? resultTextRaw.substring(0, 2000) + "... [truncated]"
+        : resultTextRaw;
+
       historyParts.push(`Goal: ${t.goal}\nResult: ${resultText || "(no output)"}`);
     }
     const chatHistory = historyParts.join("\n\n---\n\n");

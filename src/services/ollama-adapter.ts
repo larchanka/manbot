@@ -395,7 +395,13 @@ export class OllamaAdapter {
             err.message.includes("fetch") ||
             err.message.includes("ECONNREFUSED") ||
             err.message.includes("network"));
-        if (attempt === this.retries || !isRetryable) throw err;
+
+        if (attempt === this.retries || !isRetryable) {
+          if (err instanceof Error && (err as any).cause) {
+            err.message += ` (Cause: ${(err as any).cause})`;
+          }
+          throw err;
+        }
       }
     }
     throw lastError;
