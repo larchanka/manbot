@@ -1,6 +1,8 @@
-# 🧬 ManBot
+<img src="_docs/images/header.png" alt="ManBot preview" style="width: 100%; max-width: 600px;">
 
 A multi-process AI platform with type-safe IPC and capability-graph execution. Users interact via Telegram; the system plans tasks as DAGs, executes nodes (LLM, RAG, tools), and optionally revises output with a Critic agent.
+
+# 🧬 ManBot
 
 > **Important:** This is **not** an AI chatbot. It is designed for **heavy tasks** that require time and substantial processing—planning, research, multi-step execution, tool use. It runs locally (Ollama) and performance depends on your machine's compute power; expect slower responses compared to cloud-based chat services.
 
