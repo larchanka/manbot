@@ -1,4 +1,8 @@
-<img src="_docs/images/header.png" alt="ManBot preview" style="width: 100%; max-width: 600px;">
+![🧬 ManBot](_docs/images/header.png)
+
+**[Website](https://manbothq.github.io) · [Documentation](https://github.com/ManBotHQ/manbothq.github.io/wiki)**
+
+---
 
 A multi-process AI platform with type-safe IPC and capability-graph execution. Users interact via Telegram; the system plans tasks as DAGs, executes nodes (LLM, RAG, tools), and optionally revises output with a Critic agent.
 
