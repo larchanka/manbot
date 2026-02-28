@@ -79,7 +79,7 @@ export class OllamaAdapter {
   private readonly numCtx: number;
 
   constructor(options: OllamaAdapterOptions = {}) {
-    const c = getConfig().ollama;
+    const c = getConfig().lemonade;
     this.baseUrl = options.baseUrl ?? c.baseUrl;
     this.timeoutMs = options.timeoutMs ?? c.timeoutMs;
     this.retries = options.retries ?? c.retries;

@@ -1,23 +1,23 @@
 /**
- * ModelManagerService: manages tiered Ollama model lifecycles.
- * Ensures models are loaded on demand with appropriate keep-alive settings,
+ * ModelManagerService: manages tiered Lemonade model lifecycles.
+ * Ensures models are loaded on demand,
  * with concurrency safety (deduplication of concurrent load calls).
  */
 
-import { getConfig } from "../shared/config.js";
-import { OllamaAdapter } from "./ollama-adapter.js";
+
+import { LemonadeAdapter } from "./lemonade-adapter.js";
 import { ModelRouter } from "./model-router.js";
 
 /** Model tier corresponds to the three tiers in ModelRouter. */
 export type ModelTier = "small" | "medium" | "large";
 
 export interface ModelManagerServiceOptions {
-    ollama: OllamaAdapter;
+    lemonade: LemonadeAdapter;
     modelRouter: ModelRouter;
 }
 
 export class ModelManagerService {
-    private readonly ollama: OllamaAdapter;
+    private readonly lemonade: LemonadeAdapter;
     private readonly modelRouter: ModelRouter;
 
     /**
@@ -27,7 +27,7 @@ export class ModelManagerService {
     private readonly inflight = new Map<string, Promise<void>>();
 
     constructor(opts: ModelManagerServiceOptions) {
-        this.ollama = opts.ollama;
+        this.lemonade = opts.lemonade;
         this.modelRouter = opts.modelRouter;
     }
 
@@ -37,7 +37,6 @@ export class ModelManagerService {
      */
     async ensureModelLoaded(tier: ModelTier): Promise<void> {
         const model = this.modelRouter.getModel(tier);
-        const keepAlive = this.resolveKeepAlive(tier);
 
         // Reuse an in-flight warmup if one is already running for this model.
         const existing = this.inflight.get(model);
@@ -45,8 +44,8 @@ export class ModelManagerService {
             return existing;
         }
 
-        const promise = this.ollama
-            .warmup(model, keepAlive)
+        const promise = this.lemonade
+            .warmup(model)
             .finally(() => {
                 this.inflight.delete(model);
             });
@@ -62,22 +61,5 @@ export class ModelManagerService {
     async prewarmModels(): Promise<void> {
         await this.ensureModelLoaded("small");
         await this.ensureModelLoaded("medium");
-    }
-
-    /**
-     * Map a tier to its configured keep-alive value.
-     * Small/Medium use infinite keep-alive (-1) per spec;
-     * large uses the configured largeModelKeepAlive duration.
-     */
-    private resolveKeepAlive(tier: ModelTier): string | number {
-        const cfg = getConfig().modelManager;
-        switch (tier) {
-            case "small":
-                return cfg.smallModelKeepAlive;
-            case "medium":
-                return cfg.mediumModelKeepAlive;
-            case "large":
-                return cfg.largeModelKeepAlive;
-        }
     }
 }

@@ -13,7 +13,7 @@ It supports:
 - Capability-based execution planning
 - Task-level isolated memory
 - Layered memory system
-- Local LLM inference via Ollama
+- Local LLM inference via Lemonade
 - RAG via SQLite-backed document store; sqlite-vss for scalable vector search when available (fallback: dot-product)
 - Structured persistence via SQLite
 - Tool execution via MCP-compatible tool host

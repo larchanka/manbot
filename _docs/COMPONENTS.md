@@ -67,8 +67,8 @@ Routes tasks to:
 
 ---
 
-### Ollama Adapter
-Interface to local Ollama instance.
+### Lemonade Adapter
+Interface to local Lemonade Server instance (OpenAI-compatible).
 
 Supports:
 - Streaming
@@ -151,8 +151,8 @@ Stores:
 - Receives `file.process` envelopes from Core Orchestrator
 - Routes by file category:
   - **text** → reads file content; inlines if short, returns `text_long` if long (orchestrator handles RAG)
-  - **image** → OCR/description via `OllamaAdapter.chatWithImage()` with configured vision model (`glm-ocr:q8_0`)
-  - **audio** → `convertToWav()` (ffmpeg-static) → `transcribeAudio()` (Whisper local inference)
+  - **image** → OCR/description via `LemonadeAdapter.chatWithImage()` with configured vision model (`qwen3-vl`)
+  - **audio** → `convertToWav()` (ffmpeg-static) → `transcribeAudio()` (Lemonade Whisper API)
   - **unknown** → returns `ignored` with reason
 - Deletes every uploaded file from disk after processing (succeed or fail)
 - Emits `event.file.processed` audit event for logging
@@ -185,7 +185,7 @@ Stores:
 3. Telegram Adapter → Core: `file.ingest` envelope (FileIngestPayload)
 4. Core Orchestrator: notify user "Processing N file(s)..."
 5. Core → File Processor: `file.process` per file (parallel, Promise.allSettled)
-6. File Processor: routes by category, calls Ollama/Whisper/readFile, deletes original, responds
+6. File Processor: routes by category, calls Lemonade/Whisper, deletes original, responds
 7. Core: collects results, builds `enrichedGoal` (inline context + transcript + caption)
    - Long text files (> textMaxInlineChars) → indexLongText() → model-router chunk summaries → rag-service
 8. Core → Planner → Executor: runs normal task pipeline with `enrichedGoal`

@@ -4,7 +4,7 @@
  */
 
 import cron from "node-cron";
-import { OllamaAdapter } from "./ollama-adapter.js";
+import { LemonadeAdapter } from "./lemonade-adapter.js";
 import { ModelRouter } from "./model-router.js";
 
 const SYSTEM_PROMPT = `You are a time expression parser. Your task is to convert natural language time expressions into cron expressions.
@@ -52,11 +52,11 @@ export interface ParseTimeExpressionResult {
 }
 
 export class TimeParserService {
-  private readonly ollama: OllamaAdapter;
+  private readonly lemonade: LemonadeAdapter;
   private readonly modelRouter: ModelRouter;
 
-  constructor(options?: { ollama?: OllamaAdapter; modelRouter?: ModelRouter }) {
-    this.ollama = options?.ollama ?? new OllamaAdapter();
+  constructor(options?: { lemonade?: LemonadeAdapter; modelRouter?: ModelRouter }) {
+    this.lemonade = options?.lemonade ?? new LemonadeAdapter();
     this.modelRouter = options?.modelRouter ?? new ModelRouter();
   }
 
@@ -76,7 +76,7 @@ export class TimeParserService {
     try {
       // Use "small" model for this task as it's relatively straightforward
       const model = this.modelRouter.getModel("small");
-      const result = await this.ollama.chat(
+      const result = await this.lemonade.chat(
         [
           { role: "system", content: SYSTEM_PROMPT },
           { role: "user", content: prompt },

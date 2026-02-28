@@ -9,10 +9,9 @@ import { BaseProcess } from "../shared/base-process.js";
 import type { Envelope } from "../shared/protocol.js";
 import { PROTOCOL_VERSION } from "../shared/protocol.js";
 import { responsePayloadSchema } from "../shared/protocol.js";
-import { getConfig } from "../shared/config.js";
 import { buildSummarizerPrompt, SUMMARIZER_SYSTEM_PROMPT } from "../agents/prompts/summarizer.js";
 import { ANALYZER_SYSTEM_PROMPT, buildAnalyzerUserPrompt } from "../agents/prompts/analyzer.js";
-import { OllamaAdapter, type ChatMessage } from "./ollama-adapter.js";
+import { LemonadeAdapter, type ChatMessage } from "./lemonade-adapter.js";
 import { ModelRouter } from "./model-router.js";
 import { ModelManagerService, type ModelTier } from "./model-manager.js";
 
@@ -29,13 +28,13 @@ interface NodeExecutePayload {
 }
 
 export class GeneratorService extends BaseProcess {
-  private readonly ollama: OllamaAdapter;
+  private readonly lemonade: LemonadeAdapter;
   private readonly modelRouter: ModelRouter;
   private readonly modelManager: ModelManagerService | null;
 
-  constructor(options?: { ollama?: OllamaAdapter; modelRouter?: ModelRouter; modelManager?: ModelManagerService }) {
+  constructor(options?: { lemonade?: LemonadeAdapter; modelRouter?: ModelRouter; modelManager?: ModelManagerService }) {
     super({ processName: PROCESS_NAME });
-    this.ollama = options?.ollama ?? new OllamaAdapter();
+    this.lemonade = options?.lemonade ?? new LemonadeAdapter();
     this.modelRouter = options?.modelRouter ?? new ModelRouter();
     this.modelManager = options?.modelManager ?? null;
   }
@@ -169,23 +168,22 @@ export class GeneratorService extends BaseProcess {
           });
           prompt = depOutputs.join("\n\n") || "Generate a brief response.";
         }
-        messages = (p.input?.messages as ChatMessage[]) ??
-          (systemPrompt
+        if (!messages) {
+          messages = systemPrompt
             ? [{ role: "system" as const, content: systemPrompt }, { role: "user" as const, content: prompt }]
-            : undefined);
+            : [{ role: "user" as const, content: prompt }];
+        }
 
-        const ollamaOptions = { num_ctx: getConfig().ollama.numCtx };
-        const genResult = messages
-          ? await this.ollama.chat(messages, model, { tools: p.input?.tools as any[], options: ollamaOptions })
-          : await this.ollama.generate(prompt, model, { options: ollamaOptions });
+        const genResult = await this.lemonade.chat(messages, model, {
+          tools: p.input?.tools as any[],
+        });
 
-        const text = "message" in genResult ? genResult.message.content : genResult.text;
-        const tool_calls = "message" in genResult ? genResult.message.tool_calls : undefined;
+        const text = genResult.message.content;
+        const tool_calls = genResult.message.tool_calls;
         this.sendResponse(envelope, {
           text,
           tool_calls,
-          prompt_eval_count: genResult.prompt_eval_count,
-          eval_count: genResult.eval_count
+          usage: genResult.usage
         });
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);

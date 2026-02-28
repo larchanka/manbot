@@ -14,7 +14,7 @@ import type { Envelope } from "../shared/protocol.js";
 import { PROTOCOL_VERSION } from "../shared/protocol.js";
 import { responsePayloadSchema } from "../shared/protocol.js";
 import { getConfig } from "../shared/config.js";
-import { OllamaAdapter } from "./ollama-adapter.js";
+import { LemonadeAdapter } from "./lemonade-adapter.js";
 import { ConsoleLogger } from "../utils/console-logger.js";
 
 const PROCESS_NAME = "rag-service";
@@ -177,13 +177,13 @@ interface MemoryInsertPayload {
 }
 
 export class RAGService extends BaseProcess {
-  private readonly ollama: OllamaAdapter;
+  private readonly lemonade: LemonadeAdapter;
   private readonly embedModel: string;
   private readonly store: RAGStore;
 
-  constructor(options?: { ollama?: OllamaAdapter; embedModel?: string; dbPath?: string; embeddingDimensions?: number }) {
+  constructor(options?: { lemonade?: LemonadeAdapter; embedModel?: string; dbPath?: string; embeddingDimensions?: number }) {
     super({ processName: PROCESS_NAME });
-    this.ollama = options?.ollama ?? new OllamaAdapter();
+    this.lemonade = options?.lemonade ?? new LemonadeAdapter();
     this.embedModel = options?.embedModel ?? getConfig().rag.embedModel;
     const dbPath = options?.dbPath ?? getConfig().rag.dbPath;
     const embeddingDimensions = options?.embeddingDimensions ?? getConfig().rag.embeddingDimensions;
@@ -193,7 +193,7 @@ export class RAGService extends BaseProcess {
   /** Embed and store a document */
   async addDocument(content: string, metadata: Record<string, unknown> = {}): Promise<string> {
     ConsoleLogger.debug(PROCESS_NAME, `Embedding document: ${content.substring(0, 50)}...`);
-    const { embedding } = await this.ollama.embed(content, this.embedModel, { timeoutMs: 60000 });
+    const { embedding } = await this.lemonade.embed(content, this.embedModel, { timeoutMs: 60000 });
     const id = randomUUID();
     this.store.insert(id, content, metadata, embedding);
     ConsoleLogger.info(PROCESS_NAME, `Stored document ${id.substring(0, 8)}`);
@@ -203,7 +203,7 @@ export class RAGService extends BaseProcess {
   /** Return relevant snippets by semantic similarity (cosine via dot product for L2-normalized vectors) */
   async search(query: string, limit = 5, filters?: { conversationId?: string | undefined }): Promise<Array<{ content: string; metadata: Record<string, unknown>; score: number }>> {
     ConsoleLogger.debug(PROCESS_NAME, `Searching RAG: "${query}"${filters?.conversationId ? ` (filter: ${filters.conversationId})` : ""}`);
-    const { embedding: queryEmbed } = await this.ollama.embed(query, this.embedModel, { timeoutMs: 30000 });
+    const { embedding: queryEmbed } = await this.lemonade.embed(query, this.embedModel, { timeoutMs: 30000 });
     const results = this.store.search(queryEmbed, limit, filters);
     ConsoleLogger.info(PROCESS_NAME, `Found ${results.length} results for query`);
     return results;

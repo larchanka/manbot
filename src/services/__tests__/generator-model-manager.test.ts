@@ -7,7 +7,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { GeneratorService } from "../generator-service.js";
 import { ModelManagerService } from "../model-manager.js";
-import type { OllamaAdapter } from "../ollama-adapter.js";
+import type { LemonadeAdapter } from "../lemonade-adapter.js";
 import type { ModelRouter } from "../model-router.js";
 import type { Envelope } from "../../shared/protocol.js";
 import { randomUUID } from "node:crypto";
@@ -50,21 +50,12 @@ function makeNodeExecute(
 // ── test setup ────────────────────────────────────────────────────────────────
 
 function createIntegrationSetup() {
-    const generate = vi.fn().mockResolvedValue({
-        text: "mock response",
-        prompt_eval_count: 5,
-        eval_count: 10,
-        done: true,
-    });
     const chat = vi.fn().mockResolvedValue({
-        message: { role: "assistant", content: "mock chat response" },
-        prompt_eval_count: 5,
-        eval_count: 10,
-        done: true,
+        message: { role: "assistant", content: "mock response" },
+        usage: { prompt_tokens: 5, completion_tokens: 10, total_tokens: 15 },
     });
-    const warmup = vi.fn((_model: string, _keepAlive: string | number): Promise<void> => Promise.resolve());
-
-    const mockOllama = { generate, chat, warmup } as unknown as OllamaAdapter;
+    const warmup = vi.fn((_model: string): Promise<void> => Promise.resolve());
+    const mockLemonade = { chat, warmup } as unknown as LemonadeAdapter;
 
     const getModel = vi.fn((tier: string) => {
         const map: Record<string, string> = {
@@ -77,19 +68,19 @@ function createIntegrationSetup() {
     const mockRouter = { getModel } as unknown as ModelRouter;
 
     const modelManager = new ModelManagerService({
-        ollama: mockOllama,
+        lemonade: mockLemonade,
         modelRouter: mockRouter,
     });
 
     const ensureModelLoaded = vi.spyOn(modelManager, "ensureModelLoaded");
 
     const service = new GeneratorService({
-        ollama: mockOllama,
+        lemonade: mockLemonade,
         modelRouter: mockRouter,
         modelManager,
     });
 
-    return { service, generate, chat, warmup, ensureModelLoaded, mockOllama, mockRouter };
+    return { service, chat, warmup, ensureModelLoaded, mockLemonade, mockRouter };
 }
 
 // ── tests ─────────────────────────────────────────────────────────────────────
@@ -101,18 +92,18 @@ describe("GeneratorService + ModelManagerService integration", () => {
         setup = createIntegrationSetup();
     });
 
-    it("calls ensureModelLoaded before generate for the default (medium) tier", async () => {
-        const { service, generate, ensureModelLoaded } = setup;
+    it("calls ensureModelLoaded before chat for the default (medium) tier", async () => {
+        const { service, chat, ensureModelLoaded } = setup;
 
         const callOrder: string[] = [];
         ensureModelLoaded.mockImplementation(async () => { callOrder.push("ensure"); });
-        generate.mockImplementation(async () => { callOrder.push("generate"); return { text: "ok", done: true }; });
+        chat.mockImplementation(async () => { callOrder.push("chat"); return { message: { role: "assistant", content: "ok" } }; });
 
         const envelope = makeNodeExecute();
         (service as unknown as { handleEnvelope: (e: Envelope) => void }).handleEnvelope(envelope);
         await new Promise((r) => setTimeout(r, 150));
 
-        expect(callOrder).toEqual(["ensure", "generate"]);
+        expect(callOrder).toEqual(["ensure", "chat"]);
     });
 
     it("passes the correct model tier (small) to ensureModelLoaded", async () => {
@@ -131,15 +122,15 @@ describe("GeneratorService + ModelManagerService integration", () => {
         expect(ensureModelLoaded).toHaveBeenCalledWith("large");
     });
 
-    it("does NOT call generate if ensureModelLoaded rejects", async () => {
-        const { service, generate, ensureModelLoaded } = setup;
+    it("does NOT call chat if ensureModelLoaded rejects", async () => {
+        const { service, chat, ensureModelLoaded } = setup;
         ensureModelLoaded.mockRejectedValue(new Error("model load failed"));
 
         const envelope = makeNodeExecute();
         (service as unknown as { handleEnvelope: (e: Envelope) => void }).handleEnvelope(envelope);
         await new Promise((r) => setTimeout(r, 150));
 
-        expect(generate).not.toHaveBeenCalled();
+        expect(chat).not.toHaveBeenCalled();
     });
 
     it("concurrent requests for the same tier deduplicate warmup calls", async () => {

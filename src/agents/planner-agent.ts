@@ -11,7 +11,7 @@ import type { Envelope } from "../shared/protocol.js";
 import { responsePayloadSchema } from "../shared/protocol.js";
 import { buildPlannerPrompt } from "./prompts/planner.js";
 import { ModelRouter } from "../services/model-router.js";
-import { OllamaAdapter } from "../services/ollama-adapter.js";
+import { LemonadeAdapter } from "../services/lemonade-adapter.js";
 import { SkillManager } from "../services/skill-manager.js";
 import { ConsoleLogger } from "../utils/console-logger.js";
 
@@ -40,13 +40,13 @@ function extractJson(text: string): string {
 }
 
 export class PlannerAgent extends BaseProcess {
-  private readonly ollama: OllamaAdapter;
+  private readonly lemonade: LemonadeAdapter;
   private readonly modelRouter: ModelRouter;
   private readonly skillManager: SkillManager;
 
-  constructor(options?: { ollama?: OllamaAdapter; modelRouter?: ModelRouter; skillManager?: SkillManager }) {
+  constructor(options?: { lemonade?: LemonadeAdapter; modelRouter?: ModelRouter; skillManager?: SkillManager }) {
     super({ processName: "planner" });
-    this.ollama = options?.ollama ?? new OllamaAdapter();
+    this.lemonade = options?.lemonade ?? new LemonadeAdapter();
     this.modelRouter = options?.modelRouter ?? new ModelRouter();
     this.skillManager = options?.skillManager ?? new SkillManager();
   }
@@ -87,7 +87,7 @@ export class PlannerAgent extends BaseProcess {
           { role: "system" as const, content: "You output only valid JSON. No markdown, no explanation." },
           { role: "user" as const, content: prompt },
         ];
-        const result = await this.ollama.chat(messages, model);
+        const result = await this.lemonade.chat(messages, model);
         const raw = result.message?.content ?? "";
         ConsoleLogger.debug("planner", `Raw model response (length: ${raw.length})`);
         const jsonStr = extractJson(raw);

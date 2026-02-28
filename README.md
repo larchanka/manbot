@@ -8,7 +8,7 @@ A multi-process AI platform with type-safe IPC and capability-graph execution. U
 
 # 🧬 ManBot
 
-> **Important:** This is **not** an AI chatbot. It is designed for **heavy tasks** that require time and substantial processing—planning, research, multi-step execution, tool use. It runs locally (Ollama) and performance depends on your machine's compute power; expect slower responses compared to cloud-based chat services.
+> **Important:** This is **not** an AI chatbot. It is designed for **heavy tasks** that require time and substantial processing—planning, research, multi-step execution, tool use. It runs locally (Lemonade) and performance depends on your machine's compute power; expect slower responses compared to cloud-based chat services.
 
 ## Features
 
@@ -19,27 +19,29 @@ A multi-process AI platform with type-safe IPC and capability-graph execution. U
 - **Session-Scoped RAG**: Memory searches are session-scoped by default to prevent context leakage after `/new`, with an optional `global` scope.
 - **Telegram adapter**: Commands `/start`, `/task`, `/new`, `/help`; session tracking and conversation archiving; robust message delivery with automatic plain-text fallback.
 - **Reminder System**: Schedule one-time or recurring reminders via natural language; cron-based scheduling with Telegram delivery
-- **File Processing**: Upload photos, documents, voice notes, or audio files via Telegram. Images are OCR'd locally (Ollama vision model), audio is transcribed locally (Whisper), and text files are inlined or chunked into RAG — all without any cloud calls.
+- **File Processing**: Upload photos, documents, voice notes, or audio files via Telegram. Images are OCR'd locally (Lemonade vision model), audio is transcribed locally (Whisper), and text files are inlined or chunked into RAG — all without any cloud calls.
 - **Monitoring Dashboard**: A Notion-style internal web dashboard for real-time tracking of tasks, system stats, and event logs.
 
 ## Requirements
 
 - **Node.js** >= 20
-- **Ollama** running locally (for LLM and embeddings)
+- **Lemonade** running locally (for LLM and embeddings)
 - **Telegram Bot Token** (from [@BotFather](https://t.me/BotFather)) if using the Telegram adapter
 
-### Ollama models (recommended)
+### Lemonade models (recommended)
 
-- Small: `llama3:8b`
-- Medium: `mistral`
-- Large: `mixtral`
-- Embeddings: `nomic-embed-text` (for RAG)
+- Small: `qwen2.5:0.5b`
+- Medium: `qwen2.5:1.5b`
+- Large: `qwen2.5:7b`
+- Embeddings: `text-embedding-v3` (via Lemonade)
+- Vision: `qwen3-vl`
 
-Install and run Ollama, then pull the models you need:
+Install and run Lemonade, then pull the models you need:
 
 ```bash
-ollama pull nomic-embed-text
-ollama pull mistral
+ollama pull qwen2.5:0.5b
+ollama pull qwen2.5:1.5b
+ollama pull qwen3-vl
 ```
 
 ## Configuration
@@ -53,18 +55,18 @@ ollama pull mistral
 2. Edit `config.json` with your settings. Important keys:
    - **telegram.botToken** — Telegram bot API token (required for Telegram adapter)
    - **telegram.allowedUserIds** — Comma-separated Telegram user IDs; leave empty to allow all
-   - **ollama.baseUrl** — Ollama API URL (default `http://127.0.0.1:11434`)
-   - **rag.embedModel** — Embedding model for RAG (default `nomic-embed-text`)
+   - **lemonade.baseUrl** — Lemonade API URL (default `http://127.0.0.1:8000`)
+   - **rag.embedModel** — Embedding model for RAG (default `text-embedding-v3`)
    - **rag.dbPath** — SQLite path for RAG document storage (default `data/rag.sqlite`)
-   - **rag.embeddingDimensions** — Vector dimension for sqlite-vss (default 768 for nomic-embed-text)
-   - **modelRouter** — Ollama model names for small/medium/large
+   - **rag.embeddingDimensions** — Vector dimension for sqlite-vss (default 768 for text-embedding-v3)
+   - **modelRouter** — Lemonade model names for small/medium/large
    - **toolHost.sandboxDir** — Directory allowed for shell tool file operations (default: cwd)
    - **browserService.headless** — Run browser in headless mode (default: `true`)
    - **browserService.timeout** — Browser operation timeout in milliseconds (default: `30000`)
    - **browserService.enableStealth** — Enable stealth plugin for bot detection bypass (default: `true`)
    - **browserService.reuseContext** — Reuse browser context across requests (default: `true`)
    - **browserService.userDataDir** — Directory to store browser user data (persistent cookies, logins, etc.; default: `undefined`)
-   - **modelManager.smallModelKeepAlive** — Keep-alive for small model (default: `"10m"`, Ollama duration string or seconds)
+   - **modelManager.smallModelKeepAlive** — Keep-alive for small model (default: `"10m"`, Lemonade duration string or seconds)
    - **modelManager.mediumModelKeepAlive** — Keep-alive for medium model (default: `"30m"`)
    - **modelManager.largeModelKeepAlive** — Keep-alive for large model after on-demand use (default: `"60m"`)
    - **modelManager.warmupPrompt** — Minimal prompt sent during warmup (default: `"hello"`)
@@ -73,14 +75,14 @@ ollama pull mistral
    - **fileProcessor.uploadDir** — Temp directory for uploaded files (default: `"data/uploads"`)
    - **fileProcessor.maxFileSizeBytes** — Max upload size allowed (default: `52428800` = 50 MB)
    - **fileProcessor.textMaxInlineChars** — Files shorter than this are inlined in the goal (default: `8000`)
-   - **fileProcessor.ocrModel** — Ollama vision model for image OCR (default: `"glm-ocr:q8_0"`)
+   - **fileProcessor.ocrModel** — Lemonade vision model for image OCR (default: `"qwen3-vl"`)
    - **fileProcessor.ocrEnabled** — Enable/disable image OCR (default: `true`)
 
 Environment variables override `config.json`. Supported env vars:
 
 - `CONFIG_PATH` — Path to config file (default: `./config.json`)
 - `TELEGRAM_BOT_TOKEN`, `TELEGRAM_ALLOWED_USER_IDS`
-- `OLLAMA_BASE_URL`, `OLLAMA_TIMEOUT_MS`, `OLLAMA_RETRIES`
+- `LEMONADE_BASE_URL`, `LEMONADE_TIMEOUT_MS`, `LEMONADE_RETRIES`
 - `TASK_MEMORY_DB`, `CRON_DB`, `LOG_DIR`, `LOG_FILE`
 - `RAG_EMBED_MODEL`, `RAG_DB`, `RAG_EMBEDDING_DIMENSIONS`, `TOOL_SANDBOX_DIR`
 - `MODEL_ROUTER_SMALL`, `MODEL_ROUTER_MEDIUM`, `MODEL_ROUTER_LARGE`
@@ -124,7 +126,7 @@ For development (TypeScript without pre-build):
 npm run dev:orchestrator
 ```
 
-Ensure `config.json` has a valid **telegram.botToken** and Ollama is running.
+Ensure `config.json` has a valid **telegram.botToken** and Lemonade is running.
 
 ### Standalone services (for testing or custom setups)
 
@@ -214,11 +216,11 @@ See [Troubleshooting](#troubleshooting) for common issues and debugging tips.
 
 ## Model Management
 
-The system includes a `ModelManagerService` that manages Ollama model lifecycles:
+The system includes a `ModelManagerService` that manages Lemonade model lifecycles:
 
 - **Startup prewarming**: On startup, the Orchestrator pre-warms the **small** and **medium** models sequentially, so the first request is served without cold-start delay.
 - **On-demand loading**: The **large** model is loaded on demand when needed for a task.
-- **Keep-alive control**: Each tier has a configurable keep-alive duration (Ollama removes a model from VRAM after it has been idle for the configured time).
+- **Keep-alive control**: Each tier has a configurable keep-alive duration (Lemonade removes a model from VRAM after it has been idle for the configured time).
 - **Concurrency safety**: Concurrent warmup requests for the same model are deduplicated — only one `/api/chat` call is made regardless of how many parallel requests arrive.
 
 ### Keep-alive defaults
@@ -229,7 +231,7 @@ The system includes a `ModelManagerService` that manages Ollama model lifecycles
 | medium | `30m`              | Stays loaded for 30 minutes after last use |
 | large  | `60m`              | Stays loaded for 60 minutes after last use |
 
-Set keep-alive to `-1` (the number) to keep a model loaded indefinitely until Ollama is restarted.
+Set keep-alive to `-1` (the number) to keep a model loaded indefinitely until Lemonade is restarted.
 
 ### Monitoring model state
 
@@ -269,7 +271,7 @@ You can configure the port using the `DASHBOARD_PORT` environment variable or by
 - **src/core/** — Core Orchestrator (process spawning, message routing, task pipeline, file ingest)
 - **src/agents/** — Planner, Executor, Critic; **prompts/** for system prompts (planner, critic, summarizer)
 - **src/adapters/** — Telegram adapter (including file detection and download)
-- **src/services/** — Task Memory, Logger, Ollama adapter (with vision), Model Router, Generator, RAG (SQLite), Tool Host, Cron Manager, Dashboard Service, **File Processor**
+- **src/services/** — Task Memory, Logger, Lemonade adapter (with vision), Model Router, Generator, RAG (SQLite), Tool Host, Cron Manager, Dashboard Service, **File Processor**
 - **src/utils/** — Console logger, audio-converter (ffmpeg-static), whisper-transcriber (nodejs-whisper)
 - **src/shared/** — Protocol (Zod schemas), BaseProcess, graph-utils, config, **file-protocol**
 - **_docs/** — Architecture and protocol specs
@@ -286,7 +288,7 @@ ManBot can process file attachments sent directly in Telegram — no cloud servi
 | Type | Telegram attachment | Processing |
 |---|---|---|
 | **Text** | Any document (`.txt`, `.md`, `.json`, `.pdf`, etc.) | Content read directly; short files inlined into goal, long files chunked + summarised + indexed in RAG |
-| **Image** | Photo or image document | OCR/description via Ollama vision model (`glm-ocr:q8_0`) |
+| **Image** | Photo or image document | OCR/description via Lemonade vision model (`qwen3-vl`) |
 | **Voice / Audio** | Voice message or audio file | Converted to WAV (ffmpeg-static) → transcribed (OpenAI Whisper, local) |
 | **Video** | Video or video note | ⚠️ Not supported yet |
 
@@ -295,7 +297,7 @@ ManBot can process file attachments sent directly in Telegram — no cloud servi
 1. Send any supported file to the bot, optionally with a caption as your instruction
 2. The bot downloads the file locally to `data/uploads/`
 3. Processing runs in the dedicated `file-processor` subprocess:
-   - Images → `OllamaAdapter.chatWithImage()` with the configured OCR model
+   - Images → `LemonadeAdapter.chatWithImage()` with the configured OCR model
    - Audio → `convertToWav()` (ffmpeg-static) → `transcribeAudio()` (Whisper `base.en` by default)
    - Text → `readFile()`, check length against `textMaxInlineChars`
 4. Extracted content is injected into the planner goal as structured context
@@ -306,9 +308,9 @@ ManBot can process file attachments sent directly in Telegram — no cloud servi
 The Whisper model (~75 MB for `base.en`) is automatically downloaded on first voice/audio transcription. Retry if the first request fails — the model downloads in the background.
 
 ### Requirements for image OCR
-Pull the vision model from Ollama before use:
+Pull the vision model from Lemonade before use:
 ```bash
-ollama pull glm-ocr:q8_0
+ollama pull qwen3-vl
 ```
 
 ## Troubleshooting

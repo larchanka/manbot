@@ -15,7 +15,7 @@ import { envelopeSchema } from "../shared/protocol.js";
 import type { Envelope } from "../shared/protocol.js";
 import { ConsoleLogger } from "../utils/console-logger.js";
 import { getConfig } from "../shared/config.js";
-import { OllamaAdapter } from "../services/ollama-adapter.js";
+import { LemonadeAdapter } from "../services/lemonade-adapter.js";
 import { ModelRouter } from "../services/model-router.js";
 import { ModelManagerService } from "../services/model-manager.js";
 import type { FileIngestPayload, ProcessedFile } from "../shared/file-protocol.js";
@@ -69,9 +69,9 @@ export class Orchestrator {
   private activeTaskCount = 0;
 
   constructor() {
-    const ollama = new OllamaAdapter();
+    const lemonade = new LemonadeAdapter();
     const modelRouter = new ModelRouter();
-    this.modelManager = new ModelManagerService({ ollama, modelRouter });
+    this.modelManager = new ModelManagerService({ lemonade, modelRouter });
   }
 
   private spawnProcess(name: string, scriptPath: string, restartCount = 0): ChildEntry {
