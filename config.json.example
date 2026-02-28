@@ -1,8 +1,9 @@
 {
-  "ollama": {
-    "baseUrl": "http://127.0.0.1:11434/api/chat",
-    "timeoutMs": 60000,
-    "retries": 2
+  "lemonade": {
+    "baseUrl": "http://127.0.0.1:8000/api/v1",
+    "timeoutMs": 600000,
+    "retries": 3,
+    "numCtx": 16384
   },
   "telegram": {
     "botToken": "YOUR_TELEGRAM_BOT_TOKEN",
@@ -16,7 +17,7 @@
     "logFile": "events.log"
   },
   "rag": {
-    "embedModel": "nomic-embed-text",
+    "embedModel": "text-embedding-v3",
     "dbPath": "data/rag.sqlite",
     "embeddingDimensions": 768
   },
@@ -27,10 +28,10 @@
     "dbPath": "data/cron.sqlite"
   },
   "modelRouter": {
-    "small": "qwen3:0.6b",
-    "medium": "qwen3:1.7b",
-    "large": "qwen3:4b",
-    "plannerComplexity": "medium"
+    "small": "qwen2.5:0.5b",
+    "medium": "qwen2.5:1.5b",
+    "large": "qwen2.5:7b",
+    "plannerComplexity": "small"
   },
   "executor": {
     "nodeTimeoutMs": 600000
@@ -49,7 +50,7 @@
     "warmupPrompt": "hello"
   },
   "whisper": {
-    "modelName": "base",
+    "modelName": "Whisper-Tiny",
     "language": "auto",
     "modelDir": "data/whisper-models"
   },
@@ -57,7 +58,8 @@
     "uploadDir": "data/uploads",
     "maxFileSizeBytes": 52428800,
     "textMaxInlineChars": 8000,
-    "ocrModel": "glm-ocr:q8_0",
+    "ocrModel": "qwen3-vl",
     "ocrEnabled": true
-  }
+  },
+  "maxConcurrentTasks": 1
 }

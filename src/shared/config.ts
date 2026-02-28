@@ -6,7 +6,7 @@
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 
-export interface OllamaConfig {
+export interface LemonadeConfig {
   baseUrl: string;
   timeoutMs: number;
   retries: number;
@@ -76,7 +76,7 @@ export interface BrowserServiceConfig {
 export interface ModelManagerConfig {
   /**
    * How long to keep a small model in memory after the last request.
-   * Accepts an Ollama duration string (e.g. "5m") or a number of seconds.
+   * Accepts an Ollama/Lemonade duration string (e.g. "5m") or a number of seconds.
    */
   smallModelKeepAlive: string | number;
   /**
@@ -99,11 +99,11 @@ export interface SkillsConfig {
 }
 
 export interface WhisperConfig {
-  /** Whisper model to use for transcription (e.g. "base.en", "small", "medium"). */
+  /** Whisper model to use for transcription (e.g. "Whisper-Tiny", "Whisper-Base"). */
   modelName: string;
   /** Language code for transcription ("auto" for auto-detect). */
   language: string;
-  /** Directory where Whisper model files are stored (downloaded on first use). */
+  /** Directory where Whisper model files are stored (unused when using Lemonade API). */
   modelDir: string;
 }
 
@@ -114,14 +114,14 @@ export interface FileProcessorConfig {
   maxFileSizeBytes: number;
   /** Files with text content shorter than this are inlined into the planner goal directly. */
   textMaxInlineChars: number;
-  /** Ollama model used for image OCR and description. */
+  /** Lemonade model used for image OCR and description. */
   ocrModel: string;
   /** Whether image OCR/description is enabled. */
   ocrEnabled: boolean;
 }
 
 export interface AppConfig {
-  ollama: OllamaConfig;
+  lemonade: LemonadeConfig;
   telegram: TelegramConfig;
   taskMemory: TaskMemoryConfig;
   logger: LoggerConfig;
@@ -139,8 +139,8 @@ export interface AppConfig {
 }
 
 const DEFAULT_CONFIG: AppConfig = {
-  ollama: {
-    baseUrl: "http://127.0.0.1:11434",
+  lemonade: {
+    baseUrl: "http://127.0.0.1:8000/api/v1",
     timeoutMs: 600_000, // 10 minutes default
     retries: 3,
     numCtx: 16384,
@@ -157,7 +157,7 @@ const DEFAULT_CONFIG: AppConfig = {
     logFile: "events.log",
   },
   rag: {
-    embedModel: "nomic-embed-text",
+    embedModel: "text-embedding-v3", // Common OpenAI/Lemonade embed model name
     dbPath: "data/rag.sqlite",
     embeddingDimensions: 768,
   },
@@ -169,9 +169,9 @@ const DEFAULT_CONFIG: AppConfig = {
     dbPath: "data/cron.sqlite",
   },
   modelRouter: {
-    small: "qwen3:0.6b",
-    medium: "qwen3:1.7b",
-    large: "qwen3:4b",
+    small: "qwen2.5:0.5b",
+    medium: "qwen2.5:1.5b",
+    large: "qwen2.5:7b",
     plannerComplexity: "small",
   },
   executor: {
@@ -193,7 +193,7 @@ const DEFAULT_CONFIG: AppConfig = {
     skillsDir: "skills",
   },
   whisper: {
-    modelName: "base",
+    modelName: "Whisper-Tiny",
     language: "auto",
     modelDir: "data/whisper-models",
   },
@@ -201,7 +201,7 @@ const DEFAULT_CONFIG: AppConfig = {
     uploadDir: "data/uploads",
     maxFileSizeBytes: 52_428_800, // 50 MB
     textMaxInlineChars: 8_000,
-    ocrModel: "glm-ocr:q8_0",
+    ocrModel: "qwen3-vl",
     ocrEnabled: true,
   },
   maxConcurrentTasks: 1,
@@ -222,11 +222,11 @@ function loadConfigFile(): Partial<AppConfig> {
 
 function mergeEnv(config: AppConfig): AppConfig {
   return {
-    ollama: {
-      baseUrl: process.env.OLLAMA_BASE_URL ?? config.ollama.baseUrl,
-      timeoutMs: Number(process.env.OLLAMA_TIMEOUT_MS) || config.ollama.timeoutMs,
-      retries: Number(process.env.OLLAMA_RETRIES) || config.ollama.retries,
-      numCtx: Number(process.env.OLLAMA_NUM_CTX) || config.ollama.numCtx,
+    lemonade: {
+      baseUrl: process.env.LEMONADE_BASE_URL ?? config.lemonade.baseUrl,
+      timeoutMs: Number(process.env.LEMONADE_TIMEOUT_MS) || config.lemonade.timeoutMs,
+      retries: Number(process.env.LEMONADE_RETRIES) || config.lemonade.retries,
+      numCtx: Number(process.env.LEMONADE_NUM_CTX) || config.lemonade.numCtx,
     },
     telegram: {
       botToken: process.env.TELEGRAM_BOT_TOKEN ?? config.telegram.botToken,

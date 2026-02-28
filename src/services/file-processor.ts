@@ -19,7 +19,7 @@ import { BaseProcess } from "../shared/base-process.js";
 import type { Envelope } from "../shared/protocol.js";
 import { PROTOCOL_VERSION } from "../shared/protocol.js";
 import { getConfig } from "../shared/config.js";
-import { OllamaAdapter } from "../services/ollama-adapter.js";
+import { LemonadeAdapter } from "../services/lemonade-adapter.js";
 import { convertToWav } from "../utils/audio-converter.js";
 import { transcribeAudio } from "../utils/whisper-transcriber.js";
 import type {
@@ -38,11 +38,11 @@ const OCR_PROMPT =
     "If no text is found, describe the visual content in detail.";
 
 class FileProcessorService extends BaseProcess {
-    private readonly ollama: OllamaAdapter;
+    private readonly lemonade: LemonadeAdapter;
 
     constructor() {
         super({ processName: PROCESS_NAME });
-        this.ollama = new OllamaAdapter();
+        this.lemonade = new LemonadeAdapter();
     }
 
     protected override handleEnvelope(envelope: Envelope): void {
@@ -186,10 +186,6 @@ class FileProcessorService extends BaseProcess {
         };
     }
 
-    // -------------------------------------------------------------------------
-    // Image handler — OCR / description via Ollama vision model
-    // -------------------------------------------------------------------------
-
     private async processImage(req: FileProcessRequest): Promise<ProcessedFile> {
         const { ocrModel, ocrEnabled } = getConfig().fileProcessor;
 
@@ -203,8 +199,12 @@ class FileProcessorService extends BaseProcess {
             };
         }
 
-        const result = await this.ollama.generateWithImage(OCR_PROMPT, ocrModel, req.localPath);
-        const content = result.text?.trim() ?? "";
+        const result = await this.lemonade.chatWithImage(
+            [{ role: "user", content: OCR_PROMPT }],
+            ocrModel,
+            req.localPath
+        );
+        const content = result.message.content?.trim() ?? "";
 
         // Log basic info for debugging without leaking full sensitive content
         process.stderr.write(`[file-processor] [DEBUG] OCR Result for ${req.fileName} (len: ${content.length}, words: ${content.split(/\s+/).length}): ${content.substring(0, 150).replace(/\n/g, " ")}...\n`);
@@ -216,8 +216,7 @@ class FileProcessorService extends BaseProcess {
             content,
             metadata: {
                 model: ocrModel,
-                promptEvalCount: result.prompt_eval_count,
-                evalCount: result.eval_count,
+                usage: result.usage,
             },
         };
     }

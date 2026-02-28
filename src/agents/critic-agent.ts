@@ -10,7 +10,7 @@ import type { Envelope } from "../shared/protocol.js";
 import { PROTOCOL_VERSION } from "../shared/protocol.js";
 import { responsePayloadSchema } from "../shared/protocol.js";
 import { CRITIC_SYSTEM_PROMPT, buildCriticPrompt } from "./prompts/critic.js";
-import { OllamaAdapter } from "../services/ollama-adapter.js";
+import { LemonadeAdapter } from "../services/lemonade-adapter.js";
 import { ModelRouter } from "../services/model-router.js";
 
 const REFLECTION_EVALUATE = "reflection.evaluate";
@@ -41,12 +41,12 @@ function extractJson(text: string): string {
 }
 
 export class CriticAgent extends BaseProcess {
-  private readonly ollama: OllamaAdapter;
+  private readonly lemonade: LemonadeAdapter;
   private readonly modelRouter: ModelRouter;
 
-  constructor(options?: { ollama?: OllamaAdapter; modelRouter?: ModelRouter }) {
+  constructor(options?: { lemonade?: LemonadeAdapter; modelRouter?: ModelRouter }) {
     super({ processName: PROCESS_NAME });
-    this.ollama = options?.ollama ?? new OllamaAdapter();
+    this.lemonade = options?.lemonade ?? new LemonadeAdapter();
     this.modelRouter = options?.modelRouter ?? new ModelRouter();
   }
 
@@ -72,7 +72,7 @@ export class CriticAgent extends BaseProcess {
           { role: "system" as const, content: CRITIC_SYSTEM_PROMPT },
           { role: "user" as const, content: userContent },
         ];
-        const result = await this.ollama.chat(messages, model);
+        const result = await this.lemonade.chat(messages, model);
         const raw = result.message?.content ?? "";
         const jsonStr = extractJson(raw);
         const parsed = JSON.parse(jsonStr) as Record<string, unknown>;

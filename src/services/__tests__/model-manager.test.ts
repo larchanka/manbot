@@ -6,7 +6,7 @@
 
 import { describe, it, expect, vi } from "vitest";
 import { ModelManagerService } from "../model-manager.js";
-import type { OllamaAdapter } from "../ollama-adapter.js";
+import type { LemonadeAdapter } from "../lemonade-adapter.js";
 import type { ModelRouter } from "../model-router.js";
 
 // Mock getConfig so tests don't depend on config.json on disk.
@@ -21,8 +21,8 @@ vi.mock("../../shared/config.js", () => ({
     }),
 }));
 
-function makeWarmup(impl?: (model: string, keepAlive: string | number) => Promise<void>) {
-    return vi.fn(impl ?? ((_model: string, _keepAlive: string | number): Promise<void> => Promise.resolve()));
+function makeWarmup(impl?: (model: string) => Promise<void>) {
+    return vi.fn(impl ?? ((_model: string): Promise<void> => Promise.resolve()));
 }
 
 function makeRouter(map: Record<string, string> = { small: "llama3:8b", medium: "mistral", large: "mixtral" }) {
@@ -31,15 +31,15 @@ function makeRouter(map: Record<string, string> = { small: "llama3:8b", medium: 
 
 function createMocks() {
     const warmup = makeWarmup();
-    const mockOllama = { warmup } as unknown as OllamaAdapter;
+    const mockLemonade = { warmup } as unknown as LemonadeAdapter;
     const mockRouter = makeRouter();
 
     const service = new ModelManagerService({
-        ollama: mockOllama,
+        lemonade: mockLemonade,
         modelRouter: mockRouter,
     });
 
-    return { service, warmup, mockOllama, mockRouter };
+    return { service, warmup, mockLemonade, mockRouter };
 }
 
 // ---------------------------------------------------------------------------
@@ -47,25 +47,25 @@ function createMocks() {
 // ---------------------------------------------------------------------------
 
 describe("ensureModelLoaded – tier mapping", () => {
-    it("warms up the small model with small keep-alive", async () => {
+    it("warms up the small model", async () => {
         const { service, warmup } = createMocks();
         await service.ensureModelLoaded("small");
         expect(warmup).toHaveBeenCalledOnce();
-        expect(warmup).toHaveBeenCalledWith("llama3:8b", "10m");
+        expect(warmup).toHaveBeenCalledWith("llama3:8b");
     });
 
-    it("warms up the medium model with medium keep-alive", async () => {
+    it("warms up the medium model", async () => {
         const { service, warmup } = createMocks();
         await service.ensureModelLoaded("medium");
         expect(warmup).toHaveBeenCalledOnce();
-        expect(warmup).toHaveBeenCalledWith("mistral", "30m");
+        expect(warmup).toHaveBeenCalledWith("mistral");
     });
 
-    it("warms up the large model with large keep-alive", async () => {
+    it("warms up the large model", async () => {
         const { service, warmup } = createMocks();
         await service.ensureModelLoaded("large");
         expect(warmup).toHaveBeenCalledOnce();
-        expect(warmup).toHaveBeenCalledWith("mixtral", "5m");
+        expect(warmup).toHaveBeenCalledWith("mixtral");
     });
 });
 
@@ -80,9 +80,9 @@ describe("ensureModelLoaded – concurrency deduplication", () => {
             resolveWarmup = res;
         });
 
-        const warmup = vi.fn((_model: string, _keepAlive: string | number): Promise<void> => pending);
-        const mockOllama = { warmup } as unknown as OllamaAdapter;
-        const service = new ModelManagerService({ ollama: mockOllama, modelRouter: makeRouter() });
+        const warmup = vi.fn((_model: string): Promise<void> => pending);
+        const mockLemonade = { warmup } as unknown as LemonadeAdapter;
+        const service = new ModelManagerService({ lemonade: mockLemonade, modelRouter: makeRouter() });
 
         // Start three concurrent calls.
         const p1 = service.ensureModelLoaded("small");
@@ -129,23 +129,23 @@ describe("ensureModelLoaded – concurrency deduplication", () => {
 
 describe("ensureModelLoaded – error propagation", () => {
     it("rejects when warmup fails", async () => {
-        const warmup = vi.fn((_model: string, _keepAlive: string | number): Promise<void> =>
+        const warmup = vi.fn((_model: string): Promise<void> =>
             Promise.reject(new Error("network error")),
         );
-        const mockOllama = { warmup } as unknown as OllamaAdapter;
-        const service = new ModelManagerService({ ollama: mockOllama, modelRouter: makeRouter() });
+        const mockLemonade = { warmup } as unknown as LemonadeAdapter;
+        const service = new ModelManagerService({ lemonade: mockLemonade, modelRouter: makeRouter() });
         await expect(service.ensureModelLoaded("small")).rejects.toThrow("network error");
     });
 
     it("clears the in-flight entry even when warmup fails", async () => {
         let callCount = 0;
-        const warmup = vi.fn((_model: string, _keepAlive: string | number): Promise<void> => {
+        const warmup = vi.fn((_model: string): Promise<void> => {
             callCount++;
             if (callCount === 1) return Promise.reject(new Error("transient error"));
             return Promise.resolve();
         });
-        const mockOllama = { warmup } as unknown as OllamaAdapter;
-        const service = new ModelManagerService({ ollama: mockOllama, modelRouter: makeRouter() });
+        const mockLemonade = { warmup } as unknown as LemonadeAdapter;
+        const service = new ModelManagerService({ lemonade: mockLemonade, modelRouter: makeRouter() });
 
         await expect(service.ensureModelLoaded("small")).rejects.toThrow("transient error");
         // After initial failure, a retry should succeed.
@@ -161,12 +161,12 @@ describe("ensureModelLoaded – error propagation", () => {
 describe("prewarmModels", () => {
     it("warms up small before medium, in order", async () => {
         const callOrder: string[] = [];
-        const warmup = vi.fn((model: string, _keepAlive: string | number): Promise<void> => {
+        const warmup = vi.fn((model: string): Promise<void> => {
             callOrder.push(model);
             return Promise.resolve();
         });
-        const mockOllama = { warmup } as unknown as OllamaAdapter;
-        const service = new ModelManagerService({ ollama: mockOllama, modelRouter: makeRouter() });
+        const mockLemonade = { warmup } as unknown as LemonadeAdapter;
+        const service = new ModelManagerService({ lemonade: mockLemonade, modelRouter: makeRouter() });
         await service.prewarmModels();
 
         expect(callOrder).toEqual(["llama3:8b", "mistral"]);

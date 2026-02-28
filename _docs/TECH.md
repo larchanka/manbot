@@ -23,17 +23,17 @@
 
 ## LLM
 
-- Ollama
-- Models:
-  - Small: llama3:8b
-  - Medium: mistral
-  - Large: deepseek-coder / mixtral
+- Lemonade Server (OpenAI-compatible API)
+- Models (Local):
+  - Small: qwen2.5:0.5b
+  - Medium: qwen2.5:1.5b
+  - Large: qwen2.5:7b
 
 ---
 
 ## Embeddings
 
-- Ollama embedding models
+- Lemonade embedding models
 - RAG: SQLite-backed document store; **sqlite-vss** for scalable KNN vector search when available (macOS x64/arm64, Linux x64); fallback to in-DB dot-product on other platforms. Configurable `rag.embeddingDimensions` (default 768).
 
 ---
@@ -74,9 +74,9 @@
 
 ## File Processing
 
-- **nodejs-whisper** (`^0.2.9`) — local Whisper speech-to-text inference; model auto-downloaded on first use
+- **Lemonade /transcriptions** — local Whisper-Tiny speech-to-text inference
 - **ffmpeg-static** (`^5.3.0`) — bundled ffmpeg binary for audio format conversion (any → 16 kHz mono WAV)
-- **OllamaAdapter.chatWithImage()** — multimodal image OCR/description via configured vision model
+- **LemonadeAdapter.chatWithImage()** — multimodal image OCR/description via `qwen3-vl` model
 
 ---
 

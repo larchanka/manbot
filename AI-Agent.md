@@ -32,7 +32,7 @@ AI-Agent/
 │   ├── core/
 │   │   └── orchestrator.ts     # Core Orchestrator: spawns processes, routes messages, task pipeline
 │   ├── agents/
-│   │   ├── planner-agent.ts    # Plan creation (goal → DAG) via Ollama
+│   │   ├── planner-agent.ts    # Plan creation (goal → DAG) via Lemonade
 │   │   ├── executor-agent.ts  # DAG traversal, node dispatch, Task Memory, revision loop
 │   │   ├── critic-agent.ts    # Reflection: PASS/REVISE on draft output
 │   │   └── prompts/
@@ -42,8 +42,8 @@ AI-Agent/
 │   ├── adapters/
 │   │   └── telegram-adapter.ts # Telegram bot → protocol; task.create, telegram.send/progress
 │   ├── services/
-│   │   ├── ollama-adapter.ts   # Ollama API: generate, chat, embed
-│   │   ├── model-router.ts     # Complexity → Ollama model name
+│   │   ├── lemonade-adapter.ts   # Lemonade API: generate, chat, embed
+│   │   ├── model-router.ts     # Complexity → Lemonade model name
 │   │   ├── generator-service.ts # node.execute generate_text (model-router process)
 │   │   ├── task-memory.ts      # SQLite: tasks, nodes, edges, reflections
 │   │   ├── logger-service.ts   # event.* → pino file log
@@ -84,25 +84,25 @@ AI-Agent/
 
 ### Shared layer
 
-- **config.ts**: Loads `config.json` (path from `CONFIG_PATH` or default), merges with env, exports `getConfig()`. Used by all services/adapters for Ollama URL, Telegram token/allow-list, DB paths (task memory, RAG, cron, logger), RAG embed model and `rag.dbPath`, tool sandbox, model router names.
+- **config.ts**: Loads `config.json` (path from `CONFIG_PATH` or default), merges with env, exports `getConfig()`. Used by all services/adapters for Lemonade URL, Telegram token/allow-list, DB paths (task memory, RAG, cron, logger), RAG embed model and `rag.dbPath`, tool sandbox, model router names.
 - **protocol.ts**: Envelope and response/error/event schemas; `parseEnvelope`, `parseResponse`, etc.
 - **base-process.ts**: `BaseProcess` extends EventEmitter; readline on stdin, `handleEnvelope(line)` → emit `"message"`; `send(envelope)` writes JSONL to stdout. Subclasses override `handleEnvelope` and call `send` for responses.
 - **graph-utils.ts**: `CapabilityGraph`, `CapabilityNode`, `validateGraph`, `getDependencyMap`, `getReadyNodes` for DAG execution order.
 
 ### Agent layer
 
-- **Planner**: Listens for `plan.create`; uses Ollama + Model Router to produce a DAG; validates with `validateGraph`; responds with plan.
+- **Planner**: Listens for `plan.create`; uses Lemonade + Model Router to produce a DAG; validates with `validateGraph`; responds with plan.
 - **Executor**: Listens for `plan.execute`; computes ready nodes (parallel batch, concurrency limit); dispatches `node.execute` to `node.service` (model-router, rag-service, critic-agent, tool-host); waits for response by `correlationId`; updates Task Memory; after DAG, optional reflection loop (Critic → REVISE → re-run generation, max 3); aggregates result and completes task.
-- **Critic**: Listens for `reflection.evaluate`; uses Ollama with Critic prompt; returns structured `{ decision: PASS|REVISE, feedback, score }`.
+- **Critic**: Listens for `reflection.evaluate`; uses Lemonade with Critic prompt; returns structured `{ decision: PASS|REVISE, feedback, score }`.
 
 ### Service layer
 
-- **Ollama Adapter**: HTTP to Ollama `baseUrl` (from config); `generate`, `chat`, `embed`; timeout and retries.
-- **Model Router**: Maps small/medium/large to Ollama model names (from config).
-- **Generator Service**: Handles `node.execute` with `type: "generate_text"` or `type: "summarize"`; for `summarize`, uses summarizer system prompt and `input.chatHistory`; builds prompt from context (goal, deps, optional critic feedback); calls Ollama; responds with `{ text, ... }`.
+- **Lemonade Adapter**: HTTP to Lemonade `baseUrl` (from config); `generate`, `chat`, `embed`; timeout and retries.
+- **Model Router**: Maps small/medium/large to Lemonade model names (from config).
+- **Generator Service**: Handles `node.execute` with `type: "generate_text"` or `type: "summarize"`; for `summarize`, uses summarizer system prompt and `input.chatHistory`; builds prompt from context (goal, deps, optional critic feedback); calls Lemonade; responds with `{ text, ... }`.
 - **Task Memory**: SQLite store; `conversation_id` on tasks; handles `task.create`, `task.update`, `task.get`, `task.getByConversationId`, `task.appendReflection`, `task.complete`, `task.fail`.
 - **Logger**: Subscribes to `event.*`; writes structured log (pino) to `logDir/logFile` from config.
-- **RAG Service**: Ollama embed; SQLite-backed document store; **sqlite-vss** for KNN vector search when extension loads (macOS/Linux x64), else in-DB dot-product; configurable `rag.embeddingDimensions` (768); `memory.semantic.insert`, `memory.semantic.search`; search is session-scoped by default to prevent cross-chat leakage; `node.execute` for `semantic_search` returns snippets for downstream nodes.
+- **RAG Service**: Lemonade embed; SQLite-backed document store; **sqlite-vss** for KNN vector search when extension loads (macOS/Linux x64), else in-DB dot-product; configurable `rag.embeddingDimensions` (768); `memory.semantic.insert`, `memory.semantic.search`; search is session-scoped by default to prevent cross-chat leakage; `node.execute` for `semantic_search` returns snippets for downstream nodes.
 - **Tool Host**: Registry of tools (shell, http_get, http_search); sandbox dir from config; `tool.execute` and `node.execute` for type `tool`; shell tool executes commands with sandbox restrictions; browsing supports persistent context (cookies) via `userDataDir`.
 - **Cron Manager**: SQLite schedule table; node-cron; `cron.schedule.add/list/remove`; emits `event.cron.started/completed/failed` to Logger.
 - **Dashboard Service**: Standalone monitoring web dashboard; provides real-time overview of tasks, processes, and IPC logs. UI is served from static files in `src/services/dashboard/`.
@@ -129,4 +129,4 @@ AI-Agent/
 
 **Archiving (on `/new`)**: Telegram sends `chat.new` (chatId, old conversationId). Core fetches tasks by conversationId, formats history, calls model-router `summarize`, inserts summary into RAG, sends "Archived" to user.
 
-All configurable behavior (Ollama URL, Telegram token/allow-list, DB paths, logger paths, RAG model, sandbox, cron DB, model names) is driven by **config.json** and environment overrides via **config.ts**.
+All configurable behavior (Lemonade URL, Telegram token/allow-list, DB paths, logger paths, RAG model, sandbox, cron DB, model names) is driven by **config.json** and environment overrides via **config.ts**.

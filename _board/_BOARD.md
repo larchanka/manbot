@@ -7,6 +7,30 @@
 
 ## Done
 
+### LM-06 Verification and Documentation
+- Status: Completed
+- Date: 2026-02-28
+
+### LM-05 Model Lifecycle and Prewarming Refactor
+- Status: Completed
+- Date: 2026-02-28
+
+### LM-04 Update Core Services for Lemonade
+- Status: Completed
+- Date: 2026-02-28
+
+### LM-03 Migrate WhisperTranscriber to Lemonade API
+- Status: Completed
+- Date: 2026-02-28
+
+### LM-02 Migrate FileProcessorService to Lemonade
+- Status: Completed
+- Date: 2026-02-28
+
+### LM-01 Implement LemonadeAdapter
+- Status: Completed
+- Date: 2026-02-28
+
 ### AO-14 Refactor Dashboard Service (Split UI/Logic)
 - Status: Completed
 - Commit: (current)
