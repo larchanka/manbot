@@ -174,7 +174,7 @@ export class OllamaAdapter {
     opts: ChatOptions = {},
   ): Promise<ChatResult> {
     const timeoutMs = opts.timeoutMs ?? this.timeoutMs;
-    const url = `${this.baseUrl}/api/chat`;
+    const url = `${this.baseUrl}`;
     const body: Record<string, unknown> = {
       model,
       messages,
