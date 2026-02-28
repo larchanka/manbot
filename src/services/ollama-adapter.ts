@@ -248,7 +248,7 @@ export class OllamaAdapter {
     }
 
     const timeoutMs = opts.timeoutMs ?? this.timeoutMs;
-    const url = `${this.baseUrl}/api/chat`;
+    const url = `${this.baseUrl}`;
     const body: Record<string, unknown> = {
       model,
       messages: messagesWithImage,
@@ -300,7 +300,7 @@ export class OllamaAdapter {
    * The keep_alive parameter controls how long the model stays in memory after the call.
    */
   async warmup(model: string, keepAlive: string | number): Promise<void> {
-    const url = `${this.baseUrl}/api/chat`;
+    const url = `${this.baseUrl}`;
     const body = {
       model,
       messages: [{ role: "user", content: "hello" }],
@@ -326,7 +326,7 @@ export class OllamaAdapter {
     opts: ChatOptions = {},
   ): AsyncGenerator<StreamChunk> {
     const timeoutMs = opts.timeoutMs ?? this.timeoutMs;
-    const url = `${this.baseUrl}/api/chat`;
+    const url = `${this.baseUrl}`;
     const body: Record<string, unknown> = { model, messages, stream: true };
     if (opts.keep_alive !== undefined) body.keep_alive = opts.keep_alive;
     if (opts.options !== undefined) body.options = opts.options;
