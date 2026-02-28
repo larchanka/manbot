@@ -168,6 +168,10 @@ export class GeneratorService extends BaseProcess {
           });
           prompt = depOutputs.join("\n\n") || "Generate a brief response.";
         }
+        if (p.input?.messages && Array.isArray(p.input.messages)) {
+          messages = p.input.messages as ChatMessage[];
+        }
+
         if (!messages) {
           messages = systemPrompt
             ? [{ role: "system" as const, content: systemPrompt }, { role: "user" as const, content: prompt }]
