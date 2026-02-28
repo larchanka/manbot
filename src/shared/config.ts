@@ -39,6 +39,8 @@ export interface RagConfig {
 export interface ToolHostConfig {
   /** Directory allowed for shell tool file operations. Paths outside are rejected. */
   sandboxDir: string;
+  /** Optional colon-separated list of additional directories to add to PATH for shell commands. */
+  additionalPath?: string | undefined;
 }
 
 export interface CronConfig {
@@ -161,6 +163,7 @@ const DEFAULT_CONFIG: AppConfig = {
   },
   toolHost: {
     sandboxDir: process.cwd(),
+    additionalPath: "",
   },
   cron: {
     dbPath: "data/cron.sqlite",
@@ -243,6 +246,7 @@ function mergeEnv(config: AppConfig): AppConfig {
     },
     toolHost: {
       sandboxDir: process.env.TOOL_SANDBOX_DIR ?? config.toolHost.sandboxDir,
+      additionalPath: process.env.TOOL_ADDITIONAL_PATH ?? config.toolHost.additionalPath,
     },
     cron: {
       dbPath: process.env.CRON_DB ?? config.cron.dbPath,
