@@ -197,11 +197,22 @@ export class ToolHost extends BaseProcess {
     // Use executor timeout as a reasonable default (10 minutes), or 30 seconds as a fallback
     const timeoutMs = getConfig().executor.nodeTimeoutMs || 30_000;
 
+    // Prepare environment variables, adding additionalPath if configured
+    const environment = { ...process.env };
+    const additionalPath = getConfig().toolHost.additionalPath;
+    if (additionalPath) {
+      const pathKey = process.platform === "win32" ? "Path" : "PATH";
+      const separator = process.platform === "win32" ? ";" : ":";
+      const currentPath = environment[pathKey] || "";
+      environment[pathKey] = `${additionalPath}${separator}${currentPath}`;
+    }
+
     try {
       const { stdout, stderr } = await execAsync(command, {
         cwd: resolvedCwd,
         timeout: timeoutMs,
         maxBuffer: 10 * 1024 * 1024, // 10MB max buffer
+        env: environment,
       });
 
       // Success case: command executed successfully
