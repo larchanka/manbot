@@ -324,6 +324,13 @@ export class ToolHost extends BaseProcess {
       if (p.type !== "tool") return;
       name = (p.input?.tool ?? p.input?.name ?? "") as string;
       args = (p.input?.arguments ?? p.input?.args ?? p.input ?? {}) as Record<string, unknown>;
+      if (typeof args === "string") {
+        try {
+          args = JSON.parse(args);
+        } catch {
+          // Fallback handled by individual tools
+        }
+      }
     } else {
       return;
     }

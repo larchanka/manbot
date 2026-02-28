@@ -464,7 +464,19 @@ export class ExecutorAgent extends BaseProcess {
       // Handle skill nodes by swapping prompt and injecting skill system prompt
       if (node.type === "skill") {
         const skillName = (node.input?.skillName ?? node.input?.skill) as string;
-        const task = (node.input?.task ?? node.input?.prompt ?? "") as string;
+        let task = (node.input?.task ?? node.input?.prompt ?? "") as string;
+
+        // Replace placeholders from context if present (e.g. {{nodeId}})
+        for (const [key, value] of Object.entries(context)) {
+          if (!key.startsWith("_")) {
+            const placeholder = `{{${key}}}`;
+            if (task.includes(placeholder)) {
+              const strValue = typeof value === "string" ? value : JSON.stringify(value);
+              task = task.split(placeholder).join(strValue);
+            }
+          }
+        }
+
         const skillPrompt = this.skillManager.getSkillPrompt(skillName);
         if (!skillPrompt) {
           reject(new Error(`Skill prompt not found: ${skillName}`));
@@ -499,7 +511,15 @@ export class ExecutorAgent extends BaseProcess {
 
                 // Execute each tool call
                 for (const tc of result.tool_calls) {
-                  const toolResult = await this.callTool(taskId, node.id, tc.function.name, tc.function.arguments, context);
+                  let args = tc.function.arguments;
+                  if (typeof args === "string") {
+                    try {
+                      args = JSON.parse(args);
+                    } catch (e) {
+                      // fallback to raw string if not JSON
+                    }
+                  }
+                  const toolResult = await this.callTool(taskId, node.id, tc.function.name, args, context);
                   let content = typeof toolResult === "string" ? toolResult : JSON.stringify(toolResult);
                   // Safety truncation for large web pages or shell outputs to stay within context limits
                   if (content.length > 30000) {
