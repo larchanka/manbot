@@ -197,15 +197,40 @@ export class ToolHost extends BaseProcess {
     // Use executor timeout as a reasonable default (10 minutes), or 30 seconds as a fallback
     const timeoutMs = getConfig().executor.nodeTimeoutMs || 30_000;
 
-    // Prepare environment variables, adding additionalPath if configured
+    // Prepare environment variables, adding additionalPath and common platform paths
     const environment = { ...process.env };
+    const pathKey = process.platform === "win32" ? "Path" : "PATH";
+    const separator = process.platform === "win32" ? ";" : ":";
+    const currentPath = environment[pathKey] || "";
+
+    // Build a list of extra directories to prepend to PATH
+    const extraDirs: string[] = [];
+
+    // User-configured additionalPath
     const additionalPath = getConfig().toolHost.additionalPath;
     if (additionalPath) {
-      const pathKey = process.platform === "win32" ? "Path" : "PATH";
-      const separator = process.platform === "win32" ? ";" : ":";
-      const currentPath = environment[pathKey] || "";
-      environment[pathKey] = `${additionalPath}${separator}${currentPath}`;
+      extraDirs.push(...additionalPath.split(separator).filter(Boolean));
     }
+
+    // Common per-user binary directories (Go, pip, cargo, etc.)
+    const home = environment.HOME || environment.USERPROFILE || "";
+    if (home) {
+      extraDirs.push(
+        `${home}/go/bin`,
+        `${home}/.local/bin`,
+        `${home}/.cargo/bin`,
+      );
+    }
+
+    // Add common system paths that may be missing from non-login shells
+    extraDirs.push("/usr/local/bin", "/usr/local/sbin", "/snap/bin");
+
+    // De-duplicate and prepend
+    const allParts = [...extraDirs, ...currentPath.split(separator)];
+    environment[pathKey] = Array.from(new Set(allParts.filter(Boolean))).join(separator);
+
+    // On Linux, use a login shell so user's .profile / .bashrc PATH additions are sourced
+    const shellOption = process.platform === "linux" ? "/bin/bash" : undefined;
 
     try {
       const { stdout, stderr } = await execAsync(command, {
@@ -213,6 +238,7 @@ export class ToolHost extends BaseProcess {
         timeout: timeoutMs,
         maxBuffer: 10 * 1024 * 1024, // 10MB max buffer
         env: environment,
+        shell: shellOption,
       });
 
       // Success case: command executed successfully
