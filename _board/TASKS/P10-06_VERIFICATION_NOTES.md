@@ -38,7 +38,7 @@ All code changes for P10-04 and P10-05 have been implemented:
 
 5. **Verify in logs**:
    - Look for `GeneratorService` IPC messages
-   - Check that `model` parameter in Ollama requests is `qwen3:8b` for large complexity nodes
+   - Check that `model` parameter in Lemonade requests is `qwen2.5:7b` for large complexity nodes
    - Verify fallback logic works: nodes with explicit `modelClass` use that, others use plan complexity
 
 ## Success Criteria
@@ -54,6 +54,6 @@ The verification requires manual testing as it involves:
 - Running the orchestrator
 - Sending tasks via Telegram
 - Observing IPC message logs
-- Verifying model selection in Ollama requests
+- Verifying model selection in Lemonade requests
 
 All code changes are complete and the system is ready for verification testing.

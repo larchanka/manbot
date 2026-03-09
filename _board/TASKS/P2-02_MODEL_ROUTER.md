@@ -1,7 +1,7 @@
 # Task: P2-02 Implement Model Router
 
 ## Description
-Create a service that maps abstract task complexity levels (`small`, `medium`, `large`) to specific local model names in Ollama.
+Create a service that maps abstract task complexity levels (`small`, `medium`, `large`) to specific local model names in Lemonade.
 
 ## Requirements
 - Create `src/services/model-router.ts`.

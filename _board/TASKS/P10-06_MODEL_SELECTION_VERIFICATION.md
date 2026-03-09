@@ -11,7 +11,7 @@ Conduct a verification run to ensure that the complexity mapping works as expect
 - [ ] Set `plannerComplexity` to `large` in `config.json`.
 - [ ] Run a task that requires multiple steps (e.g., "Write a complex research paper about black holes").
 - [ ] Check terminal logs for IPC messages to `model-router`.
-- [ ] Verify that the `model` parameter in Ollama requests is `qwen3:8b` (mapped to `large`).
+- [ ] Verify that the `model` parameter in Lemonade requests is `qwen2.5:7b` (mapped to `large`).
 
 ## Success Criteria
 - Planning uses the configured complexity.

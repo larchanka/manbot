@@ -9,3 +9,4 @@
 | research | PRIMARY SEARCH. Use for deep web research, fact-checking, news gathering, or topical deep dives via the lynx tool. This is the default skill for any query requiring external or up-to-date information. |
 | reminder | SCHEDULING. Use this skill exclusively to set one-time or recurring reminders (e.g., "remind me in 2 hours"). This is the only tool that interfaces with the cron-manager service. |
 | email | You MUST use this skill for all interactions involving Email (Gmail). |
+| calendar | You MUST use this skill for all interactions involving Google Calendar. |

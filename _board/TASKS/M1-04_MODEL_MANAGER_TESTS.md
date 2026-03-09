@@ -14,6 +14,6 @@ Create comprehensive unit tests for the `ModelManagerService`.
 - All tests pass with `npm test`.
 
 ## Implementation Notes
-- Mock `OllamaAdapter` using `vi.fn()`.
+- Mock `LemonadeAdapter` using `vi.fn()`.
 - Use `vi.useFakeTimers()` if needed to test timeouts/delays.
-- Verify the number of calls to `ollama.warmup`.
+- Verify the number of calls to `lemonade.warmup`.

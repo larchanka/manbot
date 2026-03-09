@@ -14,7 +14,7 @@ Create the `file-processor` as an independent `BaseProcess` subprocess. It liste
   - `category: 'text'` → read file with `fs/promises.readFile` (UTF-8)
     - If content.length <= `textMaxInlineChars`: respond with `type: 'text'`, full content
     - If content.length > `textMaxInlineChars`: respond with `type: 'text_long'`, full content (chunking/summarizing is Orchestrator's responsibility — see FP-10)
-  - `category: 'image'` and `ocrEnabled: true` → call `OllamaAdapter.chatWithImage()` with OCR prompt; respond with `type: 'image_ocr'`
+  - `category: 'image'` and `ocrEnabled: true` → call `LemonadeAdapter.chatWithImage()` with OCR prompt; respond with `type: 'image_ocr'`
   - `category: 'audio'` → call `convertToWav()` then `transcribeAudio()`; respond with `type: 'audio_transcript'`
   - `category: 'unknown'` → respond with `type: 'ignored'`, empty content
 - After any processing attempt (success or failure), **delete the original file** from disk

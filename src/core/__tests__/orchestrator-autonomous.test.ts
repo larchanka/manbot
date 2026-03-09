@@ -6,7 +6,7 @@ import { PROTOCOL_VERSION } from "../../shared/protocol.js";
 // Mock dependencies
 vi.mock("../../shared/config.js", () => ({
     getConfig: () => ({
-        ollama: { baseUrl: "http://localhost:11434" },
+        lemonade: { baseUrl: "http://localhost:11434" },
         modelRouter: { plannerComplexity: "small" },
         taskMemory: { dbPath: ":memory:" },
         cron: { dbPath: ":memory:" },

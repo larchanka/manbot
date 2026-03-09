@@ -8,27 +8,27 @@ import { getConfig } from "../shared/config.js";
 export type ComplexityLevel = "small" | "medium" | "large";
 
 export interface ModelRouterConfig {
-  small: string;
-  medium: string;
-  large: string;
+    small: string;
+    medium: string;
+    large: string;
 }
 
 export class ModelRouter {
-  private readonly config: ModelRouterConfig;
+    private readonly config: ModelRouterConfig;
 
-  constructor(config?: Partial<ModelRouterConfig>) {
-    const defaults = getConfig().modelRouter;
-    this.config = { ...defaults, ...config };
-  }
+    constructor(config?: Partial<ModelRouterConfig>) {
+        const defaults = getConfig().modelRouter;
+        this.config = { ...defaults, ...config };
+    }
 
-  /**
-   * Return the Ollama model name for the given complexity level.
-   */
-  getModel(complexity: ComplexityLevel): string {
-    return this.config[complexity];
-  }
+    /**
+     * Return the Ollama model name for the given complexity level.
+     */
+    getModel(complexity: ComplexityLevel): string {
+        return this.config[complexity];
+    }
 
-  getConfig(): ModelRouterConfig {
-    return { ...this.config };
-  }
+    getConfig(): ModelRouterConfig {
+        return { ...this.config };
+    }
 }

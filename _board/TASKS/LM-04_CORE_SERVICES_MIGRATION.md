@@ -1,7 +1,7 @@
 # LM-04: Update Core Services for Lemonade
 
 ## Description
-Convert `GeneratorService`, `RAGService`, and `TimeParserService` from using `OllamaAdapter` to `LemonadeAdapter` for general text and embedding tasks.
+Convert `GeneratorService`, `RAGService`, and `TimeParserService` from using a legacy adapter to `LemonadeAdapter` for general text and embedding tasks.
 
 ## Status
 - [x] Update `GeneratorService` to use Lemonade's chat endpoint.

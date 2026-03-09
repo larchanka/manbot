@@ -1,7 +1,7 @@
 /**
  * Integration tests: GeneratorService + ModelManagerService interaction.
  * Verifies that inference requests correctly trigger model loading via
- * ModelManagerService.ensureModelLoaded before ollama.generate / ollama.chat.
+ * ModelManagerService.ensureModelLoaded before lemonade.chat.
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";

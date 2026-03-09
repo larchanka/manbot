@@ -11,7 +11,7 @@ Set up the base directory structure, initialize the Node.js project, and configu
   - `src/` (source code)
   - `src/core/` (orchestrator)
   - `src/agents/` (planner, executor, critic)
-  - `src/services/` (memory, logging, ollama)
+  - `src/services/` (memory, logging, lemonade)
   - `src/shared/` (types, protocol)
   - `src/adapters/` (telegram)
 

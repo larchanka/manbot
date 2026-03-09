@@ -7,320 +7,320 @@ import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 
 export interface LemonadeConfig {
-  baseUrl: string;
-  timeoutMs: number;
-  retries: number;
-  numCtx: number;
+    baseUrl: string;
+    timeoutMs: number;
+    retries: number;
+    numCtx: number;
 }
 
 export interface TelegramConfig {
-  botToken: string;
-  /** Comma-separated Telegram user IDs allowed to use the bot. Empty or omit = allow all. */
-  allowedUserIds: string;
+    botToken: string;
+    /** Comma-separated Telegram user IDs allowed to use the bot. Empty or omit = allow all. */
+    allowedUserIds: string;
 }
 
 export interface TaskMemoryConfig {
-  dbPath: string;
+    dbPath: string;
 }
 
 export interface LoggerConfig {
-  logDir: string;
-  logFile: string;
+    logDir: string;
+    logFile: string;
 }
 
 export interface RagConfig {
-  embedModel: string;
-  /** SQLite database path for RAG document storage. */
-  dbPath: string;
-  /** Embedding vector dimension (must match embed model, e.g. 768 for nomic-embed-text). Used for sqlite-vss. */
-  embeddingDimensions: number;
+    embedModel: string;
+    /** SQLite database path for RAG document storage. */
+    dbPath: string;
+    /** Embedding vector dimension (must match embed model, e.g. 768 for nomic-embed-text). Used for sqlite-vss. */
+    embeddingDimensions: number;
 }
 
 export interface ToolHostConfig {
-  /** Directory allowed for shell tool file operations. Paths outside are rejected. */
-  sandboxDir: string;
-  /** Optional colon-separated list of additional directories to add to PATH for shell commands. */
-  additionalPath?: string | undefined;
+    /** Directory allowed for shell tool file operations. Paths outside are rejected. */
+    sandboxDir: string;
+    /** Optional colon-separated list of additional directories to add to PATH for shell commands. */
+    additionalPath?: string | undefined;
 }
 
 export interface CronConfig {
-  dbPath: string;
+    dbPath: string;
 }
 
 export interface ModelRouterConfig {
-  small: string;
-  medium: string;
-  large: string;
-  /** Complexity level to use for initial planning phase */
-  plannerComplexity: string;
+    small: string;
+    medium: string;
+    large: string;
+    /** Complexity level to use for initial planning phase */
+    plannerComplexity: string;
 }
 
 export interface ExecutorConfig {
-  /** Timeout for individual node execution in milliseconds. */
-  nodeTimeoutMs: number;
+    /** Timeout for individual node execution in milliseconds. */
+    nodeTimeoutMs: number;
 }
 
 export interface BrowserServiceConfig {
-  /** Run browser in headless mode (default: true for production). */
-  headless: boolean;
-  /** Timeout for browser operations in milliseconds (default: 30000). */
-  timeout: number;
-  /** Enable stealth plugin to bypass bot detection (default: true). */
-  enableStealth: boolean;
-  /** Reuse browser context across requests (default: true). */
-  reuseContext: boolean;
-  /** Directory to store browser user data (persistent cookies, etc). */
-  userDataDir?: string | undefined;
+    /** Run browser in headless mode (default: true for production). */
+    headless: boolean;
+    /** Timeout for browser operations in milliseconds (default: 30000). */
+    timeout: number;
+    /** Enable stealth plugin to bypass bot detection (default: true). */
+    enableStealth: boolean;
+    /** Reuse browser context across requests (default: true). */
+    reuseContext: boolean;
+    /** Directory to store browser user data (persistent cookies, etc). */
+    userDataDir?: string | undefined;
 }
 
 export interface ModelManagerConfig {
-  /**
-   * How long to keep a small model in memory after the last request.
-   * Accepts an Ollama/Lemonade duration string (e.g. "5m") or a number of seconds.
-   */
-  smallModelKeepAlive: string | number;
-  /**
-   * How long to keep a medium model in memory after the last request.
-   */
-  mediumModelKeepAlive: string | number;
-  /**
-   * How long to keep a large model in memory after the last request.
-   */
-  largeModelKeepAlive: string | number;
-  /**
-   * Minimal prompt sent during warmup to ensure the model is loaded.
-   */
-  warmupPrompt: string;
+    /**
+     * How long to keep a small model in memory after the last request.
+     * Accepts an Ollama/Lemonade duration string (e.g. "5m") or a number of seconds.
+     */
+    smallModelKeepAlive: string | number;
+    /**
+     * How long to keep a medium model in memory after the last request.
+     */
+    mediumModelKeepAlive: string | number;
+    /**
+     * How long to keep a large model in memory after the last request.
+     */
+    largeModelKeepAlive: string | number;
+    /**
+     * Minimal prompt sent during warmup to ensure the model is loaded.
+     */
+    warmupPrompt: string;
 }
 
 export interface SkillsConfig {
-  /** Directory containing skills/CONFIG.md and subfolders. */
-  skillsDir: string;
+    /** Directory containing skills/CONFIG.md and subfolders. */
+    skillsDir: string;
 }
 
 export interface WhisperConfig {
-  /** Whisper model to use for transcription (e.g. "Whisper-Tiny", "Whisper-Base"). */
-  modelName: string;
-  /** Language code for transcription ("auto" for auto-detect). */
-  language: string;
-  /** Directory where Whisper model files are stored (unused when using Lemonade API). */
-  modelDir: string;
+    /** Whisper model to use for transcription (e.g. "Whisper-Tiny", "Whisper-Base"). */
+    modelName: string;
+    /** Language code for transcription ("auto" for auto-detect). */
+    language: string;
+    /** Directory where Whisper model files are stored (unused when using Lemonade API). */
+    modelDir: string;
 }
 
 export interface FileProcessorConfig {
-  /** Directory where uploaded files are temporarily stored during processing. */
-  uploadDir: string;
-  /** Maximum allowed file size in bytes (default: 52428800 = 50 MB). */
-  maxFileSizeBytes: number;
-  /** Files with text content shorter than this are inlined into the planner goal directly. */
-  textMaxInlineChars: number;
-  /** Lemonade model used for image OCR and description. */
-  ocrModel: string;
-  /** Whether image OCR/description is enabled. */
-  ocrEnabled: boolean;
+    /** Directory where uploaded files are temporarily stored during processing. */
+    uploadDir: string;
+    /** Maximum allowed file size in bytes (default: 52428800 = 50 MB). */
+    maxFileSizeBytes: number;
+    /** Files with text content shorter than this are inlined into the planner goal directly. */
+    textMaxInlineChars: number;
+    /** Lemonade model used for image OCR and description. */
+    ocrModel: string;
+    /** Whether image OCR/description is enabled. */
+    ocrEnabled: boolean;
 }
 
 export interface AppConfig {
-  lemonade: LemonadeConfig;
-  telegram: TelegramConfig;
-  taskMemory: TaskMemoryConfig;
-  logger: LoggerConfig;
-  rag: RagConfig;
-  toolHost: ToolHostConfig;
-  cron: CronConfig;
-  modelRouter: ModelRouterConfig;
-  executor: ExecutorConfig;
-  browserService: BrowserServiceConfig;
-  modelManager: ModelManagerConfig;
-  skills: SkillsConfig;
-  whisper: WhisperConfig;
-  fileProcessor: FileProcessorConfig;
-  maxConcurrentTasks: number;
+    lemonade: LemonadeConfig;
+    telegram: TelegramConfig;
+    taskMemory: TaskMemoryConfig;
+    logger: LoggerConfig;
+    rag: RagConfig;
+    toolHost: ToolHostConfig;
+    cron: CronConfig;
+    modelRouter: ModelRouterConfig;
+    executor: ExecutorConfig;
+    browserService: BrowserServiceConfig;
+    modelManager: ModelManagerConfig;
+    skills: SkillsConfig;
+    whisper: WhisperConfig;
+    fileProcessor: FileProcessorConfig;
+    maxConcurrentTasks: number;
 }
 
 const DEFAULT_CONFIG: AppConfig = {
-  lemonade: {
-    baseUrl: "http://127.0.0.1:8000/api/v1",
-    timeoutMs: 600_000, // 10 minutes default
-    retries: 3,
-    numCtx: 16384,
-  },
-  telegram: {
-    botToken: "",
-    allowedUserIds: "",
-  },
-  taskMemory: {
-    dbPath: "data/tasks.sqlite",
-  },
-  logger: {
-    logDir: "logs",
-    logFile: "events.log",
-  },
-  rag: {
-    embedModel: "text-embedding-v3", // Common OpenAI/Lemonade embed model name
-    dbPath: "data/rag.sqlite",
-    embeddingDimensions: 768,
-  },
-  toolHost: {
-    sandboxDir: process.cwd(),
-    additionalPath: "",
-  },
-  cron: {
-    dbPath: "data/cron.sqlite",
-  },
-  modelRouter: {
-    small: "qwen2.5:0.5b",
-    medium: "qwen2.5:1.5b",
-    large: "qwen2.5:7b",
-    plannerComplexity: "small",
-  },
-  executor: {
-    nodeTimeoutMs: 600_000, // 10 minutes default
-  },
-  browserService: {
-    headless: true,
-    timeout: 30_000, // 30 seconds default
-    enableStealth: true,
-    reuseContext: true,
-  },
-  modelManager: {
-    smallModelKeepAlive: "10m",
-    mediumModelKeepAlive: "30m",
-    largeModelKeepAlive: "60m",
-    warmupPrompt: "hello",
-  },
-  skills: {
-    skillsDir: "skills",
-  },
-  whisper: {
-    modelName: "Whisper-Tiny",
-    language: "auto",
-    modelDir: "data/whisper-models",
-  },
-  fileProcessor: {
-    uploadDir: "data/uploads",
-    maxFileSizeBytes: 52_428_800, // 50 MB
-    textMaxInlineChars: 8_000,
-    ocrModel: "qwen3-vl",
-    ocrEnabled: true,
-  },
-  maxConcurrentTasks: 1,
+    lemonade: {
+        baseUrl: "http://127.0.0.1:8000/api/v1",
+        timeoutMs: 600_000, // 10 minutes default
+        retries: 3,
+        numCtx: 16384,
+    },
+    telegram: {
+        botToken: "",
+        allowedUserIds: "",
+    },
+    taskMemory: {
+        dbPath: "data/tasks.sqlite",
+    },
+    logger: {
+        logDir: "logs",
+        logFile: "events.log",
+    },
+    rag: {
+        embedModel: "text-embedding-v3", // Common OpenAI/Lemonade embed model name
+        dbPath: "data/rag.sqlite",
+        embeddingDimensions: 768,
+    },
+    toolHost: {
+        sandboxDir: process.cwd(),
+        additionalPath: "",
+    },
+    cron: {
+        dbPath: "data/cron.sqlite",
+    },
+    modelRouter: {
+        small: "qwen2.5:0.5b",
+        medium: "qwen2.5:1.5b",
+        large: "qwen2.5:7b",
+        plannerComplexity: "small",
+    },
+    executor: {
+        nodeTimeoutMs: 600_000, // 10 minutes default
+    },
+    browserService: {
+        headless: true,
+        timeout: 30_000, // 30 seconds default
+        enableStealth: true,
+        reuseContext: true,
+    },
+    modelManager: {
+        smallModelKeepAlive: "10m",
+        mediumModelKeepAlive: "30m",
+        largeModelKeepAlive: "60m",
+        warmupPrompt: "hello",
+    },
+    skills: {
+        skillsDir: "skills",
+    },
+    whisper: {
+        modelName: "Whisper-Tiny",
+        language: "auto",
+        modelDir: "data/whisper-models",
+    },
+    fileProcessor: {
+        uploadDir: "data/uploads",
+        maxFileSizeBytes: 52_428_800, // 50 MB
+        textMaxInlineChars: 8_000,
+        ocrModel: "qwen3-vl",
+        ocrEnabled: true,
+    },
+    maxConcurrentTasks: 1,
 };
 
 function loadConfigFile(): Partial<AppConfig> {
-  const configPath =
-    process.env.CONFIG_PATH ??
-    join(process.cwd(), "config.json");
-  if (!existsSync(configPath)) return {};
-  try {
-    const raw = readFileSync(configPath, "utf-8");
-    return JSON.parse(raw) as Partial<AppConfig>;
-  } catch {
-    return {};
-  }
+    const configPath =
+        process.env.CONFIG_PATH ??
+        join(process.cwd(), "config.json");
+    if (!existsSync(configPath)) return {};
+    try {
+        const raw = readFileSync(configPath, "utf-8");
+        return JSON.parse(raw) as Partial<AppConfig>;
+    } catch {
+        return {};
+    }
 }
 
 function mergeEnv(config: AppConfig): AppConfig {
-  return {
-    lemonade: {
-      baseUrl: process.env.LEMONADE_BASE_URL ?? config.lemonade.baseUrl,
-      timeoutMs: Number(process.env.LEMONADE_TIMEOUT_MS) || config.lemonade.timeoutMs,
-      retries: Number(process.env.LEMONADE_RETRIES) || config.lemonade.retries,
-      numCtx: Number(process.env.LEMONADE_NUM_CTX) || config.lemonade.numCtx,
-    },
-    telegram: {
-      botToken: process.env.TELEGRAM_BOT_TOKEN ?? config.telegram.botToken,
-      allowedUserIds: process.env.TELEGRAM_ALLOWED_USER_IDS ?? config.telegram.allowedUserIds,
-    },
-    taskMemory: {
-      dbPath: process.env.TASK_MEMORY_DB ?? config.taskMemory.dbPath,
-    },
-    logger: {
-      logDir: process.env.LOG_DIR ?? config.logger.logDir,
-      logFile: process.env.LOG_FILE ?? config.logger.logFile,
-    },
-    rag: {
-      embedModel: process.env.RAG_EMBED_MODEL ?? config.rag.embedModel,
-      dbPath: process.env.RAG_DB ?? config.rag.dbPath,
-      embeddingDimensions: Number(process.env.RAG_EMBEDDING_DIMENSIONS) || config.rag.embeddingDimensions,
-    },
-    toolHost: {
-      sandboxDir: process.env.TOOL_SANDBOX_DIR ?? config.toolHost.sandboxDir,
-      additionalPath: process.env.TOOL_ADDITIONAL_PATH ?? config.toolHost.additionalPath,
-    },
-    cron: {
-      dbPath: process.env.CRON_DB ?? config.cron.dbPath,
-    },
-    modelRouter: {
-      small: process.env.MODEL_ROUTER_SMALL ?? config.modelRouter.small,
-      medium: process.env.MODEL_ROUTER_MEDIUM ?? config.modelRouter.medium,
-      large: process.env.MODEL_ROUTER_LARGE ?? config.modelRouter.large,
-      plannerComplexity: process.env.MODEL_ROUTER_PLANNER_COMPLEXITY ?? config.modelRouter.plannerComplexity,
-    },
-    executor: {
-      nodeTimeoutMs: Number(process.env.EXECUTOR_NODE_TIMEOUT_MS) || config.executor.nodeTimeoutMs,
-    },
-    browserService: {
-      headless: process.env.BROWSER_SERVICE_HEADLESS === "false" ? false : config.browserService.headless,
-      timeout: Number(process.env.BROWSER_SERVICE_TIMEOUT) || config.browserService.timeout,
-      enableStealth: process.env.BROWSER_SERVICE_ENABLE_STEALTH === "false" ? false : config.browserService.enableStealth,
-      reuseContext: process.env.BROWSER_SERVICE_REUSE_CONTEXT === "false" ? false : config.browserService.reuseContext,
-      userDataDir: process.env.BROWSER_SERVICE_USER_DATA_DIR ?? config.browserService.userDataDir,
-    },
-    modelManager: {
-      smallModelKeepAlive: process.env.MODEL_MANAGER_SMALL_KEEP_ALIVE ?? config.modelManager.smallModelKeepAlive,
-      mediumModelKeepAlive: process.env.MODEL_MANAGER_MEDIUM_KEEP_ALIVE ?? config.modelManager.mediumModelKeepAlive,
-      largeModelKeepAlive: process.env.MODEL_MANAGER_LARGE_KEEP_ALIVE ?? config.modelManager.largeModelKeepAlive,
-      warmupPrompt: process.env.MODEL_MANAGER_WARMUP_PROMPT ?? config.modelManager.warmupPrompt,
-    },
-    skills: {
-      skillsDir: process.env.SKILLS_DIR ?? config.skills.skillsDir,
-    },
-    whisper: {
-      modelName: process.env.WHISPER_MODEL_NAME ?? config.whisper.modelName,
-      language: process.env.WHISPER_LANGUAGE ?? config.whisper.language,
-      modelDir: process.env.WHISPER_MODEL_DIR ?? config.whisper.modelDir,
-    },
-    fileProcessor: {
-      uploadDir: process.env.FILE_PROCESSOR_UPLOAD_DIR ?? config.fileProcessor.uploadDir,
-      maxFileSizeBytes: Number(process.env.FILE_PROCESSOR_MAX_FILE_SIZE_BYTES) || config.fileProcessor.maxFileSizeBytes,
-      textMaxInlineChars: Number(process.env.FILE_PROCESSOR_TEXT_MAX_INLINE_CHARS) || config.fileProcessor.textMaxInlineChars,
-      ocrModel: process.env.FILE_PROCESSOR_OCR_MODEL ?? config.fileProcessor.ocrModel,
-      ocrEnabled: process.env.FILE_PROCESSOR_OCR_ENABLED === "false" ? false : config.fileProcessor.ocrEnabled,
-    },
-    maxConcurrentTasks: Number(process.env.MAX_CONCURRENT_TASKS) || config.maxConcurrentTasks,
-  };
+    return {
+        lemonade: {
+            baseUrl: process.env.LEMONADE_BASE_URL ?? config.lemonade.baseUrl,
+            timeoutMs: Number(process.env.LEMONADE_TIMEOUT_MS) || config.lemonade.timeoutMs,
+            retries: Number(process.env.LEMONADE_RETRIES) || config.lemonade.retries,
+            numCtx: Number(process.env.LEMONADE_NUM_CTX) || config.lemonade.numCtx,
+        },
+        telegram: {
+            botToken: process.env.TELEGRAM_BOT_TOKEN ?? config.telegram.botToken,
+            allowedUserIds: process.env.TELEGRAM_ALLOWED_USER_IDS ?? config.telegram.allowedUserIds,
+        },
+        taskMemory: {
+            dbPath: process.env.TASK_MEMORY_DB ?? config.taskMemory.dbPath,
+        },
+        logger: {
+            logDir: process.env.LOG_DIR ?? config.logger.logDir,
+            logFile: process.env.LOG_FILE ?? config.logger.logFile,
+        },
+        rag: {
+            embedModel: process.env.RAG_EMBED_MODEL ?? config.rag.embedModel,
+            dbPath: process.env.RAG_DB ?? config.rag.dbPath,
+            embeddingDimensions: Number(process.env.RAG_EMBEDDING_DIMENSIONS) || config.rag.embeddingDimensions,
+        },
+        toolHost: {
+            sandboxDir: process.env.TOOL_SANDBOX_DIR ?? config.toolHost.sandboxDir,
+            additionalPath: process.env.TOOL_ADDITIONAL_PATH ?? config.toolHost.additionalPath,
+        },
+        cron: {
+            dbPath: process.env.CRON_DB ?? config.cron.dbPath,
+        },
+        modelRouter: {
+            small: process.env.MODEL_ROUTER_SMALL ?? config.modelRouter.small,
+            medium: process.env.MODEL_ROUTER_MEDIUM ?? config.modelRouter.medium,
+            large: process.env.MODEL_ROUTER_LARGE ?? config.modelRouter.large,
+            plannerComplexity: process.env.MODEL_ROUTER_PLANNER_COMPLEXITY ?? config.modelRouter.plannerComplexity,
+        },
+        executor: {
+            nodeTimeoutMs: Number(process.env.EXECUTOR_NODE_TIMEOUT_MS) || config.executor.nodeTimeoutMs,
+        },
+        browserService: {
+            headless: process.env.BROWSER_SERVICE_HEADLESS === "false" ? false : config.browserService.headless,
+            timeout: Number(process.env.BROWSER_SERVICE_TIMEOUT) || config.browserService.timeout,
+            enableStealth: process.env.BROWSER_SERVICE_ENABLE_STEALTH === "false" ? false : config.browserService.enableStealth,
+            reuseContext: process.env.BROWSER_SERVICE_REUSE_CONTEXT === "false" ? false : config.browserService.reuseContext,
+            userDataDir: process.env.BROWSER_SERVICE_USER_DATA_DIR ?? config.browserService.userDataDir,
+        },
+        modelManager: {
+            smallModelKeepAlive: process.env.MODEL_MANAGER_SMALL_KEEP_ALIVE ?? config.modelManager.smallModelKeepAlive,
+            mediumModelKeepAlive: process.env.MODEL_MANAGER_MEDIUM_KEEP_ALIVE ?? config.modelManager.mediumModelKeepAlive,
+            largeModelKeepAlive: process.env.MODEL_MANAGER_LARGE_KEEP_ALIVE ?? config.modelManager.largeModelKeepAlive,
+            warmupPrompt: process.env.MODEL_MANAGER_WARMUP_PROMPT ?? config.modelManager.warmupPrompt,
+        },
+        skills: {
+            skillsDir: process.env.SKILLS_DIR ?? config.skills.skillsDir,
+        },
+        whisper: {
+            modelName: process.env.WHISPER_MODEL_NAME ?? config.whisper.modelName,
+            language: process.env.WHISPER_LANGUAGE ?? config.whisper.language,
+            modelDir: process.env.WHISPER_MODEL_DIR ?? config.whisper.modelDir,
+        },
+        fileProcessor: {
+            uploadDir: process.env.FILE_PROCESSOR_UPLOAD_DIR ?? config.fileProcessor.uploadDir,
+            maxFileSizeBytes: Number(process.env.FILE_PROCESSOR_MAX_FILE_SIZE_BYTES) || config.fileProcessor.maxFileSizeBytes,
+            textMaxInlineChars: Number(process.env.FILE_PROCESSOR_TEXT_MAX_INLINE_CHARS) || config.fileProcessor.textMaxInlineChars,
+            ocrModel: process.env.FILE_PROCESSOR_OCR_MODEL ?? config.fileProcessor.ocrModel,
+            ocrEnabled: process.env.FILE_PROCESSOR_OCR_ENABLED === "false" ? false : config.fileProcessor.ocrEnabled,
+        },
+        maxConcurrentTasks: Number(process.env.MAX_CONCURRENT_TASKS) || config.maxConcurrentTasks,
+    };
 }
 
 function deepMerge<T extends object>(base: T, override: Partial<T>): T {
-  const out = { ...base };
-  for (const key of Object.keys(override) as (keyof T)[]) {
-    const v = override[key];
-    if (v === undefined) continue;
-    if (typeof v === "object" && v !== null && !Array.isArray(v) && typeof base[key] === "object" && base[key] !== null) {
-      (out as Record<string, unknown>)[key as string] = deepMerge(
-        base[key] as object,
-        v as Partial<typeof base[typeof key]>,
-      );
-    } else {
-      (out as Record<string, unknown>)[key as string] = v;
+    const out = { ...base };
+    for (const key of Object.keys(override) as (keyof T)[]) {
+        const v = override[key];
+        if (v === undefined) continue;
+        if (typeof v === "object" && v !== null && !Array.isArray(v) && typeof base[key] === "object" && base[key] !== null) {
+            (out as Record<string, unknown>)[key as string] = deepMerge(
+                base[key] as object,
+                v as Partial<typeof base[typeof key]>,
+            );
+        } else {
+            (out as Record<string, unknown>)[key as string] = v;
+        }
     }
-  }
-  return out;
+    return out;
 }
 
 let cached: AppConfig | null = null;
 
 /** Get app config. Config file is merged over defaults, then env overrides. */
 export function getConfig(): AppConfig {
-  if (cached) return cached;
-  const fileConfig = loadConfigFile();
-  const merged = deepMerge(DEFAULT_CONFIG, fileConfig);
-  cached = mergeEnv(merged);
-  return cached;
+    if (cached) return cached;
+    const fileConfig = loadConfigFile();
+    const merged = deepMerge(DEFAULT_CONFIG, fileConfig);
+    cached = mergeEnv(merged);
+    return cached;
 }
 
 /** Reset cached config (e.g. for tests). */
 export function resetConfig(): void {
-  cached = null;
+    cached = null;
 }
