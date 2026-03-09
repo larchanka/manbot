@@ -18,8 +18,8 @@ vi.mock('../../utils/console-logger', () => ({
 }));
 
 // We need to mock the adapter and services that Orchestrator initializes in its constructor
-vi.mock('../../adapters/ollama-adapter', () => ({
-    OllamaAdapter: vi.fn().mockImplementation(function () { return {}; }),
+vi.mock('../../adapters/lemonade-adapter', () => ({
+    LemonadeAdapter: vi.fn().mockImplementation(function () { return {}; }),
 }));
 
 vi.mock('../model-router', () => ({
@@ -37,7 +37,7 @@ describe('Orchestrator Concurrency', () => {
         vi.clearAllMocks();
         (getConfig as any).mockReturnValue({
             maxConcurrentTasks: 1,
-            ollama: { baseUrl: 'http://localhost:11434', timeoutMs: 60000 },
+            lemonade: { baseUrl: 'http://localhost:11434', timeoutMs: 60000 },
             modelRouter: { modelTiers: {} },
         });
         orchestrator = new Orchestrator();

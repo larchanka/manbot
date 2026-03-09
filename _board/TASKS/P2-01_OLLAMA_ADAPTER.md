@@ -1,11 +1,11 @@
-# Task: P2-01 Implement Ollama Adapter
+# Task: P2-01 Implement Lemonade Adapter
 
 ## Description
-Build a bridge between the ManBot platform and the local Ollama instance. This adapter will handle model inference, streaming responses, and token usage reporting.
+Build a bridge between the ManBot platform and the local Lemonade instance. This adapter will handle model inference, streaming responses, and token usage reporting in an OpenAI-compatible way.
 
 ## Requirements
-- Create `src/services/ollama-adapter.ts`.
-- Implement a client using `fetch` or the `@ollama/ollama` JS library.
+- Create `src/services/lemonade-adapter.ts`.
+- Implement a client using `fetch` or the `openai` JS library (or raw fetch for OpenAI compatibility).
 - Support essential methods:
   - `generate(prompt, model)`: returns full response.
   - `chat(messages, model)`: returns full response.
@@ -14,6 +14,6 @@ Build a bridge between the ManBot platform and the local Ollama instance. This a
 - Implement timeout handling and retry logic for network errors.
 
 ## Definition of Done
-- Adapter correctly retrieves completions from a running Ollama server.
+- Adapter correctly retrieves completions from a running Lemonade server.
 - Supported methods handle streaming and regular responses accurately.
-- Token metrics are extracted from the Ollama response payload.
+- Token metrics are extracted from the Lemonade response payload.

@@ -9,7 +9,7 @@ Implement a Retrieval-Augmented Generation (RAG) service using the FAISS vector 
 - Implement methods:
   - `addDocument(content, metadata)`: Embeds and stores a document.
   - `search(query, limit)`: Returns relevant snippets based on semantic similarity.
-- Use a dedicated embedding model (e.g., `nomic-embed-text`) via the Ollama Adapter.
+- Use a dedicated embedding model (e.g., `text-embedding-v3`) via the Lemonade Adapter.
 
 ## Definition of Done
 - RAG Service can index text and retrieve relevant matches for a given query.

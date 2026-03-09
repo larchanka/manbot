@@ -1,11 +1,11 @@
-# M1-01: Enhance OllamaAdapter with Warmup Support
+# M1-01: Enhance LemonadeAdapter with Warmup Support
 
-**File**: `src/services/ollama-adapter.ts`  
+**File**: `src/services/lemonade-adapter.ts`  
 **Dependencies**: None  
 **Phase**: M1 - Core Infrastructure
 
 ## Description
-Add a `warmup` method to `OllamaAdapter` that uses the `/api/chat` endpoint with a minimal prompt and supports the `keep_alive` parameter.
+Add a `warmup` method to `LemonadeAdapter` that sends a minimal prompt to ensure the model is loaded into VRAM.
 
 ## Acceptance Criteria
 - `warmup(model: string, keepAlive: string | number): Promise<void>` implemented.

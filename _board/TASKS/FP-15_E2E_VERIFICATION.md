@@ -29,7 +29,7 @@ Manual end-to-end verification of the complete file processing pipeline across a
 - [ ] Send file + caption → caption is used as the goal, file is used as context
 
 ### Failure Recovery
-- [ ] Temporarily disable Ollama → image file sends user an error warning, pipeline continues if other files succeeded
+- [ ] Temporarily disable Lemonade → image file sends user an error warning, pipeline continues if other files succeeded
 - [ ] Send corrupt audio → transcription error is reported silently, pipeline continues
 
 ## Implementation Notes

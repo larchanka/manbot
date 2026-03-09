@@ -1,20 +1,20 @@
-# FP-04: Extend OllamaAdapter with Vision/Image Support
+# FP-04: Extend LemonadeAdapter with Vision/Image Support
 
-**File**: `src/services/ollama-adapter.ts`
+**File**: `src/services/lemonade-adapter.ts`
 **Dependencies**: FP-02, FP-03
 **Phase**: 2 — Core Services
 
 ## Description
-Add a new `chatWithImage()` method to `OllamaAdapter` that accepts a local image file path, reads and base64-encodes it, and sends it to the Ollama `/api/chat` endpoint using the multimodal `images` field. This is required by the `file-processor` to call `glm-ocr:q8_0` for image OCR.
+Add a new `chatWithImage()` method to `LemonadeAdapter` that accepts a local image file path, reads and base64-encodes it, and sends it to the Lemonade `/chat/completions` endpoint as an OpenAI-compatible vision request. This is required by the `file-processor` to call `qwen3-vl` for image OCR.
 
 ## Acceptance Criteria
 - New method signature:
   ```ts
   async chatWithImage(
-    messages: OllamaMessage[],
+    messages: ChatMessage[],
     model: string,
     imagePath: string
-  ): Promise<OllamaResponse>
+  ): Promise<ChatResult>
   ```
 - Method reads the file at `imagePath` using `fs/promises.readFile`
 - Encodes to base64 string
@@ -23,7 +23,7 @@ Add a new `chatWithImage()` method to `OllamaAdapter` that accepts a local image
 - Throws a clear error if `imagePath` does not exist or cannot be read
 
 ## Implementation Notes
-- Ollama vision format: the `images` field is an array of base64 strings, placed in the user message object
-- No MIME type needed — Ollama auto-detects from content
+- OpenAI vision format: the `images_url` field is part of the message content array.
+- MIME type is needed for the data URI.
 - Reuse existing `fetchWithTimeout` / retry logic from `chat()` — don't duplicate
 - Add a unit test stub (can be skipped/mocked) confirming the base64 encoding step

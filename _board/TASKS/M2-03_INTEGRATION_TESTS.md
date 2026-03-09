@@ -8,7 +8,7 @@
 Integration test to verify that inference requests correctly trigger model loading.
 
 ## Acceptance Criteria
-- Mock Ollama adapter.
+- Mock Lemonade adapter.
 - Verify `GeneratorService` + `ModelManagerService` interaction.
 - All tests pass with `npm test`.
 

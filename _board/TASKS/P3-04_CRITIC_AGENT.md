@@ -6,7 +6,7 @@ Implement the Critic Agent as a standalone process that receives execution resul
 ## Requirements
 - Create `src/agents/critic-agent.ts`.
 - Extend `BaseProcess`.
-- Integration with Ollama Adapter and Model Router.
+- Integration with Lemonade Adapter and Model Router.
 - Accepts a `reflection.evaluate` request containing the task context and draft result.
 - Returns a structured evaluation response.
 

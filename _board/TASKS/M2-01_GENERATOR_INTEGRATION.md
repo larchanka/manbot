@@ -9,7 +9,7 @@ Update `GeneratorService` to call the `ModelManagerService` before performing an
 
 ## Acceptance Criteria
 - `ModelManagerService` injected into `GeneratorService`.
-- `ensureModelLoaded` called before `ollama.chat` and `ollama.generate`.
+- `ensureModelLoaded` called before `lemonade.chat`.
 - Works correctly with all model tiers.
 
 ## Implementation Notes
