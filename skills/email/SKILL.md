@@ -10,6 +10,7 @@ Mandatory tool: Use the `shell` tool to execute `gog` commands.
 - Sending, drafting, or replying to email messages.
 - Finding information within the inbox (e.g., "Find my flight number").
 - Checking for unread messages or recent updates.
+- Archive emails and move them from INBOX folder
 
 ## When NOT to Use
 
@@ -58,6 +59,12 @@ gog gmail send --to "a@b.com" --subject "Re: Hello" --reply-to-message-id <msgId
 gog gmail drafts create --to "client@example.com" --subject "Proposal" --body-file - <<'EOF'
 Draft content goes here.
 EOF
+```
+
+### 📦 Archiving
+```bash
+# Archive email
+gog gmail thread modify <msg_id> --remove INBOX
 ```
 
 ## Email Formatting

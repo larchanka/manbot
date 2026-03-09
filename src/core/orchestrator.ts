@@ -76,9 +76,23 @@ export class Orchestrator {
 
   private spawnProcess(name: string, scriptPath: string, restartCount = 0): ChildEntry {
     const env = { ...process.env };
-    // FP-PATH: Ensure common macOS paths are present for tool execution
-    // Prepend homebrew paths but preserve the current Node version path at the very front
-    const commonPaths = ["/opt/homebrew/bin", "/opt/homebrew/sbin", "/usr/local/bin"];
+    // FP-PATH: Ensure common paths are present for tool execution on both macOS and Linux.
+    // Prepend platform-specific paths but preserve the current Node version path at the very front.
+    const home = env.HOME || env.USERPROFILE || "";
+    const commonPaths = [
+      // macOS Homebrew
+      "/opt/homebrew/bin", "/opt/homebrew/sbin",
+      // Shared
+      "/usr/local/bin", "/usr/local/sbin",
+      // Linux user paths (Go, pip, cargo, etc.)
+      ...(home ? [
+        `${home}/go/bin`,
+        `${home}/.local/bin`,
+        `${home}/.cargo/bin`,
+      ] : []),
+      // Snap (common on Debian/Ubuntu)
+      "/snap/bin",
+    ];
     const existingPath = env.PATH || "/usr/bin:/bin:/usr/sbin:/sbin";
 
     // Ensure we don't lose the path to the current node process
@@ -454,9 +468,9 @@ export class Orchestrator {
       const taskId = (attempt === 0 && initialTaskId) ? initialTaskId : randomUUID();
       const isRetry = attempt > 0;
       if (isRetry) {
-        this.sendToTelegram(chatId, "Re-planning with error feedback...", true);
+        this.sendToTelegram(chatId, "⏳ Re-planning with error feedback...", true);
       } else {
-        this.sendToTelegram(chatId, "Planning started...", true);
+        this.sendToTelegram(chatId, "🪏 Planning started...", true);
       }
 
       const planCreatePayload: Record<string, unknown> = {
@@ -474,7 +488,7 @@ export class Orchestrator {
         planEnv = await this.sendAndWait(planner, "plan.create", planCreatePayload);
       } catch (errEnv) {
         const err = errEnv as Envelope & { payload?: { message?: string; details?: Record<string, unknown> } };
-        lastError = err.payload?.message ?? "Planning failed.";
+        lastError = err.payload?.message ?? "😨 Planning failed.";
         const details = err.payload?.details;
         if (details && typeof details === "object") {
           const parts: string[] = [lastError];
@@ -516,13 +530,13 @@ export class Orchestrator {
       };
       this.sendAndWait(taskMemory, "task.create", taskCreatePayload).catch(() => { });
 
-      this.sendToTelegram(chatId, "Planning complete. Execution started...", true);
+      this.sendToTelegram(chatId, "💨 Planning complete. Execution started...", true);
       let execEnv: Envelope;
       try {
         execEnv = await this.sendAndWait(executor, "plan.execute", { taskId, plan, goal, chatId, userId, conversationId });
       } catch (errEnv) {
         const err = errEnv as Envelope & { payload?: { message?: string; details?: Record<string, unknown> } };
-        lastError = err.payload?.message ?? "Execution failed.";
+        lastError = err.payload?.message ?? "😨 Execution failed.";
         const details = err.payload?.details;
         if (details && typeof details === "object") {
           const parts: string[] = [lastError];
@@ -550,7 +564,7 @@ export class Orchestrator {
         text = result.result;
       } else {
         // Result is raw data (JSON object from tool, etc.) — run through analyzer
-        const rawData = JSON.stringify(result ?? "Done.");
+        const rawData = JSON.stringify(result ?? "✅ Done.");
         const modelRouterChild = this.children.get("model-router");
         if (modelRouterChild?.stdin.writable) {
           try {
