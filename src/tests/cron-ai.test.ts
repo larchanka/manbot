@@ -130,7 +130,7 @@ describe("Cron-to-AI Flow (E2E Mocked)", () => {
             chatId,
             "Cron Job Execution Succeeded",
             false,
-            "Markdown"
+            "HTML"
         );
     });
 });

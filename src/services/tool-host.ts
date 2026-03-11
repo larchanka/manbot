@@ -130,7 +130,7 @@ export class ToolHost extends BaseProcess {
     if (typeof query !== "string") throw new Error("http_search requires query (string)");
 
     // Build Search URL (using the HTML endpoint which is more relaxed)
-    const searchUrl = "https://search.yahoo.com/search?p=" + query;
+    const searchUrl = "https://html.duckduckgo.com/html?q=" + encodeURIComponent(query);
 
     const startTime = Date.now();
 

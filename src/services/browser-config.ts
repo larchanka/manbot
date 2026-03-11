@@ -1,3 +1,5 @@
+import * as os from "os";
+
 /**
  * Browser configuration utilities for realistic browser behavior and bot detection bypass.
  * Provides user agents, viewport sizes, and stealth plugin configuration.
@@ -7,34 +9,29 @@
  * Realistic user agents for different browsers and operating systems.
  * Updated with recent browser versions (2024-2026) to avoid detection.
  */
-export const USER_AGENTS = [
-  // Chrome on Windows
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36",
-  "Mozilla/5.0 (Windows NT 11.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-  
-  // Chrome on macOS
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_6_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36",
-  
-  // Chrome on Linux
-  "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-  "Mozilla/5.0 (X11; Ubuntu; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36",
-  
-  // Firefox on Windows
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:133.0) Gecko/20100101 Firefox/133.0",
-  "Mozilla/5.0 (Windows NT 11.0; Win64; x64; rv:132.0) Gecko/20100101 Firefox/132.0",
-  
-  // Firefox on macOS
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:133.0) Gecko/20100101 Firefox/133.0",
-  
-  // Safari on macOS
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1 Safari/605.1.15",
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_6_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.6 Safari/605.1.15",
-  
-  // Edge on Windows
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 Edg/131.0.0.0",
-] as const;
+export const USER_AGENTS = {
+  windows: [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 11.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:133.0) Gecko/20100101 Firefox/133.0",
+    "Mozilla/5.0 (Windows NT 11.0; Win64; x64; rv:132.0) Gecko/20100101 Firefox/132.0",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 Edg/131.0.0.0",
+  ],
+  macos: [
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_6_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:133.0) Gecko/20100101 Firefox/133.0",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1 Safari/605.1.15",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_6_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.6 Safari/605.1.15",
+  ],
+  linux: [
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (X11; Ubuntu; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36",
+  ]
+} as const;
+
+export type OSGroup = keyof typeof USER_AGENTS;
 
 /**
  * Common viewport sizes matching real-world screen resolutions.
@@ -52,14 +49,32 @@ export const VIEWPORTS = [
 ] as const;
 
 /**
- * Returns a random user agent from the predefined list.
+ * Detects the user's operating system.
+ */
+export function getUserOS(): OSGroup | "unknown" {
+  const platform = os.platform();
+  if (platform === "win32") return "windows";
+  if (platform === "darwin") return "macos";
+  if (platform === "linux") return "linux";
+  return "unknown";
+}
+
+/**
+ * Returns a random user agent from the predefined list corresponding to the user's OS.
  * This helps avoid detection by rotating through different browser fingerprints.
+ * If the OS is unknown, it defaults to Windows user agents.
  *
  * @returns A random user agent string
  */
 export function getRandomUserAgent(): string {
-  const index = Math.floor(Math.random() * USER_AGENTS.length);
-  return USER_AGENTS[index]!;
+  let osGroup = getUserOS();
+  if (osGroup === "unknown") {
+    osGroup = "windows";
+  }
+  
+  const agents = USER_AGENTS[osGroup as OSGroup];
+  const index = Math.floor(Math.random() * agents.length);
+  return agents[index]!;
 }
 
 /**
@@ -92,7 +107,7 @@ export function getRandomViewport(): { width: number; height: number } {
 export const STEALTH_CONFIG = {
   // Enable all stealth features
   enabled: true,
-  
+
   // Additional configuration can be passed to the stealth plugin
   // The plugin will automatically apply various evasion techniques
 } as const;

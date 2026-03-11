@@ -11,6 +11,10 @@ import { PROTOCOL_VERSION } from "../shared/protocol.js";
 import { responsePayloadSchema } from "../shared/protocol.js";
 import { buildSummarizerPrompt, SUMMARIZER_SYSTEM_PROMPT } from "../agents/prompts/summarizer.js";
 import { ANALYZER_SYSTEM_PROMPT, buildAnalyzerUserPrompt } from "../agents/prompts/analyzer.js";
+import { DEFAULT_TELEGRAM_SYSTEM_PROMPT, TELEGRAM_HTML_FORMAT_INSTRUCTION } from "../agents/prompts/telegram-html.js";
+
+/** Inline reminder appended to user prompts so the LLM sees formatting rules in the most prominent position. */
+const HTML_PROMPT_SUFFIX = `\n\n${TELEGRAM_HTML_FORMAT_INSTRUCTION}\n\nNEVER use Markdown formatting. NEVER use plain JSON.`;
 import { LemonadeAdapter, type ChatMessage } from "./lemonade-adapter.js";
 import { ModelRouter } from "./model-router.js";
 import { ModelManagerService, type ModelTier } from "./model-manager.js";
@@ -108,6 +112,10 @@ export class GeneratorService extends BaseProcess {
                     } else {
                         prompt = p.input.prompt;
                     }
+                    // Append HTML reminder unless a specialized system prompt handles formatting
+                    if (!p.input?.system_prompt) {
+                        prompt += HTML_PROMPT_SUFFIX;
+                    }
                     if (typeof p.input?.system_prompt === "string") {
                         systemPrompt = p.input.system_prompt === "analyzer" ? ANALYZER_SYSTEM_PROMPT : p.input.system_prompt;
                         // If it's an analyzer prompt, use the specialized user prompt builder
@@ -118,7 +126,8 @@ export class GeneratorService extends BaseProcess {
                 } else if (goal && (context["_criticFeedback"] != null || context["_previousDraft"] != null)) {
                     const feedback = context["_criticFeedback"] as string | undefined;
                     const previous = context["_previousDraft"] as string | undefined;
-                    prompt = `User goal: ${goal}\n\nPrevious draft:\n${previous ?? ""}\n\nCritic feedback:\n${feedback ?? ""}\n\nProduce an improved draft that addresses the feedback. Output only the improved text.`;
+                    prompt = `User goal: ${goal}\n\nPrevious draft:\n${previous ?? ""}\n\nCritic feedback:\n${feedback ?? ""}\n\nProduce an improved draft that addresses the feedback. Output only the improved text.${HTML_PROMPT_SUFFIX}`;
+                    if (!systemPrompt) systemPrompt = DEFAULT_TELEGRAM_SYSTEM_PROMPT;
                 } else if (goal) {
                     const depOutputs = Object.entries(context)
                         .filter(([k]) => !k.startsWith("_"))
@@ -143,7 +152,7 @@ export class GeneratorService extends BaseProcess {
                             // For other objects, stringify
                             return JSON.stringify(v);
                         });
-                    prompt = `User goal: ${goal}\n\nContext from previous steps:\n${depOutputs.join("\n\n")}\n\nProduce a direct response to the goal. Output only the response text.`;
+                    prompt = `User goal: ${goal}\n\nContext from previous steps:\n${depOutputs.join("\n\n")}\n\nProduce a direct response to the goal. Output only the response text.${HTML_PROMPT_SUFFIX}`;
                 } else {
                     const depOutputs = Object.values(context).map((v) => {
                         // Extract body from http_get responses
@@ -166,16 +175,17 @@ export class GeneratorService extends BaseProcess {
                         // For other objects, stringify
                         return JSON.stringify(v);
                     });
-                    prompt = depOutputs.join("\n\n") || "Generate a brief response.";
+                    prompt = (depOutputs.join("\n\n") || "Generate a brief response.") + HTML_PROMPT_SUFFIX;
                 }
                 if (p.input?.messages && Array.isArray(p.input.messages)) {
                     messages = p.input.messages as ChatMessage[];
                 }
 
                 if (!messages) {
-                    messages = systemPrompt
-                        ? [{ role: "system" as const, content: systemPrompt }, { role: "user" as const, content: prompt }]
-                        : [{ role: "user" as const, content: prompt }];
+                    // Always inject a system prompt to ensure Telegram HTML output.
+                    // Falls back to the default Telegram formatting prompt when no specific one is set.
+                    const effectiveSystemPrompt = systemPrompt ?? DEFAULT_TELEGRAM_SYSTEM_PROMPT;
+                    messages = [{ role: "system" as const, content: effectiveSystemPrompt }, { role: "user" as const, content: prompt }];
                 }
 
                 const genResult = await this.lemonade.chat(messages, model, {

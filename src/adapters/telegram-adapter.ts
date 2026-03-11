@@ -75,15 +75,21 @@ function getAllowedUserIds(): Set<number> | null {
 }
 
 /**
- * Escape special characters for Telegram MarkdownV2 format.
- * According to Telegram API docs, these characters must be escaped: _ * [ ] ( ) ~ ` > # + - = | { } . !
- * Inside (...) of a [link](url) only \ and ) must be escaped.
- * We also escape \ globally as it's the escape character itself.
+ * Escape HTML special characters for Telegram HTML parse mode.
+ * Only <, > and & need escaping in Telegram HTML.
  */
-function escapeMarkdownV2(text: string): string {
-  // Characters that need to be escaped in MarkdownV2
-  const specialChars = /([\\_*\[\]()~`>#+\-=|{}.!])/g;
-  return text.replace(specialChars, "\\$1");
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+/**
+ * Strip HTML tags from text for plain-text fallback.
+ */
+function stripHtmlTags(text: string): string {
+  return text.replace(/<[^>]*>/g, "");
 }
 
 function createEnvelope<T>(type: string, to: string, payload: T): Envelope<T> {
@@ -137,16 +143,42 @@ function main(): void {
     chatId: number,
     text: string,
     options?: TelegramBot.SendMessageOptions,
-    originalText?: string
+    originalText?: string,
+    isHtmlContent = false,
+    retryCount = 0
   ): Promise<void> {
+    const MAX_RETRIES = 3;
     const messageText = text?.trim() ? text : "[EMPTY_RESPONSE]";
+    
+    const finalOptions: TelegramBot.SendMessageOptions = {
+      ...options,
+      parse_mode: "HTML" as any
+    };
+
+    // If this is NOT LLM/HTML content (i.e. system messages), HTML-escape it
+    const finalText = isHtmlContent ? messageText : escapeHtml(messageText);
+
     try {
-      await bot.sendMessage(chatId, messageText, options);
+      await bot.sendMessage(chatId, finalText, finalOptions);
     } catch (err: any) {
+      // transient errors: retry
+      const isTransient = 
+        err.code === 'ECONNRESET' || 
+        err.code === 'ETIMEDOUT' || 
+        err.code === 'EFATAL' || 
+        err.message?.includes("socket hang up");
+
+      if (isTransient && retryCount < MAX_RETRIES) {
+        const delay = 1000 * Math.pow(2, retryCount);
+        console.warn(`[telegram-adapter] Transient error (${err.code || err.message}), retrying in ${delay}ms... (attempt ${retryCount + 1})`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        return sendToUser(chatId, text, options, originalText, isHtmlContent, retryCount + 1);
+      }
+
       // If error is related to parsing entities, retry with plain text
       if (err.response?.body?.description?.includes("can't parse entities")) {
-        console.warn(`Telegram fallback: Failed to parse entities, retrying as plain text. Error: ${err.response.body.description}`);
-        const fallbackText = (originalText?.trim() ? originalText : messageText);
+        console.warn(`Telegram fallback: Failed to parse HTML entities, retrying as plain text. Error: ${err.response.body.description}`);
+        const fallbackText = stripHtmlTags(originalText?.trim() ? originalText : messageText);
         await bot.sendMessage(chatId, fallbackText, { ...options, parse_mode: undefined }).catch((innerErr) => {
           console.error("Telegram critical send error (fallback failed):", innerErr);
         });
@@ -408,13 +440,11 @@ function main(): void {
     if (envelope.type === "telegram.send") {
       const pl = envelope.payload as TelegramSendPayload;
       if (typeof pl.chatId === "number" && typeof pl.text === "string") {
-        // Escape text ONLY if explicitly requested MarkdownV2
-        const escapedText = pl.parseMode === "MarkdownV2" ? escapeMarkdownV2(pl.text) : pl.text;
         const opts: TelegramBot.SendMessageOptions = {
           parse_mode: pl.parseMode as any,
           ...(pl.silent === true && { disable_notification: true }),
         };
-        sendToUser(pl.chatId, escapedText, opts, pl.text);
+        sendToUser(pl.chatId, pl.text, opts, pl.text, true);
       }
       return;
     }
@@ -423,11 +453,10 @@ function main(): void {
     if (envelope.type === "telegram.progress") {
       const pl = envelope.payload as TelegramProgressPayload;
       if (typeof pl.chatId === "number" && typeof pl.text === "string") {
-        const escapedText = pl.parseMode === "MarkdownV2" ? escapeMarkdownV2(pl.text) : pl.text;
         const opts: TelegramBot.SendMessageOptions = {
           parse_mode: pl.parseMode as any,
         };
-        sendToUser(pl.chatId, escapedText, opts, pl.text);
+        sendToUser(pl.chatId, pl.text, opts, pl.text, true);
       }
       return;
     }
@@ -438,21 +467,20 @@ function main(): void {
       if (pl.status === "success" && pl.result && typeof pl.result === "object") {
         const r = pl.result as { chatId?: number; text?: string; reminders?: unknown[]; message?: string; parseMode?: "HTML" | "Markdown" | "MarkdownV2" };
         if (typeof r.chatId === "number" && typeof r.text === "string") {
-          const escapedText = r.parseMode === "MarkdownV2" ? escapeMarkdownV2(r.text) : r.text;
           const opts: TelegramBot.SendMessageOptions = {
             parse_mode: r.parseMode as any,
           };
-          sendToUser(r.chatId, escapedText, opts, r.text);
+          sendToUser(r.chatId, r.text, opts, r.text, true);
         } else if (typeof r.chatId === "number" && r.reminders) {
           // Handle reminder list response
           const reminders = r.reminders as Array<{ id: string; cronExpr: string; reminderMessage?: string }>;
           if (reminders.length === 0) {
-            sendToUser(r.chatId, "No active reminders.");
+            sendToUser(r.chatId, "🫙 No active reminders.");
           } else {
             const formatted = reminders
               .map((rem) => `ID: ${rem.id}\nTime: ${rem.cronExpr}\nMessage: ${rem.reminderMessage ?? "N/A"}`)
               .join("\n\n---\n\n");
-            sendToUser(r.chatId, `Active reminders:\n\n${formatted}`);
+            sendToUser(r.chatId, `⏰ Active reminders:\n\n${formatted}`);
           }
         } else if (typeof r.chatId === "number" && r.message) {
           sendToUser(r.chatId, r.message);

@@ -1,6 +1,7 @@
 import { readFileSync, existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { getConfig } from "../shared/config.js";
+import { TELEGRAM_HTML_FORMAT_INSTRUCTION } from "../agents/prompts/telegram-html.js";
 
 export interface SkillInfo {
     name: string;
@@ -35,13 +36,16 @@ export class SkillManager {
 
     /**
      * Load the skill prompt (SKILL.md) for a given skill.
+     * Appends Telegram HTML formatting instructions so skill output
+     * always uses Telegram-supported HTML instead of Markdown.
      */
     public getSkillPrompt(name: string): string | null {
         const skillPath = join(this.skillsDir, name, "SKILL.md");
         if (!existsSync(skillPath)) return null;
 
         try {
-            return readFileSync(skillPath, "utf-8");
+            const content = readFileSync(skillPath, "utf-8");
+            return `${content}\n\n## OUTPUT FORMATTING\n${TELEGRAM_HTML_FORMAT_INSTRUCTION}\n\nYou MUST format your final response using only the Telegram HTML tags listed above. Never use Markdown (replace will allowed HTML tags).`;
         } catch (err) {
             console.error(`Failed to load skill prompt for ${name}:`, err);
             return null;

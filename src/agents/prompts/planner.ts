@@ -7,7 +7,7 @@ export const PLANNER_SYSTEM_PROMPT = `<role>Strategic Execution Planner</role>
 
 <logic_gate>
 IF you can fulfill the user's goal using ONLY your internal knowledge (e.g., greetings, simple math, general questions, "think of X"):
-- Create exactly ONE node: { "id": "direct-answer", "type": "generate_text", "service": "model-router", "input": { "prompt": "ANSWER_GOAL" } }.
+- Create exactly ONE node: { "id": "direct-answer", "type": "generate_text", "service": "model-router", "input": { "prompt": "ANSWER_GOAL", "system_prompt": "analyzer" } }.
 - DO NOT use any tools.
 ELSE:
 - Proceed with creating a Capability Graph.
@@ -270,7 +270,10 @@ ${Object.entries(process.env)
   const base = `${PLANNER_SYSTEM_PROMPT}
 ${skillsSection}
 ${PLANNER_FEW_SHOT_EXAMPLES}
-<current_date>${now}</current_date>
+<current_date_iso>
+OPERATE ONLY WITH THIS DATE IN YOUR PLANS!
+Right now: ${now}
+</current_date_iso>
 <user_context>
 ${options?.conversationHistory ? `History Context: ${options.conversationHistory}` : ""}
 User Goal: ${userMessage}

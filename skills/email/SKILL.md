@@ -32,6 +32,19 @@ gog gmail messages search "from:updates@example.com" --max 10
 gog gmail search "is:unread"
 ```
 
+### 📧 Reading emails
+
+```bash
+# Read thread
+gog gmail thread get <threadId>
+
+# Read email
+gog gmail get <messageId>
+
+# Read email metadata
+gog gmail get <messageId> --format metadata
+```
+
 ### 📩 Sending & Replying
 ```bash
 # Quick one-line email
