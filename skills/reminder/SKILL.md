@@ -19,23 +19,25 @@ Set up one-time or recurring reminders for the user.
 
 1.  **Extract the Task**: Identify what the user wants to be reminded about.
 2.  **Extract the Time**: Identify the temporal expression (e.g., "in 2 hours", "every day at 8am").
-3.  **Schedule**: Call the `schedule_reminder` tool with the extracted time and message.
+3.  **Schedule**: Call the `schedule_reminder` tool with the extracted time, message, and `isAction` flag.
+4. **User instructions**: If user's request contains instructions and actions for YOU to DO something (e.g., "check email", "search the web"), set `isAction: true` and include the instructions in the `message`. If it's just a passive text reminder to the user to do something themselves, omit `isAction` or set it to `false`.
 
 ## Tool: schedule_reminder
 
 **Arguments**:
 - `time`: (string) Natural language time expression (e.g., "in 5 minutes", "tomorrow at 3pm", "every Monday").
-- `message`: (string) The content of the reminder.
+- `message`: (string) The content of the reminder or the instruction for the action to take.
+- `isAction`: (boolean, optional) Set to `true` if the reminder requires YOU (the AI) to execute a task, such as checking emails or searching the web. Set to `false` or omit if it's just a text reminder for the user.
 
 ## Strategy
 
-- Be precise with the `message`. If the user says "remind me to drink water", the message should be "Drink water".
+- Be precise with the `message`. If user's request contains instructions for the AI to perform an action, include them **ALL** into the reminder message and be SURE to set `isAction: true`.
 - If the user provides a vague time, ask for clarification if necessary, or use your best judgment (e.g., "later today" could be "in 4 hours").
 - The system will automatically handle parsing the natural language `time` string into a cron expression.
 
 ## Example Workflow
 
-User Goal: "remind me to call Mom in 20 minutes"
+User Goal: "check my email and mark spam in 20 minutes"
 
-1.  Call `schedule_reminder(time="in 20 minutes", message="Call Mom")`.
-2.  Respond to the user: "Sure! I'll remind you to Call Mom in 20 minutes."
+1.  Call `schedule_reminder(time="in 20 minutes", message="Check inbox for new email. Mark spam", isAction=true)`.
+2.  Respond to the user: "Sure! Your email will be checked in 20 minutes."

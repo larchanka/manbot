@@ -302,7 +302,7 @@ export class Orchestrator {
       if (chatId != null && conversationId != null) {
         this.runArchivingPipeline(chatId, conversationId).catch((err) => {
           ConsoleLogger.error("core", "Archiving pipeline error", err instanceof Error ? err : String(err), envelope);
-          this.sendToTelegram(chatId, `Archiving failed: ${err instanceof Error ? err.message : String(err)}`);
+          this.sendToTelegram(chatId, `😖 Archiving failed: ${err instanceof Error ? err.message : String(err)}`);
         });
       }
       return;
@@ -313,7 +313,7 @@ export class Orchestrator {
         ConsoleLogger.info("core", `Handling reminder.list request for chatId: ${chatId}`, envelope);
         this.handleListReminders(chatId, envelope).catch((err) => {
           ConsoleLogger.error("core", "List reminders error", err instanceof Error ? err.message : String(err), envelope);
-          this.sendToTelegram(chatId, `Error listing reminders: ${err instanceof Error ? err.message : String(err)}`);
+          this.sendToTelegram(chatId, `😖 Error listing reminders: ${err instanceof Error ? err.message : String(err)}`);
         });
       } else {
         ConsoleLogger.warn("core", "reminder.list missing chatId", envelope);
@@ -326,7 +326,7 @@ export class Orchestrator {
       if (chatId != null && reminderId != null) {
         this.handleCancelReminder(chatId, reminderId, envelope).catch((err) => {
           ConsoleLogger.error("core", "Cancel reminder error", err instanceof Error ? err.message : String(err), envelope);
-          this.sendToTelegram(chatId, `Error canceling reminder: ${err instanceof Error ? err.message : String(err)}`);
+          this.sendToTelegram(chatId, `😖 Error canceling reminder: ${err instanceof Error ? err.message : String(err)}`);
         });
       }
       return;
@@ -354,7 +354,7 @@ export class Orchestrator {
       const p = payload as unknown as FileIngestPayload;
       this.handleFileIngest(p).catch((err) => {
         ConsoleLogger.error("core", "File ingest error", err instanceof Error ? err : String(err), envelope);
-        this.sendToTelegram(p.chatId, `File processing error: ${err instanceof Error ? err.message : String(err)}`);
+        this.sendToTelegram(p.chatId, `😖 File processing error: ${err instanceof Error ? err.message : String(err)}`);
       });
       return;
     }
@@ -418,7 +418,7 @@ export class Orchestrator {
     const executor = this.children.get("executor");
     const telegram = this.children.get("telegram-adapter");
     if (!planner?.stdin.writable || !taskMemory?.stdin.writable || !executor?.stdin.writable || !telegram?.stdin.writable) {
-      this.sendToTelegram(chatId, "Service unavailable.");
+      this.sendToTelegram(chatId, "🛑 Service unavailable.");
       return;
     }
 
@@ -587,7 +587,7 @@ export class Orchestrator {
           text = rawData;
         }
       }
-      this.sendToTelegram(chatId, text, false, "Markdown");
+      this.sendToTelegram(chatId, text, false, "HTML");
       return;
     }
 
@@ -713,7 +713,7 @@ export class Orchestrator {
     } else {
       // Everything was ignored or failed with no caption
       if (warnings.length > 0) {
-        this.sendToTelegram(chatId, "No processable content found in the uploaded files.", true);
+        this.sendToTelegram(chatId, "⚠️ No processable content found in the uploaded files.", true);
       }
       return;
     }
@@ -806,14 +806,14 @@ export class Orchestrator {
     const modelRouter = this.children.get("model-router");
     const ragService = this.children.get("rag-service");
     if (!taskMemory?.stdin.writable || !modelRouter?.stdin.writable || !ragService?.stdin.writable) {
-      this.sendToTelegram(chatId, "Service unavailable for archiving.");
+      this.sendToTelegram(chatId, "⚠️ Service unavailable for archiving.");
       return;
     }
     let tasksEnv: Envelope;
     try {
       tasksEnv = await this.sendAndWait(taskMemory, "task.getByConversationId", { conversationId });
     } catch {
-      this.sendToTelegram(chatId, "Archived."); // no history or error
+      this.sendToTelegram(chatId, "✅ Archived."); // no history or error
       return;
     }
     const tasksPayload = tasksEnv.payload as { status?: string; result?: { tasks?: Array<{ id: string; goal: string; status: string }> } };
@@ -860,7 +860,7 @@ export class Orchestrator {
       });
     } catch (errEnv) {
       const err = errEnv as Envelope & { payload?: { message?: string } };
-      this.sendToTelegram(chatId, `Archiving failed: ${err.payload?.message ?? "Summarization error"}`);
+      this.sendToTelegram(chatId, `😖 Archiving failed: ${err.payload?.message ?? "Summarization error"}`);
       return;
     }
     const summaryPayload = summaryEnv.payload as { status?: string; result?: { text?: string } };
@@ -912,7 +912,7 @@ export class Orchestrator {
       return;
     }
 
-    this.sendToTelegram(chatIdNum, formattedMessage);
+    this.sendToTelegram(chatIdNum, formattedMessage, false, "HTML");
   }
 
   private handleCronAIQueryEvent(envelope: Envelope): void {
@@ -948,7 +948,7 @@ export class Orchestrator {
     const cronManager = this.children.get("cron-manager");
     if (!cronManager?.stdin.writable) {
       ConsoleLogger.warn("core", "Cron manager not available or not writable");
-      this.sendToTelegram(chatId, "Cron manager service unavailable.");
+      this.sendToTelegram(chatId, "⚠️ Cron manager service unavailable.");
       return;
     }
 
@@ -975,7 +975,7 @@ export class Orchestrator {
 
       if (reminderSchedules.length === 0) {
         ConsoleLogger.info("core", "No reminders found, sending 'No active reminders' message");
-        this.sendToTelegram(chatId, "No active reminders.");
+        this.sendToTelegram(chatId, "👌🏻 No active reminders.");
         return;
       }
 
@@ -986,18 +986,18 @@ export class Orchestrator {
         .join("\n\n---\n\n");
       const message = `Active reminders:\n\n${formatted}`;
       ConsoleLogger.info("core", `Sending reminder list to chatId ${chatId}: ${message.substring(0, 100)}...`);
-      this.sendToTelegram(chatId, message);
+      this.sendToTelegram(chatId, message, false, "HTML");
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       ConsoleLogger.error("core", `Error in handleListReminders: ${message}`, err instanceof Error ? err : undefined);
-      this.sendToTelegram(chatId, `Error listing reminders: ${message}`);
+      this.sendToTelegram(chatId, `😨 Error listing reminders: ${message}`);
     }
   }
 
   private async handleCancelReminder(chatId: number, reminderId: string, _request: Envelope): Promise<void> {
     const cronManager = this.children.get("cron-manager");
     if (!cronManager?.stdin.writable) {
-      this.sendToTelegram(chatId, "Cron manager service unavailable.");
+      this.sendToTelegram(chatId, "⚠️ Cron manager service unavailable.");
       return;
     }
 
@@ -1005,13 +1005,13 @@ export class Orchestrator {
       const response = await this.sendAndWait(cronManager, "cron.schedule.remove", { id: reminderId });
       const responsePayload = response.payload as { status?: string; result?: { removed?: string } };
       if (responsePayload.result?.removed === reminderId) {
-        this.sendToTelegram(chatId, `Reminder ${reminderId} has been canceled.`);
+        this.sendToTelegram(chatId, `🟢 Reminder ${reminderId} has been canceled.`);
       } else {
-        this.sendToTelegram(chatId, `Reminder ${reminderId} not found.`);
+        this.sendToTelegram(chatId, `😨 Reminder ${reminderId} not found.`);
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      this.sendToTelegram(chatId, `Error canceling reminder: ${message}`);
+      this.sendToTelegram(chatId, `😨 Error canceling reminder: ${message}`);
     }
   }
 
@@ -1055,12 +1055,13 @@ export class Orchestrator {
     return chunks;
   }
 
-  private sendToTelegram(chatId: number, text: string, silent?: boolean, parseMode?: "HTML" | "Markdown" | "MarkdownV2"): void {
+  private sendToTelegram(chatId: number, text: string, silent?: boolean, parseMode?: "HTML" | "Markdown"): void {
     const telegram = this.children.get("telegram-adapter");
     if (!telegram?.stdin.writable) return;
 
-    // Split message if it's too long (Telegram limit is 4096 characters)
-    const chunks = this.splitMessage(text, 4000); // Use 4000 to leave room for continuation markers
+    // Split message if it's too long (Telegram limit is 4096 characters).
+    // We use a safe buffer (3000) to account for MarkdownV2 escaping growth and continuation markers.
+    const chunks = this.splitMessage(text, 4000);
 
     chunks.forEach((chunk, index) => {
       let messageText = chunk;
@@ -1083,7 +1084,7 @@ export class Orchestrator {
         to: "telegram-adapter",
         type: "telegram.send",
         version: "1.0",
-        payload: { chatId, text: messageText, silent, parseMode },
+        payload: { chatId, text: messageText, silent, parseMode: parseMode ?? "HTML" },
       };
       telegram.stdin.write(JSON.stringify(envelope) + "\n");
       ConsoleLogger.ipc("core", "→", envelope);

@@ -7,8 +7,8 @@
  */
 
 const MAX_CONCURRENT_NODES = 5;
-const MAX_REVISION_CYCLES = 10;
-const MAX_SKILL_TURNS = 15;
+const MAX_REVISION_CYCLES = 20;
+const MAX_SKILL_TURNS = 100;
 
 const SKILL_TOOLS: any[] = [
   {
@@ -49,7 +49,8 @@ const SKILL_TOOLS: any[] = [
         type: "object",
         properties: {
           time: { type: "string", description: "When to remind (e.g., 'in 2 hours', 'every Monday at 9am', 'tomorrow at 3pm')" },
-          message: { type: "string", description: "The content of the reminder (what to remind about)" }
+          message: { type: "string", description: "The content of the reminder (what to remind about) or the instruction for an action." },
+          isAction: { type: "boolean", description: "Set to true if you are scheduling a task that requires you (the AI assistant) to execute an action (e.g., 'check email', 'search web'). Omit or set to false if it's just a text reminder for the user." }
         },
         required: ["time", "message"]
       }
@@ -642,6 +643,7 @@ export class ExecutorAgent extends BaseProcess {
   ): Promise<unknown> {
     const input = node.input ?? {};
     const nodeInput = input as Record<string, unknown>;
+    const isAction = nodeInput.isAction === true || nodeInput.isAction === "true";
 
     // Extract cronExpr from input or dependency output
     let cronExpr = nodeInput.cronExpr as string | undefined;
@@ -800,7 +802,7 @@ export class ExecutorAgent extends BaseProcess {
         version: PROTOCOL_VERSION,
         payload: {
           cronExpr,
-          taskType: "reminder",
+          taskType: isAction ? "ai_query" : "reminder",
           payload: {
             chatId: typeof chatId === "string" ? parseInt(chatId, 10) : chatId,
             reminderMessage,

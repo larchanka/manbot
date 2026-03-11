@@ -128,7 +128,7 @@ export class BrowserService extends BaseProcess {
         userAgent: userAgent,
         // Additional stealth settings
         locale: "en-US",
-        timezoneId: "America/New_York",
+        timezoneId: "Europe/Amsterdam",
         // Disable automation indicators
         ignoreHTTPSErrors: true,
         // Realistic browser headers
@@ -309,6 +309,7 @@ export class BrowserService extends BaseProcess {
         // Realistic browser behavior
         "--lang=en-US",
         "--disable-extensions",
+        "--headless=new",
       ];
 
       if (this.config.userDataDir) {
@@ -322,7 +323,7 @@ export class BrowserService extends BaseProcess {
           userAgent: userAgent,
           // Additional stealth settings
           locale: "en-US",
-          timezoneId: "America/New_York",
+          timezoneId: "Europe/Amsterdam",
           ignoreHTTPSErrors: true,
           extraHTTPHeaders: {
             "Accept-Language": "en-US,en;q=0.9",

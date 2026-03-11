@@ -2,6 +2,10 @@
 
 Get current weather conditions and forecasts.
 
+## IMPORTANT!
+
+Only use shell tool and `curl`
+
 ## When to Use
 
 ✅ **USE this skill when:**
