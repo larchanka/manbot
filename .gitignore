@@ -43,6 +43,7 @@ config.json
 *.key
 
 # Database and Persistence
+skills/_*
 data/**/**
 *.sqlite
 *.sqlite-journal
