@@ -152,7 +152,7 @@ export class GeneratorService extends BaseProcess {
                             // For other objects, stringify
                             return JSON.stringify(v);
                         });
-                    prompt = `User goal: ${goal}\n\nContext from previous steps:\n${depOutputs.join("\n\n")}\n\nProduce a direct response to the goal. Output only the response text.${HTML_PROMPT_SUFFIX}`;
+                    prompt = `User goal: ${goal}\n\nContext from previous steps:\n${depOutputs.join("\n\n")}\n\nProduce a direct response to the goal. Output only the response text. Format HTML, available tags:\n${HTML_PROMPT_SUFFIX}`;
                 } else {
                     const depOutputs = Object.values(context).map((v) => {
                         // Extract body from http_get responses
