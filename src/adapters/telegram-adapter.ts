@@ -55,6 +55,15 @@ export interface TelegramSendPayload {
   silent?: boolean;
 }
 
+/** Payload for messages from Core instructing the adapter to send a file to Telegram */
+export interface TelegramSendFilePayload {
+  chatId: number;
+  localPath: string; // Absolute path to file
+  caption?: string;
+  /** Optional file type hint. If omitted, will be auto-detected by mime-type. */
+  type?: "document" | "photo" | "audio" | "video";
+}
+
 /** Payload for progress updates (streamed to chat) */
 export interface TelegramProgressPayload {
   chatId: number;
@@ -487,6 +496,45 @@ function main(): void {
   // Messages from Core (stdin) → send to Telegram user (initial/final output and progress)
   base.onMessage((envelope: Envelope) => {
     if (envelope.to !== PROCESS_NAME) return;
+
+    if (envelope.type === "telegram.send_file") {
+      const pl = envelope.payload as TelegramSendFilePayload;
+      if (typeof pl.chatId === "number" && typeof pl.localPath === "string") {
+        (async () => {
+          try {
+            const path = pl.localPath;
+            const caption = pl.caption;
+            const type = pl.type;
+
+            if (type === "photo") {
+              await bot.sendPhoto(pl.chatId, path, { caption });
+            } else if (type === "audio") {
+              await bot.sendAudio(pl.chatId, path, { caption });
+            } else if (type === "video") {
+              await bot.sendVideo(pl.chatId, path, { caption });
+            } else if (type === "document") {
+              await bot.sendDocument(pl.chatId, path, { caption });
+            } else {
+              // Auto-detect based on extension if not provided
+              const ext = extname(path).toLowerCase();
+              if ([".jpg", ".jpeg", ".png", ".gif", ".bmp"].includes(ext)) {
+                await bot.sendPhoto(pl.chatId, path, { caption });
+              } else if ([".mp3", ".wav", ".m4a", ".ogg"].includes(ext)) {
+                await bot.sendAudio(pl.chatId, path, { caption });
+              } else if ([".mp4", ".mov", ".avi", ".mkv"].includes(ext)) {
+                await bot.sendVideo(pl.chatId, path, { caption });
+              } else {
+                await bot.sendDocument(pl.chatId, path, { caption });
+              }
+            }
+          } catch (err) {
+            console.error("[telegram-adapter] Error sending file:", err);
+            sendToUser(pl.chatId, `⚠️ Failed to send file: ${err instanceof Error ? err.message : String(err)}`);
+          }
+        })();
+      }
+      return;
+    }
 
     if (envelope.type === "telegram.send") {
       const pl = envelope.payload as TelegramSendPayload;
