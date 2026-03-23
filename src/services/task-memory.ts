@@ -343,37 +343,39 @@ export class TaskMemoryStore {
   updateTaskDag(taskId: string, nodes: TaskCreatePayload['nodes'], edges: TaskCreatePayload['edges'], complexity?: string): void {
     const now = this.now();
 
-    // Clear existing nodes and edges if any
-    this.db.prepare(`DELETE FROM task_edges WHERE task_id = ?`).run(taskId);
-    this.db.prepare(`DELETE FROM task_nodes WHERE task_id = ?`).run(taskId);
+    this.db.transaction(() => {
+      // Clear existing nodes and edges if any
+      this.db.prepare(`DELETE FROM task_edges WHERE task_id = ?`).run(taskId);
+      this.db.prepare(`DELETE FROM task_nodes WHERE task_id = ?`).run(taskId);
 
-    const insertNode = this.db.prepare(
-      `INSERT INTO task_nodes (task_id, id, type, service, status, input)
-       VALUES (?, ?, ?, ?, 'pending', ?)`,
-    );
-    for (const n of nodes) {
-      insertNode.run(
-        taskId,
-        n.id,
-        n.type,
-        n.service,
-        this.json(n.input),
+      const insertNode = this.db.prepare(
+        `INSERT INTO task_nodes (task_id, id, type, service, status, input)
+         VALUES (?, ?, ?, ?, 'pending', ?)`,
       );
-    }
+      for (const n of nodes) {
+        insertNode.run(
+          taskId,
+          n.id,
+          n.type,
+          n.service || "model-router",
+          this.json(n.input),
+        );
+      }
 
-    const insertEdge = this.db.prepare(
-      `INSERT INTO task_edges (id, task_id, from_node, to_node)
-       VALUES (?, ?, ?, ?)`,
-    );
-    for (const e of edges) {
-      insertEdge.run(randomUUID(), taskId, e.fromNode, e.toNode);
-    }
+      const insertEdge = this.db.prepare(
+        `INSERT INTO task_edges (id, task_id, from_node, to_node)
+         VALUES (?, ?, ?, ?)`,
+      );
+      for (const e of edges) {
+        insertEdge.run(randomUUID(), taskId, e.fromNode, e.toNode);
+      }
 
-    if (complexity) {
-      this.db.prepare(`UPDATE tasks SET complexity = ?, updated_at = ? WHERE id = ?`).run(complexity, now, taskId);
-    } else {
-      this.db.prepare(`UPDATE tasks SET updated_at = ? WHERE id = ?`).run(now, taskId);
-    }
+      if (complexity) {
+        this.db.prepare(`UPDATE tasks SET complexity = ?, updated_at = ? WHERE id = ?`).run(complexity, now, taskId);
+      } else {
+        this.db.prepare(`UPDATE tasks SET updated_at = ? WHERE id = ?`).run(now, taskId);
+      }
+    })();
   }
 
   getTask(taskId: string): unknown {
