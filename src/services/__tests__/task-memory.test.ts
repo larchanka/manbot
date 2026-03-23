@@ -234,22 +234,23 @@ describe("TaskMemoryStore", () => {
   });
 
   describe("error handling", () => {
-    it("throws or causes constraint violation on duplicate task id", () => {
+    it("ignores multiple calls with same task id (idempotent)", () => {
       const taskId = "t-dup";
       store.createTaskWithDag({
         taskId,
-        goal: "g",
+        goal: "g1",
         nodes: [{ id: "n1", type: "a", service: "b" }],
         edges: [],
       });
-      expect(() => {
-        store.createTaskWithDag({
-          taskId,
-          goal: "g2",
-          nodes: [{ id: "n2", type: "c", service: "d" }],
-          edges: [],
-        });
-      }).toThrow();
+      // Second call should NOT throw and NOT overwrite existing task root
+      store.createTaskWithDag({
+        taskId,
+        goal: "g2",
+        nodes: [{ id: "n2", type: "c", service: "d" }],
+        edges: [],
+      });
+      const task = store.getTask(taskId) as any;
+      expect(task.goal).toBe("g1"); // Still g1 because of INSERT OR IGNORE
     });
 
     it("duplicate node id across tasks is now allowed", () => {

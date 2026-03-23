@@ -59,7 +59,7 @@ describe('Orchestrator Concurrency', () => {
 
         // Verify only task 1 started
         expect(runTaskPipelineSpy).toHaveBeenCalledTimes(1);
-        expect(runTaskPipelineSpy).toHaveBeenCalledWith(1, 1, 'task1', undefined, undefined);
+        expect(runTaskPipelineSpy).toHaveBeenCalledWith(1, 1, 'task1', undefined, expect.any(String));
 
         // Complete task 1
         resolveTask1!(null);
@@ -67,7 +67,7 @@ describe('Orchestrator Concurrency', () => {
 
         // Verify task 2 started
         expect(runTaskPipelineSpy).toHaveBeenCalledTimes(2);
-        expect(runTaskPipelineSpy).toHaveBeenLastCalledWith(1, 1, 'task2', undefined, undefined);
+        expect(runTaskPipelineSpy).toHaveBeenLastCalledWith(1, 1, 'task2', undefined, expect.any(String));
     });
 
     it('should prioritize human tasks over synthetic tasks', async () => {
@@ -91,7 +91,7 @@ describe('Orchestrator Concurrency', () => {
 
         // Verify only synthetic1 started
         expect(runTaskPipelineSpy).toHaveBeenCalledTimes(1);
-        expect(runTaskPipelineSpy).toHaveBeenCalledWith(1, 1, 'synthetic1', undefined, undefined);
+        expect(runTaskPipelineSpy).toHaveBeenCalledWith(1, 1, 'synthetic1', undefined, expect.any(String));
 
         // Controlled promise to simulate long running task 2 (human)
         let resolveTask2: (value: unknown) => void;
@@ -104,13 +104,13 @@ describe('Orchestrator Concurrency', () => {
 
         // Verify human1 started next (pushed to front)
         expect(runTaskPipelineSpy).toHaveBeenCalledTimes(2);
-        expect(runTaskPipelineSpy).toHaveBeenCalledWith(1, 1, 'human1', undefined, undefined);
+        expect(runTaskPipelineSpy).toHaveBeenCalledWith(1, 1, 'human1', undefined, expect.any(String));
 
         // Complete human1
         resolveTask2!(null);
         await new Promise(process.nextTick);
         expect(runTaskPipelineSpy).toHaveBeenCalledTimes(3);
-        expect(runTaskPipelineSpy).toHaveBeenCalledWith(1, 1, 'synthetic2', undefined, undefined);
+        expect(runTaskPipelineSpy).toHaveBeenCalledWith(1, 1, 'synthetic2', undefined, expect.any(String));
     });
 
     it('should run immediately if limit is 0', async () => {
