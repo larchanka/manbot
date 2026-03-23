@@ -111,11 +111,18 @@ describe("Cron-to-AI Flow (E2E Mocked)", () => {
             expect.objectContaining({ goal: query })
         );
 
-        // Verify task memory was hit
+        // Verify task memory was hit to check for existing tasks
         expect(orchestrator.sendAndWait).toHaveBeenCalledWith(
             expect.anything(),
-            "task.create",
-            expect.objectContaining({ goal: query })
+            "task.getByConversationId",
+            expect.objectContaining({ conversationId: "1001" })
+        );
+
+        // Verify task memory was hit to set status to planning
+        expect(orchestrator.sendAndWait).toHaveBeenCalledWith(
+            expect.anything(),
+            "task.updateStatus",
+            expect.objectContaining({ status: "planning" })
         );
 
         // Verify executor was hit
