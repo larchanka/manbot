@@ -211,7 +211,7 @@ export class TaskMemoryStore {
     const now = this.now();
     this.db
       .prepare(
-        `INSERT INTO tasks (id, user_id, conversation_id, goal, status, complexity, created_at, updated_at, metadata)
+        `INSERT OR IGNORE INTO tasks (id, user_id, conversation_id, goal, status, complexity, created_at, updated_at, metadata)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
