@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS tasks (
   user_id TEXT,
   conversation_id TEXT,
   goal TEXT NOT NULL,
-  status TEXT CHECK(status IN ('pending','running','completed','failed')),
+  status TEXT CHECK(status IN ('planning','running','finalizing','completed','failed','pending')),
   complexity TEXT,
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL,
@@ -92,6 +92,7 @@ interface TaskCreatePayload {
   conversationId?: string;
   goal: string;
   complexity?: string;
+  status?: "planning" | "pending" | "running" | "finalizing" | "completed" | "failed";
   nodes: Array<{ id: string; type: string; service: string; input?: unknown }>;
   edges: Array<{ fromNode: string; toNode: string }>;
 }
@@ -127,6 +128,11 @@ interface TaskFailPayload {
 
 interface TaskGetByConversationIdPayload {
   conversationId: string;
+}
+
+interface TaskUpdateStatusPayload {
+  taskId: string;
+  status: "planning" | "pending" | "running" | "finalizing" | "completed" | "failed";
 }
 
 // --- Store ---
@@ -179,13 +185,14 @@ export class TaskMemoryStore {
     this.db
       .prepare(
         `INSERT INTO tasks (id, user_id, conversation_id, goal, status, complexity, created_at, updated_at, metadata)
-         VALUES (?, ?, ?, ?, 'pending', ?, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         payload.taskId,
         payload.userId ?? null,
         payload.conversationId ?? null,
         payload.goal,
+        payload.status || 'pending',
         payload.complexity ?? null,
         now,
         now,
@@ -243,9 +250,9 @@ export class TaskMemoryStore {
       )
       .run(status, output, startedAt, completedAt, taskId, nodeId);
 
-    // Also update task status to 'running' if it was 'pending'
+    // Also update task status to 'running' if it was 'pending' or 'planning'
     this.db
-      .prepare(`UPDATE tasks SET status = 'running', updated_at = ? WHERE id = ? AND status = 'pending'`)
+      .prepare(`UPDATE tasks SET status = 'running', updated_at = ? WHERE id = ? AND status IN ('pending', 'planning')`)
       .run(now, taskId);
 
     // Always touch updated_at even if status didn't change (e.g. from running to running with more nodes)
@@ -289,6 +296,45 @@ export class TaskMemoryStore {
     this.db
       .prepare(`UPDATE tasks SET status = 'failed', updated_at = ?, metadata = ? WHERE id = ?`)
       .run(now, reason ? this.json({ reason }) : "", taskId);
+  }
+
+  updateTaskStatus(taskId: string, status: string): void {
+    const now = this.now();
+    this.db
+      .prepare(`UPDATE tasks SET status = ?, updated_at = ? WHERE id = ?`)
+      .run(status, now, taskId);
+  }
+
+  updateTaskDag(taskId: string, nodes: TaskCreatePayload['nodes'], edges: TaskCreatePayload['edges']): void {
+    const now = this.now();
+    
+    // Clear existing nodes and edges if any
+    this.db.prepare(`DELETE FROM task_edges WHERE task_id = ?`).run(taskId);
+    this.db.prepare(`DELETE FROM task_nodes WHERE task_id = ?`).run(taskId);
+
+    const insertNode = this.db.prepare(
+      `INSERT INTO task_nodes (task_id, id, type, service, status, input)
+       VALUES (?, ?, ?, ?, 'pending', ?)`,
+    );
+    for (const n of nodes) {
+      insertNode.run(
+        taskId,
+        n.id,
+        n.type,
+        n.service,
+        this.json(n.input),
+      );
+    }
+
+    const insertEdge = this.db.prepare(
+      `INSERT INTO task_edges (id, task_id, from_node, to_node)
+       VALUES (?, ?, ?, ?)`,
+    );
+    for (const e of edges) {
+      insertEdge.run(randomUUID(), taskId, e.fromNode, e.toNode);
+    }
+
+    this.db.prepare(`UPDATE tasks SET updated_at = ? WHERE id = ?`).run(now, taskId);
   }
 
   getTask(taskId: string): unknown {
@@ -339,7 +385,9 @@ function isTaskMessage(type: string): boolean {
     type === "task.getByConversationId" ||
     type === "task.appendReflection" ||
     type === "task.complete" ||
-    type === "task.fail"
+    type === "task.fail" ||
+    type === "task.updateStatus" ||
+    type === "task.updateDag"
   );
 }
 
@@ -406,6 +454,18 @@ export class TaskMemoryService extends BaseProcess {
         case "task.fail": {
           const p = payload as unknown as TaskFailPayload;
           this.store.failTask(p.taskId, p.reason);
+          result = { taskId: p.taskId };
+          break;
+        }
+        case "task.updateStatus": {
+          const p = payload as unknown as TaskUpdateStatusPayload;
+          this.store.updateTaskStatus(p.taskId, p.status);
+          result = { taskId: p.taskId, status: p.status };
+          break;
+        }
+        case "task.updateDag": {
+          const p = payload as unknown as TaskCreatePayload;
+          this.store.updateTaskDag(p.taskId, p.nodes, p.edges);
           result = { taskId: p.taskId };
           break;
         }

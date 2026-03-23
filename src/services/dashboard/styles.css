@@ -8,6 +8,24 @@
     --success: #0b6e4f;
     --error: #df2a5f;
     --warning: #d9730d;
+    --purple: #9333ea;
+
+    --primary-bg: rgba(35, 131, 226, 0.1);
+    --success-bg: rgba(11, 110, 79, 0.1);
+    --error-bg: rgba(223, 42, 95, 0.1);
+    --warning-bg: rgba(217, 115, 13, 0.1);
+    --planning-bg: rgba(139, 139, 139, 0.1);
+    --finalizing-bg: rgba(147, 51, 234, 0.1);
+
+    --stage-bg: rgba(0, 0, 0, 0.02);
+    --chip-running-bg: rgba(35, 131, 226, 0.05);
+    --chip-completed-bg: rgba(11, 110, 79, 0.05);
+    --chip-failed-bg: rgba(223, 42, 95, 0.05);
+
+    --tooltip-bg: #1e1e1e;
+    --tooltip-text: #ffffff;
+    --tooltip-shadow: rgba(0, 0, 0, 0.2);
+    --tooltip-border: rgba(255, 255, 255, 0.1);
   }
 
   @media (prefers-color-scheme: dark) {
@@ -21,6 +39,24 @@
       --success: #529e72;
       --error: #ff4d4d;
       --warning: #ffdc4d;
+      --purple: #bf7fff;
+
+      --primary-bg: rgba(46, 167, 255, 0.15);
+      --success-bg: rgba(82, 158, 114, 0.15);
+      --error-bg: rgba(255, 77, 77, 0.15);
+      --warning-bg: rgba(255, 220, 77, 0.15);
+      --planning-bg: rgba(255, 255, 255, 0.05);
+      --finalizing-bg: rgba(191, 127, 255, 0.15);
+
+      --stage-bg: rgba(255, 255, 255, 0.03);
+      --chip-running-bg: rgba(46, 167, 255, 0.08);
+      --chip-completed-bg: rgba(82, 158, 114, 0.08);
+      --chip-failed-bg: rgba(255, 77, 77, 0.08);
+
+      --tooltip-bg: #2a2a2a;
+      --tooltip-text: #e0e0e0;
+      --tooltip-shadow: rgba(0, 0, 0, 0.4);
+      --tooltip-border: rgba(255, 255, 255, 0.1);
     }
   }
 
@@ -241,20 +277,30 @@
     font-weight: 500;
   }
 
-  .tag.success { background: rgba(11, 110, 79, 0.1); color: var(--success); }
-  .tag.error { background: rgba(223, 42, 95, 0.1); color: var(--error); }
-  .tag.warning { background: rgba(217, 115, 13, 0.1); color: var(--warning); }
+  .tag.success { background: var(--success-bg); color: var(--success); }
+  .tag.error { background: var(--error-bg); color: var(--error); }
+  .tag.warning { background: var(--warning-bg); color: var(--warning); }
   .tag.running { 
-    background: rgba(35, 131, 226, 0.1); 
+    background: var(--primary-bg); 
     color: var(--primary);
     display: inline-flex;
     align-items: center;
     gap: 4px;
   }
+  .tag.planning { background: var(--planning-bg); color: var(--text-muted); padding: 2px 8px; border-radius: 4px; }
+  .tag.finalizing { 
+    background: var(--finalizing-bg); 
+    color: var(--purple); 
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
 
   .tag.complexity-small { background: var(--subtle); color: var(--text-muted); border: 1px solid var(--border); }
-  .tag.complexity-medium { background: rgba(35, 131, 226, 0.1); color: var(--primary); }
-  .tag.complexity-large { background: rgba(147, 51, 234, 0.1); color: #9333ea; }
+  .tag.complexity-medium { background: var(--primary-bg); color: var(--primary); }
+  .tag.complexity-large { background: var(--finalizing-bg); color: var(--purple); }
 
   .pulse {
     width: 6px;
@@ -285,7 +331,7 @@
     padding: 4px;
     border-radius: 6px;
     border: 1px dashed var(--border);
-    background: rgba(0,0,0,0.02);
+    background: var(--stage-bg);
   }
   .node-chip {
     font-size: 11px;
@@ -302,18 +348,18 @@
   .node-chip.running {
     border-color: var(--primary);
     color: var(--primary);
-    background: rgba(35, 131, 226, 0.05);
+    background: var(--chip-running-bg);
     font-weight: 600;
   }
   .node-chip.completed {
     border-color: var(--success);
     color: var(--success);
-    background: rgba(11, 110, 79, 0.05);
+    background: var(--chip-completed-bg);
   }
   .node-chip.failed {
     border-color: var(--error);
     color: var(--error);
-    background: rgba(223, 42, 95, 0.05);
+    background: var(--chip-failed-bg);
   }
 
   .goal-text {
@@ -396,15 +442,15 @@
     left: 50%;
     transform: translateX(-50%);
     padding: 6px 10px;
-    background: #1e1e1e;
-    color: #fff;
+    background: var(--tooltip-bg);
+    color: var(--tooltip-text);
     font-size: 11px;
     font-weight: 500;
     border-radius: 6px;
     white-space: nowrap;
     z-index: 1000;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-    border: 1px solid rgba(255,255,255,0.1);
+    box-shadow: 0 4px 12px var(--tooltip-shadow);
+    border: 1px solid var(--tooltip-border);
     pointer-events: none;
   }
 
@@ -416,7 +462,7 @@
     transform: translateX(-50%);
     border-width: 5px;
     border-style: solid;
-    border-color: #1e1e1e transparent transparent transparent;
+    border-color: var(--tooltip-bg) transparent transparent transparent;
     z-index: 1001;
     pointer-events: none;
   }
