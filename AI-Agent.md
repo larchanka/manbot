@@ -15,8 +15,7 @@ AI-Agent/
 │   ├── INSTRUCTIONS.md         # Workflow for task execution
 │   └── TASKS/                  # Task specs (P1-01, P2-01, …)
 ├── skills/                     # Dynamic Skills System
-│   ├── CONFIG.md               # Skill manifest and descriptions
-│   └── [skill-name]/           # SKILL.md for each skill
+│   └── [skill-name]/           # SKILL.md for each skill (first line has description)
 ├── _docs/
 │   ├── ARCHITECTURE.md         # Architectural patterns
 │   ├── CAPABILITY GRAPH.md     # DAG format and node types

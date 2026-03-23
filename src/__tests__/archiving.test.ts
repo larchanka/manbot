@@ -1,7 +1,6 @@
 /**
- * Integration test for conversation archiving flow (P6-06).
  * Verifies: task history retrieval by conversation_id, summary insertion into RAG, SQLite persistence.
- * Summarization step is mocked (no Ollama).
+ * Summarization step is mocked (no Lemonade).
  */
 
 import { randomUUID } from "node:crypto";

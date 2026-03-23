@@ -1,6 +1,6 @@
 /**
  * RAG Service: semantic memory via embeddings and similarity search.
- * Uses Ollama for embeddings; SQLite for persistent storage.
+ * Uses Lemonade for embeddings; SQLite for persistent storage.
  * P6-01: SQLite persistence. P7-01: sqlite-vss for scalable KNN with fallback to dot-product.
  */
 

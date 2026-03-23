@@ -1,6 +1,6 @@
 /**
- * Model Router: maps abstract complexity levels to Ollama model names.
- * Per _docs/TECH.md: small -> llama3:8b, medium -> mistral, large -> mixtral.
+ * Model Router: maps abstract complexity levels to Lemonade model names.
+ * Per _docs/TECH.md: small -> qwen2.5:0.5b, medium -> qwen2.5:1.5b, large -> qwen2.5:7b.
  */
 
 import { getConfig } from "../shared/config.js";
@@ -22,7 +22,7 @@ export class ModelRouter {
     }
 
     /**
-     * Return the Ollama model name for the given complexity level.
+     * Return the Lemonade model name for the given complexity level.
      */
     getModel(complexity: ComplexityLevel): string {
         return this.config[complexity];

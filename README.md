@@ -39,9 +39,9 @@ A multi-process AI platform with type-safe IPC and capability-graph execution. U
 Install and run Lemonade, then pull the models you need:
 
 ```bash
-ollama pull qwen2.5:0.5b
-ollama pull qwen2.5:1.5b
-ollama pull qwen3-vl
+lemonade pull qwen2.5:0.5b
+lemonade pull qwen2.5:1.5b
+lemonade pull qwen3-vl
 ```
 
 ## Configuration
@@ -237,7 +237,7 @@ Set keep-alive to `-1` (the number) to keep a model loaded indefinitely until Le
 
 ```bash
 # Check which models are currently loaded in VRAM
-ollama ps
+lemonade ps
 ```
 
 The prewarming start and completion are logged by the Orchestrator (`core` prefix in logs).
@@ -310,7 +310,7 @@ The Whisper model (~75 MB for `base.en`) is automatically downloaded on first vo
 ### Requirements for image OCR
 Pull the vision model from Lemonade before use:
 ```bash
-ollama pull qwen3-vl
+lemonade pull qwen3-vl
 ```
 
 ## Troubleshooting

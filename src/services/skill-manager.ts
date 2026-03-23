@@ -1,4 +1,4 @@
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { getConfig } from "../shared/config.js";
 import { TELEGRAM_HTML_FORMAT_INSTRUCTION } from "../agents/prompts/telegram-html.js";
@@ -19,17 +19,48 @@ export class SkillManager {
     }
 
     /**
-     * List all available skills from CONFIG.md.
+     * List all available skills by scanning the skills directory.
+     * Each skill is a subdirectory containing a SKILL.md file.
+     * The description is extracted from the first line of SKILL.md.
      */
     public listSkills(): SkillInfo[] {
-        const configPath = join(this.skillsDir, "CONFIG.md");
-        if (!existsSync(configPath)) return [];
+        if (!existsSync(this.skillsDir)) return [];
 
         try {
-            const content = readFileSync(configPath, "utf-8");
-            return this.parseConfig(content);
+            const entries = readdirSync(this.skillsDir, { withFileTypes: true });
+            const skills: SkillInfo[] = [];
+
+            for (const entry of entries) {
+                // Ignore hidden directories and those starting with underscore (disabled)
+                if (entry.isDirectory() && !entry.name.startsWith(".") && !entry.name.startsWith("_")) {
+                    const skillMdPath = join(this.skillsDir, entry.name, "SKILL.md");
+                    if (existsSync(skillMdPath)) {
+                        try {
+                            const content = readFileSync(skillMdPath, "utf-8");
+                            const lines = content.split("\n").filter(l => l.trim() !== "");
+                            const firstLine = lines[0]?.trim();
+                            if (!firstLine) continue;
+                            
+                            let description = firstLine;
+                            if (firstLine.toLowerCase().startsWith("description:")) {
+                                description = firstLine.substring("description:".length).trim();
+                            }
+                            
+                            if (description) {
+                                skills.push({
+                                    name: entry.name,
+                                    description: description
+                                });
+                            }
+                        } catch (err) {
+                            console.error(`Failed to read SKILL.md for ${entry.name}:`, err);
+                        }
+                    }
+                }
+            }
+            return skills;
         } catch (err) {
-            console.error("Failed to load skills config:", err);
+            console.error("Failed to list skills by scanning directory:", err);
             return [];
         }
     }
@@ -52,41 +83,5 @@ export class SkillManager {
         }
     }
 
-    /**
-     * Simple markdown table/list parser for CONFIG.md.
-     */
-    private parseConfig(content: string): SkillInfo[] {
-        const lines = content.split("\n");
-        const skills: SkillInfo[] = [];
 
-        for (const line of lines) {
-            // Handle table rows: | name | description |
-            if (line.includes("|")) {
-                const parts = line.split("|").map(p => p.trim()).filter(p => p !== "");
-                if (parts.length >= 2 && parts[0] && parts[1]) {
-                    const name = parts[0];
-                    const desc = parts[1];
-                    if (name.toLowerCase() !== "name" && !name.startsWith("---")) {
-                        skills.push({
-                            name,
-                            description: desc
-                        });
-                    }
-                }
-            }
-            // Handle list items: - name: description or names: description
-            else if (line.trim().startsWith("-") || line.trim().startsWith("*")) {
-                const clean = line.trim().substring(1).trim();
-                const colonIndex = clean.indexOf(":");
-                if (colonIndex !== -1) {
-                    const name = clean.substring(0, colonIndex).trim();
-                    const description = clean.substring(colonIndex + 1).trim();
-                    if (name && description) {
-                        skills.push({ name, description });
-                    }
-                }
-            }
-        }
-        return skills;
-    }
 }
