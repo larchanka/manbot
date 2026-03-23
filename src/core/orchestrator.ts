@@ -539,13 +539,16 @@ export class Orchestrator {
       const edges = (plan.edges ?? []) as Array<{ from: string; to: string }>;
       
       // Update task DAG in memory
-      this.sendAndWait(taskMemory, "task.updateDag", {
+      await this.sendAndWait(taskMemory, "task.updateDag", {
         taskId,
         nodes: nodes.map((n) => ({ id: n.id, type: n.type, service: n.service, input: n.input })),
         edges: edges
           .filter((e) => e && typeof e === "object" && e.from && e.to)
           .map((e) => ({ fromNode: e.from, toNode: e.to })),
       }).catch(() => { });
+
+      // Move from 'planning' to 'pending' state
+      this.sendAndWait(taskMemory, "task.updateStatus", { taskId, status: "pending" }).catch(() => { });
 
       this.sendToTelegram(chatId, "💨 Planning complete. Execution started...", true);
       let execEnv: Envelope;

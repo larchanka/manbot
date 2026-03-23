@@ -149,14 +149,17 @@ function renderLogs() {
     document.getElementById("show-more-btn").style.display = allLogs.length > 20 ? "inline-block" : "none";
 }
 
-function updateDashboard() {
-    const dateSelect = document.getElementById("log-date-select");
-    const date = dateSelect.value;
+async function updateDashboard() {
+    try {
+        const dateSelect = document.getElementById("log-date-select");
+        const date = dateSelect.value;
+        const dateParam = date ? `?date=${date}` : "";
+        const r = await fetch(`/api/stats${dateParam}`);
+        if (!r.ok) throw new Error(`HTTP error! status: ${r.status}`);
+        const d = await r.json();
 
-    fetch(`/api/stats${date ? '?date=' + date : ''}`)
-        .then(r => r.json())
-        .then(d => {
-            // 1. Update Stats
+        // 1. Update Stats Main Card
+        if (d.tasks) {
             const statsChanged =
                 lastDashboardState.rag !== d.rag ||
                 lastDashboardState.cron !== d.cron ||
@@ -180,116 +183,121 @@ function updateDashboard() {
                 lastDashboardState.tasks = d.tasks;
                 lastDashboardState.timing = d.timing;
             }
+        }
 
-            // 1.5 Update Processes
-            const procsHash = JSON.stringify(d.processes);
-            if (lastDashboardState.procsHash !== procsHash) {
-                const pg = document.getElementById("processes-grid");
-                if (pg && d.processes) {
-                    const html = Object.keys(d.processes).sort().map(pName => {
-                        const p = d.processes[pName];
-                        const isDown = (Date.now() - (p.lastHeartbeat || 0)) > 30000;
-                        const status = isDown ? "OFFLINE" : (p.status || "UNKNOWN").toUpperCase();
-                        const tc = status === "OFFLINE" ? "error" : (status === "READY" ? "success" : "warning");
-                        const indicator = status === "READY" ? '<div class="pulse"></div>' : '';
-                        const restartLabel = p.restartCount ? `<div style="font-size: 11px; color: var(--error); margin-top: 5px; font-weight: 500;">Restarts: ${p.restartCount}</div>` : '';
-                        const mem = p.memory && p.memory.rss ? `<div style="font-size: 11px; color: var(--text-muted); margin-top: 5px;">Mem: ${Math.round(p.memory.rss / 1024 / 1024)}MB</div>` : '';
-                        const up = p.uptime ? `<div style="font-size: 11px; color: var(--text-muted);">Uptime: ${p.uptime}s</div>` : '';
-                        return `<div class="card" style="padding: 15px;">
-                                    <h2 style="margin-bottom: 10px;">${pName}</h2>
-                                    <div style="display: flex; gap: 8px; flex-direction: column;">
-                                        <div><span class="tag ${tc}">${indicator}${status}</span></div>
-                                        <div>${mem}${up}</div>
+        // 1.5 Update Processes
+        const procsHash = JSON.stringify(d.processes);
+        if (lastDashboardState.procsHash !== procsHash) {
+            const pg = document.getElementById("processes-grid");
+            if (pg && d.processes) {
+                const html = Object.keys(d.processes).sort().map(pName => {
+                    const p = d.processes[pName];
+                    const isDown = (Date.now() - (p.lastHeartbeat || 0)) > 30000;
+                    const status = isDown ? "OFFLINE" : (p.status || "UNKNOWN").toUpperCase();
+                    const tc = status === "OFFLINE" ? "error" : (status === "READY" ? "success" : "warning");
+                    const indicator = status === "READY" ? '<div class="pulse"></div>' : '';
+                    const restartLabel = p.restartCount ? `<div style="font-size: 11px; color: var(--error); margin-top: 5px; font-weight: 500;">Restarts: ${p.restartCount}</div>` : '';
+                    const mem = p.memory && p.memory.rss ? `<div style="font-size: 11px; color: var(--text-muted); margin-top: 5px;">Mem: ${Math.round(p.memory.rss / 1024 / 1024)}MB</div>` : '';
+                    const up = p.uptime ? `<div style="font-size: 11px; color: var(--text-muted);">Uptime: ${p.uptime}s</div>` : '';
+                    return `<div class="card" style="padding: 15px;">
+                                <h2 style="margin-bottom: 10px;">${pName}</h2>
+                                <div style="display: flex; gap: 8px; flex-direction: column;">
+                                    <div><span class="tag ${tc}">${indicator}${status}</span></div>
+                                    <div>${mem}${up}</div>
+                                </div>
+                                ${restartLabel}
+                            </div>`;
+                }).join("");
+                pg.innerHTML = html;
+            }
+            lastDashboardState.procsHash = procsHash;
+        }
+
+        // 2. Update Models
+        const modelsHash = JSON.stringify(d.models);
+        if (lastDashboardState.modelsHash !== modelsHash) {
+            const modelsSection = document.getElementById("model-list");
+            modelsSection.innerHTML = Object.entries(d.models)
+                .filter(([k]) => ['small', 'medium', 'large'].includes(k))
+                .map(([k, v]) => `<div class="model-pill"><span>${k.toUpperCase()}:</span><b>${v}</b></div>`)
+                .join("");
+            lastDashboardState.modelsHash = modelsHash;
+        }
+
+        // 3. Update Charts
+        const chartsHash = JSON.stringify(d.charts);
+        if (lastDashboardState.chartsHash !== chartsHash) {
+            document.getElementById("c1").innerHTML = d.charts.taskDonut;
+            document.getElementById("c2").innerHTML = d.charts.compBar;
+            lastDashboardState.chartsHash = chartsHash;
+        }
+
+        // 4. Update Active Queue
+        const queueHash = JSON.stringify(d.pendingTasks);
+        if (lastDashboardState.queueHash !== queueHash) {
+            const qt = document.getElementById("qt");
+            const qs = document.getElementById("active-queue-section");
+            if (d.pendingTasks && d.pendingTasks.length > 0) {
+                qs.style.display = "block";
+                qt.innerHTML = d.pendingTasks.map(t => {
+                    const isRunning = ['planning', 'running', 'finalizing'].includes(t.status);
+                    let tc = "warning";
+                    if (t.status === 'running') tc = "running";
+                    else if (t.status === 'planning') tc = "planning";
+                    else if (t.status === 'finalizing') tc = "finalizing";
+                    const indicator = isRunning ? '<div class="pulse"></div>' : '';
+                    return `<tr>
+                                <td style="padding-left: 20px; color: var(--text-muted); white-space: nowrap; vertical-align: top; padding-top: 15px; border-bottom: none;">${fmtDate(t.updated_at)}</td>
+                                <td style="white-space: nowrap; vertical-align: top; padding-top: 15px; border-bottom: none;"><span class="tag ${tc}">${indicator}${t.status.toUpperCase()}</span></td>
+                                <td style="white-space: nowrap; vertical-align: top; padding-top: 15px; border-bottom: none;"><span class="tag complexity-${t.complexity || 'unknown'}">${(t.complexity || 'unknown').toUpperCase()}</span></td>
+                                <td style="padding-top: 15px; border-bottom: none;">
+                                    <div class="goal-text" data-title="${t.goal.replace(/"/g, '&quot;')}">${t.goal}</div>
+                                </td>
+                                <td style="padding-right: 20px; text-align: right; vertical-align: top; padding-top: 15px; border-bottom: none;">
+                                    <button onclick="failTask('${t.id}')" style="cursor: pointer; font-size: 11px; padding: 2px 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--error);">FAIL</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td colspan="5" style="padding-left: 20px; padding-right: 20px; padding-bottom: 20px; border-top: none;">
+                                    <div class="node-map">
+                                        ${(() => {
+                            const levels = getGraphLayout(t.nodes || [], t.edges || []);
+                            return levels.map(level => `
+                                                <div class="node-stage">
+                                                    ${level.map(n => {
+                                const activeIndicator = ['planning', 'running'].includes(n.status) ? '<div class="pulse"></div>' : '';
+                                const typeLabel = n.type.split('.').pop().toUpperCase();
+                                let chipAttr = '';
+                                if (n.type === 'skill' && n.input) {
+                                    try {
+                                        const input = typeof n.input === 'string' ? JSON.parse(n.input) : n.input;
+                                        const skillName = input.skillName || input.skill;
+                                        if (skillName) chipAttr = ` data-title="Skill: ${skillName}"`;
+                                    } catch (e) { }
+                                }
+                                return `<div class="node-chip ${n.status}"${chipAttr}>${activeIndicator}${typeLabel}</div>`;
+                            }).join('')}
+                                                </div>
+                                            `).join('<span style="color: var(--border); font-size: 14px; font-weight: 700;">➔</span>');
+                        })()}
                                     </div>
-                                    ${restartLabel}
-                                </div>`;
-                    }).join("");
-                    pg.innerHTML = html;
-                }
-                lastDashboardState.procsHash = procsHash;
+                                </td>
+                            </tr>`;
+                }).join("");
+            } else {
+                qs.style.display = "none";
             }
+            lastDashboardState.queueHash = queueHash;
+        }
 
-            // 2. Update Models
-            const modelsHash = JSON.stringify(d.models);
-            if (lastDashboardState.modelsHash !== modelsHash) {
-                const modelsSection = document.getElementById("model-list");
-                modelsSection.innerHTML = Object.entries(d.models)
-                    .filter(([k]) => ['small', 'medium', 'large'].includes(k))
-                    .map(([k, v]) => `<div class="model-pill"><span>${k.toUpperCase()}:</span><b>${v}</b></div>`)
-                    .join("");
-                lastDashboardState.modelsHash = modelsHash;
-            }
-
-            // 3. Update Charts
-            const chartsHash = JSON.stringify(d.charts);
-            if (lastDashboardState.chartsHash !== chartsHash) {
-                document.getElementById("c1").innerHTML = d.charts.taskDonut;
-                document.getElementById("c2").innerHTML = d.charts.compBar;
-                lastDashboardState.chartsHash = chartsHash;
-            }
-
-            // 4. Update Active Queue
-            const queueHash = JSON.stringify(d.pendingTasks);
-            if (lastDashboardState.queueHash !== queueHash) {
-                const qt = document.getElementById("qt");
-                const qs = document.getElementById("active-queue-section");
-                if (d.pendingTasks && d.pendingTasks.length > 0) {
-                    qs.style.display = "block";
-                    qt.innerHTML = d.pendingTasks.map(t => {
-                        const isRunning = t.status === 'running' || t.status === 'finalizing';
-                        let tc = "warning";
-                        if (t.status === 'running') tc = "running";
-                        else if (t.status === 'planning') tc = "planning";
-                        else if (t.status === 'finalizing') tc = "finalizing";
-                        const indicator = isRunning ? '<div class="pulse"></div>' : '';
-                        return `<tr>
-                                    <td style="padding-left: 20px; color: var(--text-muted); white-space: nowrap; vertical-align: top; padding-top: 15px; border-bottom: none;">${fmtDate(t.updated_at)}</td>
-                                    <td style="white-space: nowrap; vertical-align: top; padding-top: 15px; border-bottom: none;"><span class="tag ${tc}">${indicator}${t.status.toUpperCase()}</span></td>
-                                    <td style="white-space: nowrap; vertical-align: top; padding-top: 15px; border-bottom: none;"><span class="tag complexity-${t.complexity || 'unknown'}">${(t.complexity || 'unknown').toUpperCase()}</span></td>
-                                    <td style="padding-top: 15px; border-bottom: none;">
-                                        <div class="goal-text" data-title="${t.goal.replace(/"/g, '&quot;')}">${t.goal}</div>
-                                    </td>
-                                    <td style="padding-right: 20px; text-align: right; vertical-align: top; padding-top: 15px; border-bottom: none;">
-                                        <button onclick="failTask('${t.id}')" style="cursor: pointer; font-size: 11px; padding: 2px 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--error);">FAIL</button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td colspan="5" style="padding-left: 20px; padding-right: 20px; padding-bottom: 20px; border-top: none;">
-                                        <div class="node-map">
-                                            ${(() => {
-                                const levels = getGraphLayout(t.nodes || [], t.edges || []);
-                                return levels.map(level => `
-                                                    <div class="node-stage">
-                                                        ${level.map(n => {
-                                    const activeIndicator = n.status === 'running' ? '<div class="pulse"></div>' : '';
-                                    const typeLabel = n.type.split('.').pop().toUpperCase();
-                                    let chipAttr = '';
-                                    if (n.type === 'skill' && n.input) {
-                                        try {
-                                            const input = typeof n.input === 'string' ? JSON.parse(n.input) : n.input;
-                                            const skillName = input.skillName || input.skill;
-                                            if (skillName) chipAttr = ` data-title="Skill: ${skillName}"`;
-                                        } catch (e) { }
-                                    }
-                                    return `<div class="node-chip ${n.status}"${chipAttr}>${activeIndicator}${typeLabel}</div>`;
-                                }).join('')}
-                                                    </div>
-                                                `).join('<span style="color: var(--border); font-size: 14px; font-weight: 700;">➔</span>');
-                            })()}
-                                        </div>
-                                    </td>
-                                </tr>`;
-                    }).join("");
-                } else {
-                    qs.style.display = "none";
-                }
-                lastDashboardState.queueHash = queueHash;
-            }
-
-            // 5. Update Logs
+        // 5. Update Logs
+        if (d.logs) {
             allLogs = d.logs;
             renderLogs();
-        });
+        }
+    } catch (e) {
+        console.error("Dashboard update failed:", e);
+    }
 }
 
 // Initial load
