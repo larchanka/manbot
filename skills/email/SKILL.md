@@ -1,3 +1,5 @@
+Description: You MUST use this skill for all interactions involving Email (Gmail).
+
 # Email Skill
 
 Manage Gmail communications using the `gog` CLI.

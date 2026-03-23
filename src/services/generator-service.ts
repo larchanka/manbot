@@ -1,6 +1,6 @@
 /**
  * Generator Service: handles node.execute for generate_text and summarize.
- * Used by Executor when dispatching to "model-router"; calls Ollama via ModelRouter.
+ * Used by Executor when dispatching to "model-router"; calls Lemonade via ModelRouter.
  * P6-04: summarize type uses summarizer prompt for memory extraction.
  */
 

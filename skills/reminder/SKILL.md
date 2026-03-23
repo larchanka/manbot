@@ -1,3 +1,5 @@
+Description: SCHEDULING. Use this skill exclusively to set recurring or one-time reminders (e.g., "remind me in 2 hours") and scheduled tasks (e.g., "schedule a task to check email every day at 9am"). This is the only tool that interfaces with the cron-manager service. Use it when user asks to reminder or schedule.
+
 # Reminder Skill
 
 Set up one-time or recurring reminders for the user.
