@@ -312,7 +312,9 @@ fetch("/api/log-files")
         }
 
         dateSelect.innerHTML = files.map(f => `<option value="${f}" ${f === today ? 'selected' : ''}>${f}</option>`).join("");
+        // Initial load
         updateDashboard();
 
-        setInterval(updateDashboard, 5000);
+        // Polling
+        setInterval(updateDashboard, 1000);
     });

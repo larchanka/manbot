@@ -547,9 +547,6 @@ export class Orchestrator {
           .map((e) => ({ fromNode: e.from, toNode: e.to })),
       }).catch(() => { });
 
-      // Move from 'planning' to 'pending' state
-      this.sendAndWait(taskMemory, "task.updateStatus", { taskId, status: "pending" }).catch(() => { });
-
       this.sendToTelegram(chatId, "💨 Planning complete. Execution started...", true);
       let execEnv: Envelope;
       try {
