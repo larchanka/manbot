@@ -397,6 +397,7 @@ export class Orchestrator {
           conversationId: task.conversationId ?? String(task.chatId),
           goal: task.goal,
           status: "pending",
+          complexity: "unknown",
           nodes: [],
           edges: []
         }
@@ -509,6 +510,7 @@ export class Orchestrator {
           conversationId: conversationId ?? String(chatId),
           goal,
           status: "planning",
+          complexity: "unknown",
           nodes: [],
           edges: []
         }).catch(() => { });
@@ -516,7 +518,8 @@ export class Orchestrator {
         // Explicitly update task to 'planning' state (it was 'pending' if it came through enqueueTask)
         await this.sendAndWait(taskMemory, "task.updateStatus", {
           taskId,
-          status: "planning"
+          status: "planning",
+          complexity: "unknown"
         }).catch(() => {
           // Fallback: if updateStatus failed (e.g. task not created yet due to race), try creating it
           return this.sendAndWait(taskMemory, "task.create", {
@@ -525,6 +528,7 @@ export class Orchestrator {
             conversationId: conversationId ?? String(chatId),
             goal,
             status: "planning",
+            complexity: "unknown",
             nodes: [],
             edges: []
           }).catch(() => { });
