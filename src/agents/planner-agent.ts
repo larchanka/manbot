@@ -1,6 +1,6 @@
 /**
  * Planner Agent: converts user intent into a structured execution DAG.
- * Listens for plan.create, uses Ollama Adapter + Model Router, validates DAG, emits response.
+ * Listens for plan.create, uses Lemonade Adapter + Model Router, validates DAG, emits response.
  */
 
 import { randomUUID } from "node:crypto";

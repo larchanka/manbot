@@ -1,3 +1,5 @@
+Description: PRIMARY SEARCH. Use for deep web research, fact-checking, news gathering, or topical deep dives via the lynx tool. This is the default skill for any query requiring external or up-to-date information.
+
 # Research Skill
 
 Deep web research using the text-based browser `lynx` and DuckDuckGo HTML interface.

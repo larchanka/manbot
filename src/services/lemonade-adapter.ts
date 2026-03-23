@@ -226,7 +226,7 @@ export class LemonadeAdapter {
 
     /**
      * Warmup model (loads it into memory).
-     * Lemonade might not have a specific warmup endpoint identical to Ollama, 
+     * Lemonade might not have a specific warmup endpoint, 
      * but sending a small message often works.
      */
     async warmup(model: string): Promise<void> {

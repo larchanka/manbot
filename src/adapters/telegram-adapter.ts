@@ -114,7 +114,10 @@ const HELP_TEXT = `Commands:
 - Ask me to remind you: "Remind me in 5 minutes to check the oven"
 - Recurring reminders: "Remind me every day at 9am to take vitamins"
 - List reminders: /reminders
-- Cancel a reminder: /cancel_reminder <id>`;
+- Cancel a reminder: /cancel_reminder <id>
+
+🛠 Skills:
+- Add a new skill: /add_skill <URL_TO_SKILL_MD> (downloads to an underscore-prefixed folder)`;
 
 /** chatId -> current conversation ID for session grouping */
 const conversationIdByChat = new Map<number, string>();
@@ -402,24 +405,72 @@ function main(): void {
       return;
     }
 
-    // /task [goal] — if goal is provided, create task; else show usage
-    if (text.startsWith("/task")) {
-      const goal = text.slice(5).trim();
-      if (!goal) {
-        sendToUser(chatId, "Usage: /task <your goal>. Example: /task Summarize the benefits of TypeScript.");
+    // /add_skill [URL] — download a new skill
+    if (text.startsWith("/add_skill")) {
+      const url = text.slice(10).trim();
+      if (!url) {
+        sendToUser(chatId, "Usage: /add_skill {URL_TO_SKILL_MD}");
         return;
       }
-      const payload: TelegramTaskCreatePayload = {
-        chatId,
-        userId: from.id,
-        conversationId: getOrCreateConversationId(chatId),
-        messageId: msg.message_id ?? 0,
-        goal,
-        ...(from.username !== undefined && from.username !== "" && { username: from.username }),
-      };
-      base.send(createEnvelope<TelegramTaskCreatePayload>("task.create", "core", payload));
+
+      if (!url.toLowerCase().endsWith("skill.md")) {
+        sendToUser(chatId, "❌ URL must end with SKILL.md");
+        return;
+      }
+
+      (async () => {
+        try {
+          const urlObj = new URL(url);
+          const pathParts = urlObj.pathname.split("/").filter(p => p !== "");
+          let folderName = "";
+
+          // if path is /foo/bar/SKILL.md, folderName is bar
+          if (pathParts.length >= 2) {
+            folderName = pathParts[pathParts.length - 2] ?? "";
+          }
+
+          if (!folderName || folderName === "." || folderName === "..") {
+            folderName = randomUUID();
+          }
+
+          if (!folderName.startsWith("_")) {
+            folderName = "_" + folderName;
+          }
+
+          const cfg = getConfig();
+          const skillsDir = resolve(process.cwd(), cfg.skills.skillsDir);
+          const newSkillDir = resolve(skillsDir, folderName);
+
+          // Create folder
+          await new Promise<void>((res, rej) =>
+            mkdir(newSkillDir, { recursive: true }, (err) => (err ? rej(err) : res())),
+          );
+
+          // Download file
+          const resp = await fetch(url);
+          if (!resp.ok) {
+            throw new Error(`Failed to fetch SKILL.md: HTTP ${resp.status}`);
+          }
+          if (!resp.body) {
+            throw new Error("Empty response body when fetching SKILL.md");
+          }
+
+          const targetPath = resolve(newSkillDir, "SKILL.md");
+          await pipeline(
+            resp.body as unknown as NodeJS.ReadableStream,
+            createWriteStream(targetPath)
+          );
+
+          await sendToUser(chatId, `✅ Skill added to folder: <code>${folderName}</code>\n\nNotes:\n- The skill is currently <b>disabled</b> (starts with <code>_</code>).\n- Rename the folder to remove the underscore to enable it.\n- Use <code>/help</code> to see available commands.`);
+        } catch (err) {
+          console.error("[telegram-adapter] /add_skill error:", err);
+          await sendToUser(chatId, `❌ Error adding skill: ${err instanceof Error ? err.message : String(err)}`);
+        }
+      })();
       return;
     }
+
+    // /task [goal] — if goal is provided, create task; else show usage
 
     // Plain text: map to user goal and create task (same as /task <text>)
     const taskPayload: TelegramTaskCreatePayload = {

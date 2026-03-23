@@ -77,7 +77,7 @@ backgroundSize: contain
   - Need strong coding and reasoning capabilities.
   - Need reliable JSON/tool-calling formatting.
   - Need fast inference speed (tokens/sec) for autonomous, multi-step loops.
-- Explored running models locally using tools like Ollama or Lemonade.
+- Explored running models locally using tools like Lemonade.
 - Tested how models handle context degradation on local machine hardware.
 
 ---

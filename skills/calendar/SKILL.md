@@ -1,3 +1,5 @@
+Description: You MUST use this skill for all interactions involving Google Calendar.
+
 # Calendar Skill
 
 Manage Google Calendar events using the `gog` CLI.
