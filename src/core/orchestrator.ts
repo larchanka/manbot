@@ -337,7 +337,6 @@ export class Orchestrator {
       const userId = payload.userId as number | undefined;
       if (goal != null && chatId != null) {
         const conversationId = payload.conversationId as string | undefined;
-        // Route to task queue (priority 1 for human)
         this.enqueueTask({
           chatId,
           userId: userId ?? 0,
@@ -481,7 +480,7 @@ export class Orchestrator {
         this.sendToTelegram(chatId, "⏳ Re-planning with error feedback...", true);
       } else {
         // Create initial 'planning' task in memory
-        this.sendAndWait(taskMemory, "task.create", {
+        await this.sendAndWait(taskMemory, "task.create", {
           taskId,
           userId: String(userId),
           conversationId: conversationId ?? String(chatId),
