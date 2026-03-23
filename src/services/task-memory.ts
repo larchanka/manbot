@@ -166,6 +166,27 @@ export class TaskMemoryStore {
     } catch {
       // Column already exists
     }
+
+    // Migration for status constraint: check if 'planning' is allowed
+    try {
+      this.db.prepare("INSERT INTO tasks (id, goal, status, created_at, updated_at) VALUES ('migration-check', 'check', 'planning', 0, 0)").run();
+      this.db.prepare("DELETE FROM tasks WHERE id = 'migration-check'").run();
+    } catch (err) {
+      // If error, it probably means the old CHECK constraint is in place.
+      // SQLite doesn't support ALTER TABLE for CHECK constraints, so we have to recreate the table.
+      const row = this.db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='tasks'").get() as { sql: string };
+      if (row && !row.sql.includes('planning')) {
+        this.db.transaction(() => {
+          this.db.exec("PRAGMA foreign_keys=OFF");
+          this.db.exec("ALTER TABLE tasks RENAME TO tasks_old");
+          this.db.exec(SCHEMA); // Create new one with new constraint
+          this.db.exec("INSERT INTO tasks (id, user_id, conversation_id, goal, status, complexity, created_at, updated_at, metadata) " +
+                       "SELECT id, user_id, conversation_id, goal, status, complexity, created_at, updated_at, metadata FROM tasks_old");
+          this.db.exec("DROP TABLE tasks_old");
+          this.db.exec("PRAGMA foreign_keys=ON");
+        })();
+      }
+    }
   }
 
   close(): void {
