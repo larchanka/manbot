@@ -177,13 +177,13 @@ export class TaskMemoryStore {
         this.db.transaction(() => {
           this.db.exec("ALTER TABLE tasks RENAME TO tasks_old");
           this.db.exec(SCHEMA); // This recreates 'tasks' with new schema
-          
+
           // Copy data back
           this.db.exec(`
             INSERT INTO tasks (id, user_id, conversation_id, goal, status, complexity, created_at, updated_at, metadata)
             SELECT id, user_id, conversation_id, goal, status, complexity, created_at, updated_at, metadata FROM tasks_old
           `);
-          
+
           this.db.exec("DROP TABLE tasks_old");
         })();
       } catch (err) {
@@ -279,7 +279,7 @@ export class TaskMemoryStore {
 
     // Also update task status to 'running' if it was 'pending' or 'planning'
     this.db
-      .prepare(`UPDATE tasks SET status = 'running', updated_at = ? WHERE id = ? AND status IN ('pending', 'planning')`)
+      .prepare(`UPDATE tasks SET status = 'running', updated_at = ? WHERE id = ? AND (status = 'pending' OR status = 'planning')`)
       .run(now, taskId);
 
     // Always touch updated_at even if status didn't change (e.g. from running to running with more nodes)
@@ -334,7 +334,7 @@ export class TaskMemoryStore {
 
   updateTaskDag(taskId: string, nodes: TaskCreatePayload['nodes'], edges: TaskCreatePayload['edges']): void {
     const now = this.now();
-    
+
     // Clear existing nodes and edges if any
     this.db.prepare(`DELETE FROM task_edges WHERE task_id = ?`).run(taskId);
     this.db.prepare(`DELETE FROM task_nodes WHERE task_id = ?`).run(taskId);
