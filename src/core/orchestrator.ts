@@ -358,6 +358,16 @@ export class Orchestrator {
       });
       return;
     }
+
+    // FP-SEND: Handle file sending request
+    if (type === "telegram.send_file" && fromProcess !== "telegram-adapter") {
+      const chatId = payload.chatId as number | undefined;
+      const localPath = payload.localPath as string | undefined;
+      if (chatId != null && localPath != null) {
+        this.sendFileToTelegram(chatId, localPath, payload.caption as string | undefined);
+      }
+      return;
+    }
   }
 
   private enqueueTask(task: {
@@ -1089,6 +1099,23 @@ export class Orchestrator {
       telegram.stdin.write(JSON.stringify(envelope) + "\n");
       ConsoleLogger.ipc("core", "→", envelope);
     });
+  }
+
+  private sendFileToTelegram(chatId: number, localPath: string, caption?: string): void {
+    const telegram = this.children.get("telegram-adapter");
+    if (!telegram?.stdin.writable) return;
+
+    const envelope: Envelope = {
+      id: randomUUID(),
+      timestamp: Date.now(),
+      from: "core",
+      to: "telegram-adapter",
+      type: "telegram.send_file",
+      version: "1.0",
+      payload: { chatId, localPath, caption },
+    };
+    telegram.stdin.write(JSON.stringify(envelope) + "\n");
+    ConsoleLogger.ipc("core", "→", envelope);
   }
 
   private sendAndWait(target: ChildEntry, type: string, payload: unknown): Promise<Envelope> {

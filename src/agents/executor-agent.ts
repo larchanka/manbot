@@ -55,6 +55,22 @@ const SKILL_TOOLS: any[] = [
         required: ["time", "message"]
       }
     }
+  },
+  {
+    type: "function",
+    function: {
+      name: "send_file",
+      description: "Send a file to the user via Telegram. Useful for sharing files generated or downloaded in the sandbox.",
+      parameters: {
+        type: "object",
+        properties: {
+          local_file_url: { type: "string", description: "Absolute path to the file in the sandbox" },
+          brief_file_description: { type: "string", description: "Brief description or caption for the file" },
+          chatId: { type: "number", description: "Optional chat ID. If omitted, will use the current chat context." }
+        },
+        required: ["local_file_url"]
+      }
+    }
   }
 ];
 
@@ -442,9 +458,12 @@ export class ExecutorAgent extends BaseProcess {
     node: CapabilityNode,
     context: Record<string, unknown>,
   ): Promise<unknown> {
-    // Handle schedule_reminder nodes specially
+    // Handle special nodes
     if (node.type === "schedule_reminder") {
       return this.handleScheduleReminder(taskId, node, context);
+    }
+    if (node.type === "send_file") {
+      return this.handleSendFile(taskId, node, context);
     }
 
     return new Promise((resolve, reject) => {
@@ -833,6 +852,73 @@ export class ExecutorAgent extends BaseProcess {
     });
   }
 
+  private handleSendFile(
+    _taskId: string,
+    node: CapabilityNode,
+    context: Record<string, unknown>,
+  ): Promise<unknown> {
+    const input = node.input ?? {};
+    const nodeInput = input as Record<string, unknown>;
+    
+    let localPath = (nodeInput.local_file_url as string) || (nodeInput.path as string);
+    let caption = (nodeInput.brief_file_description as string) || (nodeInput.caption as string);
+    const chatId = (nodeInput.chatId as number) || (context._chatId as number);
+
+    // Resolve placeholders (e.g., {{nodeId}}) or search in context
+    const resolveValue = (val: string): string => {
+      if (!val) return val;
+      // If it's pure {{nodeId}}, just return the value from context
+      const match = val.match(/^{{([^}]+)}}$/);
+      if (match && match[1]) {
+        const depId = match[1];
+        const out = context[depId];
+        if (out != null) {
+          if (typeof out === "string") return out;
+          if (typeof out === "object") {
+            // For tool nodes, extract stdout if possible
+            const outObj = out as { stdout?: string; text?: string; result?: string };
+            return outObj.stdout || outObj.text || outObj.result || JSON.stringify(out);
+          }
+          return String(out);
+        }
+      }
+      // General placeholder replacement
+      let result = val;
+      for (const [key, value] of Object.entries(context)) {
+        if (!key.startsWith("_")) {
+          const placeholder = `{{${key}}}`;
+          if (result.includes(placeholder)) {
+            const strValue = typeof value === "string" ? value : JSON.stringify(value);
+            result = result.split(placeholder).join(strValue);
+          }
+        }
+      }
+      return result;
+    };
+
+    if (localPath) localPath = resolveValue(localPath).trim();
+    if (caption) caption = resolveValue(caption).trim();
+
+    if (!localPath) {
+      throw new Error("send_file requires local_file_url");
+    }
+    if (!chatId) {
+      throw new Error("send_file requires chatId");
+    }
+
+    this.send({
+      id: randomUUID(),
+      timestamp: Date.now(),
+      from: PROCESS_NAME,
+      to: "core",
+      type: "telegram.send_file",
+      version: PROTOCOL_VERSION,
+      payload: { chatId, localPath, caption },
+    });
+
+    return Promise.resolve({ status: "sent", localPath, chatId });
+  }
+
   private aggregateResult(plan: CapabilityGraph, nodeOutputs: Map<string, unknown>): unknown {
     if (nodeOutputs.size === 0) return null;
     const lastNode = plan.nodes[plan.nodes.length - 1];
@@ -935,6 +1021,15 @@ export class ExecutorAgent extends BaseProcess {
         input: args
       };
       return this.handleScheduleReminder(taskId, node, context);
+    }
+    if (name === "send_file") {
+      const node: CapabilityNode = {
+        id: nodeId,
+        type: "send_file",
+        service: "core",
+        input: args
+      };
+      return this.handleSendFile(taskId, node, context);
     }
     return new Promise((resolve, reject) => {
       const id = randomUUID();
