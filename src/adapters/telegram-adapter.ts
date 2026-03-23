@@ -204,8 +204,14 @@ function main(): void {
   bot.on("message", (msg) => {
     const chatId = msg.chat?.id;
     const from = msg.from;
-    const text = msg.text?.trim();
+    let text = msg.text?.trim();
     if (chatId == null || from == null) return;
+
+    // Telegram appends @botname to commands when picked from the command menu
+    // (e.g. "/new@ManBot"). Strip the suffix so our comparisons work.
+    if (text?.startsWith("/")) {
+      text = text.replace(/@\S+/, "");
+    }
 
     // Authentication: allow-list of Telegram user IDs (optional)
     if (allowedUserIds !== null && !allowedUserIds.has(from.id)) {
