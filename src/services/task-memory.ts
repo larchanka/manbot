@@ -344,36 +344,43 @@ export class TaskMemoryStore {
     const now = this.now();
 
     this.db.transaction(() => {
-      // Clear existing nodes and edges if any
+      // 1. Update overall task status/complexity first to ensure it's at least visible
+      if (complexity) {
+        this.db.prepare(`UPDATE tasks SET complexity = ?, updated_at = ? WHERE id = ?`).run(complexity, now, taskId);
+      } else {
+        this.db.prepare(`UPDATE tasks SET updated_at = ? WHERE id = ?`).run(now, taskId);
+      }
+
+      // 2. Clear existing structure
       this.db.prepare(`DELETE FROM task_edges WHERE task_id = ?`).run(taskId);
       this.db.prepare(`DELETE FROM task_nodes WHERE task_id = ?`).run(taskId);
 
+      // 3. Re-insert nodes with robust defaults for NOT NULL constraints
       const insertNode = this.db.prepare(
         `INSERT INTO task_nodes (task_id, id, type, service, status, input)
          VALUES (?, ?, ?, ?, 'pending', ?)`,
       );
       for (const n of nodes) {
+        if (!n || !n.id) continue; // Skip malformed nodes
         insertNode.run(
           taskId,
           n.id,
-          n.type,
-          n.service || "model-router",
-          this.json(n.input),
+          n.type || "tool",            // Default type to 'tool' if missing
+          n.service || "model-router",  // Default service to 'model-router' if missing
+          this.json(n.input || {}),     // Ensure input is at least an empty object
         );
       }
 
+      // 4. Re-insert edges
       const insertEdge = this.db.prepare(
         `INSERT INTO task_edges (id, task_id, from_node, to_node)
          VALUES (?, ?, ?, ?)`,
       );
-      for (const e of edges) {
-        insertEdge.run(randomUUID(), taskId, e.fromNode, e.toNode);
-      }
-
-      if (complexity) {
-        this.db.prepare(`UPDATE tasks SET complexity = ?, updated_at = ? WHERE id = ?`).run(complexity, now, taskId);
-      } else {
-        this.db.prepare(`UPDATE tasks SET updated_at = ? WHERE id = ?`).run(now, taskId);
+      if (edges && Array.isArray(edges)) {
+        for (const e of edges) {
+          if (!e || !e.fromNode || !e.toNode) continue;
+          insertEdge.run(randomUUID(), taskId, e.fromNode, e.toNode);
+        }
       }
     })();
   }
