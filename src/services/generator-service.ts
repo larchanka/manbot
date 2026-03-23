@@ -179,6 +179,23 @@ export class GeneratorService extends BaseProcess {
                 }
                 if (p.input?.messages && Array.isArray(p.input.messages)) {
                     messages = p.input.messages as ChatMessage[];
+
+                    // Externally-provided messages (e.g. skill loop) may have the HTML
+                    // formatting instruction buried deep in a long system prompt.
+                    // Re-inject the reminder into the most prominent position so the LLM
+                    // actually follows it: append to the last non-assistant message.
+                    const lastIdx = messages.length - 1;
+                    if (lastIdx >= 0) {
+                        const last = messages[lastIdx]!;
+                        const role = last.role;
+                        if ((role === "user" || role === "tool") && typeof last.content === "string") {
+                            // Only append if not already present
+                            if (!last.content.includes("TELEGRAM HTML FORMATTING")) {
+                                messages = [...messages];
+                                messages[lastIdx] = { ...last, content: last.content + HTML_PROMPT_SUFFIX };
+                            }
+                        }
+                    }
                 }
 
                 if (!messages) {
