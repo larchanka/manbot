@@ -133,6 +133,8 @@ interface TaskGetByConversationIdPayload {
 interface TaskUpdateStatusPayload {
   taskId: string;
   status: "planning" | "pending" | "running" | "finalizing" | "completed" | "failed";
+  /** Optional complexity update (e.g. from planner). */
+  complexity?: string;
 }
 
 // --- Store ---
@@ -325,14 +327,20 @@ export class TaskMemoryStore {
       .run(now, reason ? this.json({ reason }) : "", taskId);
   }
 
-  updateTaskStatus(taskId: string, status: string): void {
+  updateTaskStatus(taskId: string, status: string, complexity?: string): void {
     const now = this.now();
-    this.db
-      .prepare(`UPDATE tasks SET status = ?, updated_at = ? WHERE id = ?`)
-      .run(status, now, taskId);
+    if (complexity) {
+      this.db
+        .prepare(`UPDATE tasks SET status = ?, complexity = ?, updated_at = ? WHERE id = ?`)
+        .run(status, complexity, now, taskId);
+    } else {
+      this.db
+        .prepare(`UPDATE tasks SET status = ?, updated_at = ? WHERE id = ?`)
+        .run(status, now, taskId);
+    }
   }
 
-  updateTaskDag(taskId: string, nodes: TaskCreatePayload['nodes'], edges: TaskCreatePayload['edges']): void {
+  updateTaskDag(taskId: string, nodes: TaskCreatePayload['nodes'], edges: TaskCreatePayload['edges'], complexity?: string): void {
     const now = this.now();
 
     // Clear existing nodes and edges if any
@@ -361,7 +369,11 @@ export class TaskMemoryStore {
       insertEdge.run(randomUUID(), taskId, e.fromNode, e.toNode);
     }
 
-    this.db.prepare(`UPDATE tasks SET updated_at = ? WHERE id = ?`).run(now, taskId);
+    if (complexity) {
+      this.db.prepare(`UPDATE tasks SET complexity = ?, updated_at = ? WHERE id = ?`).run(complexity, now, taskId);
+    } else {
+      this.db.prepare(`UPDATE tasks SET updated_at = ? WHERE id = ?`).run(now, taskId);
+    }
   }
 
   getTask(taskId: string): unknown {
@@ -486,13 +498,13 @@ export class TaskMemoryService extends BaseProcess {
         }
         case "task.updateStatus": {
           const p = payload as unknown as TaskUpdateStatusPayload;
-          this.store.updateTaskStatus(p.taskId, p.status);
+          this.store.updateTaskStatus(p.taskId, p.status, p.complexity);
           result = { taskId: p.taskId, status: p.status };
           break;
         }
         case "task.updateDag": {
-          const p = payload as unknown as TaskCreatePayload;
-          this.store.updateTaskDag(p.taskId, p.nodes, p.edges);
+          const p = payload as unknown as TaskCreatePayload & { taskId: string; nodes: any[]; edges: any[]; complexity?: string };
+          this.store.updateTaskDag(p.taskId, p.nodes, p.edges, p.complexity);
           result = { taskId: p.taskId };
           break;
         }

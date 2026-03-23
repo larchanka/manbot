@@ -502,6 +502,16 @@ export class Orchestrator {
       const isRetry = attempt > 0;
       if (isRetry) {
         this.sendToTelegram(chatId, "⏳ Re-planning with error feedback...", true);
+        // Create new task entry for the retry (new taskId)
+        await this.sendAndWait(taskMemory, "task.create", {
+          taskId,
+          userId: String(userId),
+          conversationId: conversationId ?? String(chatId),
+          goal,
+          status: "planning",
+          nodes: [],
+          edges: []
+        }).catch(() => { });
       } else {
         // Explicitly update task to 'planning' state (it was 'pending' if it came through enqueueTask)
         await this.sendAndWait(taskMemory, "task.updateStatus", {
@@ -574,9 +584,14 @@ export class Orchestrator {
         edges: edges
           .filter((e) => e && typeof e === "object" && e.from && e.to)
           .map((e) => ({ fromNode: e.from, toNode: e.to })),
+        complexity: plan.complexity ?? "medium"
       }).catch(() => { });
 
       this.sendToTelegram(chatId, "💨 Planning complete. Execution started...", true);
+      
+      // Explicitly set task to 'running' before dispatching to executor
+      await this.sendAndWait(taskMemory, "task.updateStatus", { taskId, status: "running" }).catch(() => { });
+
       let execEnv: Envelope;
       try {
         execEnv = await this.sendAndWait(executor, "plan.execute", { taskId, plan, goal, chatId, userId, conversationId });
