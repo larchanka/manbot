@@ -378,20 +378,44 @@ export class Orchestrator {
     priority: number;
   }): void {
     const limit = getConfig().maxConcurrentTasks;
+    const taskId = task.initialTaskId || randomUUID();
+    const taskWithId = { ...task, initialTaskId: taskId };
+
+    // Create task in memory immediately as 'pending' so it shows up in dashboard while in queue
+    const taskMemory = this.children.get("task-memory");
+    if (taskMemory?.stdin.writable) {
+      this.send({
+        id: randomUUID(),
+        timestamp: Date.now(),
+        from: "core",
+        to: "task-memory",
+        type: "task.create",
+        version: "1.0",
+        payload: {
+          taskId,
+          userId: String(task.userId),
+          conversationId: task.conversationId ?? String(task.chatId),
+          goal: task.goal,
+          status: "pending",
+          nodes: [],
+          edges: []
+        }
+      });
+    }
 
     if (limit === 0) {
       // Infinite concurrency
-      this.runTaskPipeline(task.chatId, task.userId, task.goal, task.conversationId, task.initialTaskId);
+      this.runTaskPipeline(taskWithId.chatId, taskWithId.userId, taskWithId.goal, taskWithId.conversationId, taskWithId.initialTaskId);
       return;
     }
 
     // Insert into queue with priority (Human priority 1 > Synthetic priority 0)
     if (task.priority > 0) {
       // Human goals go to the front
-      this.taskQueue.unshift(task);
+      this.taskQueue.unshift(taskWithId);
     } else {
       // Synthetic goals go to the back
-      this.taskQueue.push(task);
+      this.taskQueue.push(taskWithId);
     }
 
     this.processQueue();
@@ -479,16 +503,22 @@ export class Orchestrator {
       if (isRetry) {
         this.sendToTelegram(chatId, "⏳ Re-planning with error feedback...", true);
       } else {
-        // Create initial 'planning' task in memory
-        await this.sendAndWait(taskMemory, "task.create", {
+        // Explicitly update task to 'planning' state (it was 'pending' if it came through enqueueTask)
+        await this.sendAndWait(taskMemory, "task.updateStatus", {
           taskId,
-          userId: String(userId),
-          conversationId: conversationId ?? String(chatId),
-          goal,
-          status: "planning",
-          nodes: [],
-          edges: []
-        }).catch(() => { });
+          status: "planning"
+        }).catch(() => {
+          // Fallback: if updateStatus failed (e.g. task not created yet due to race), try creating it
+          return this.sendAndWait(taskMemory, "task.create", {
+            taskId,
+            userId: String(userId),
+            conversationId: conversationId ?? String(chatId),
+            goal,
+            status: "planning",
+            nodes: [],
+            edges: []
+          }).catch(() => { });
+        });
         this.sendToTelegram(chatId, "🪏 Planning started...", true);
       }
 
