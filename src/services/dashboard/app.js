@@ -236,8 +236,11 @@ function updateDashboard() {
                 if (d.pendingTasks && d.pendingTasks.length > 0) {
                     qs.style.display = "block";
                     qt.innerHTML = d.pendingTasks.map(t => {
-                        const isRunning = t.status === 'running';
-                        const tc = isRunning ? "running" : "warning";
+                        const isRunning = t.status === 'running' || t.status === 'finalizing';
+                        let tc = "warning";
+                        if (t.status === 'running') tc = "running";
+                        else if (t.status === 'planning') tc = "planning";
+                        else if (t.status === 'finalizing') tc = "finalizing";
                         const indicator = isRunning ? '<div class="pulse"></div>' : '';
                         return `<tr>
                                     <td style="padding-left: 20px; color: var(--text-muted); white-space: nowrap; vertical-align: top; padding-top: 15px; border-bottom: none;">${fmtDate(t.updated_at)}</td>

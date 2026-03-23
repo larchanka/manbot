@@ -480,6 +480,16 @@ export class Orchestrator {
       if (isRetry) {
         this.sendToTelegram(chatId, "⏳ Re-planning with error feedback...", true);
       } else {
+        // Create initial 'planning' task in memory
+        this.sendAndWait(taskMemory, "task.create", {
+          taskId,
+          userId: String(userId),
+          conversationId: conversationId ?? String(chatId),
+          goal,
+          status: "planning",
+          nodes: [],
+          edges: []
+        }).catch(() => { });
         this.sendToTelegram(chatId, "🪏 Planning started...", true);
       }
 
@@ -527,18 +537,15 @@ export class Orchestrator {
       previousPlan = plan;
       const nodes = plan.nodes as Array<{ id: string; type: string; service: string; input?: unknown }>;
       const edges = (plan.edges ?? []) as Array<{ from: string; to: string }>;
-      const taskCreatePayload = {
+      
+      // Update task DAG in memory
+      this.sendAndWait(taskMemory, "task.updateDag", {
         taskId,
-        userId: String(userId),
-        conversationId: conversationId ?? String(chatId),
-        goal,
-        complexity: plan.complexity,
         nodes: nodes.map((n) => ({ id: n.id, type: n.type, service: n.service, input: n.input })),
         edges: edges
           .filter((e) => e && typeof e === "object" && e.from && e.to)
           .map((e) => ({ fromNode: e.from, toNode: e.to })),
-      };
-      this.sendAndWait(taskMemory, "task.create", taskCreatePayload).catch(() => { });
+      }).catch(() => { });
 
       this.sendToTelegram(chatId, "💨 Planning complete. Execution started...", true);
       let execEnv: Envelope;
@@ -598,6 +605,8 @@ export class Orchestrator {
         }
       }
       this.sendToTelegram(chatId, text, false, "HTML");
+      // Mark task as completed after message is sent
+      this.sendAndWait(taskMemory, "task.complete", { taskId }).catch(() => { });
       return;
     }
 

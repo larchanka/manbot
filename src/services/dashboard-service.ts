@@ -225,8 +225,8 @@ export class DashboardService extends BaseProcess {
         SELECT t.id, t.goal, t.status, t.complexity, t.updated_at,
         (SELECT json_group_array(json_object('id', id, 'type', type, 'status', status, 'input', input)) FROM task_nodes WHERE task_id = t.id ORDER BY started_at ASC) as nodes,
         (SELECT json_group_array(json_object('from', from_node, 'to', to_node)) FROM task_edges WHERE task_id = t.id) as edges
-        FROM tasks t WHERE t.status IN (?, ?) ORDER BY t.updated_at DESC
-      `).all('pending', 'running').map((t: any) => ({
+        FROM tasks t WHERE t.status IN (?, ?, ?, ?) ORDER BY t.updated_at DESC
+      `).all('planning', 'pending', 'running', 'finalizing').map((t: any) => ({
         ...t,
         nodes: JSON.parse(t.nodes || '[]'),
         edges: JSON.parse(t.edges || '[]')
@@ -263,7 +263,7 @@ export class DashboardService extends BaseProcess {
     if (!total) return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><text x="50%" y="50%" text-anchor="middle" fill="#8b8b8b">No Data</text></svg>`;
     const radius = 75, circumference = 2 * Math.PI * radius;
     let offset = 0;
-    const colors: any = { completed: '#0b6e4f', failed: '#df2a5f', pending: '#d9730d', running: '#2383e2' };
+    const colors: any = { completed: '#0b6e4f', failed: '#df2a5f', pending: '#d9730d', running: '#2383e2', planning: '#8b8b8b', finalizing: '#9333ea' };
     const slices = Object.entries(data).map(([k, v]: [string, any]) => {
       const p = v / total, dash = (p * circumference) + ' ' + circumference, currentOffset = -offset;
       offset += p * circumference;

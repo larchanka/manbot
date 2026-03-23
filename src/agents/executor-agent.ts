@@ -383,7 +383,7 @@ export class ExecutorAgent extends BaseProcess {
       }
     }
 
-    this.sendTaskComplete(taskId);
+    this.sendTaskFinalize(taskId);
     this.sendResponse(request, { taskId, result: aggregated });
   }
 
@@ -949,15 +949,15 @@ export class ExecutorAgent extends BaseProcess {
     });
   }
 
-  private sendTaskComplete(taskId: string): void {
+  private sendTaskFinalize(taskId: string): void {
     this.send({
       id: randomUUID(),
       timestamp: Date.now(),
       from: PROCESS_NAME,
       to: "task-memory",
-      type: "task.complete",
+      type: "task.updateStatus",
       version: PROTOCOL_VERSION,
-      payload: { taskId },
+      payload: { taskId, status: "finalizing" },
     });
   }
 
