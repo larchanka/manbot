@@ -470,7 +470,7 @@ function main(): void {
             createWriteStream(targetPath)
           );
 
-          await sendToUser(chatId, `✅ Skill added to folder: <code>${folderName}</code>\n\nNotes:\n- The skill is currently <b>disabled</b> (starts with <code>_</code>).\n- Rename the folder to remove the underscore to enable it.\n- Use <code>/help</code> to see available commands.`);
+          await sendToUser(chatId, `✅ Skill added to folder: <code>${folderName}</code>\n\nNotes:\n- The skill is currently <b>disabled</b> (starts with <code>_</code>).\n- Rename the folder to remove the underscore to enable it.\n- Use <code>/help</code> to see available commands.`, undefined, undefined, true);
         } catch (err) {
           console.error("[telegram-adapter] /add_skill error:", err);
           await sendToUser(chatId, `❌ Error adding skill: ${err instanceof Error ? err.message : String(err)}`);
