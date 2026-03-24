@@ -126,7 +126,7 @@ const HELP_TEXT = `Commands:
 - Cancel a reminder: /cancel_reminder <id>
 
 🛠 Skills:
-- Add a new skill: /add_skill <URL_TO_SKILL_MD> (downloads to an underscore-prefixed folder)`;
+- Add a new skill: /add_skill <URL_TO_SKILL_MD> (git-ignored by default)`;
 
 /** chatId -> current conversation ID for session grouping */
 const conversationIdByChat = new Map<number, string>();
@@ -476,7 +476,7 @@ function main(): void {
             createWriteStream(targetPath)
           );
 
-          await sendToUser(chatId, `✅ Skill added to folder: <code>${folderName}</code>\n\nNotes:\n- The skill is currently <b>disabled</b> (starts with <code>_</code>).\n- Rename the folder to remove the underscore to enable it.\n- Use <code>/help</code> to see available commands.`, undefined, undefined, true);
+          await sendToUser(chatId, `✅ Skill added and <b>enabled</b> in folder: <code>${folderName}</code>\n\nNotes:\n- The folder starts with <code>_</code> to keep it out of Git (ignored).\n- Use <code>/help</code> to see available commands.`, undefined, undefined, true);
         } catch (err) {
           console.error("[telegram-adapter] /add_skill error:", err);
           await sendToUser(chatId, `❌ Error adding skill: ${err instanceof Error ? err.message : String(err)}`);

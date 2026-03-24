@@ -31,8 +31,8 @@ export class SkillManager {
             const skills: SkillInfo[] = [];
 
             for (const entry of entries) {
-                // Ignore hidden directories and those starting with underscore (disabled)
-                if (entry.isDirectory() && !entry.name.startsWith(".") && !entry.name.startsWith("_")) {
+                // Ignore hidden directories
+                if (entry.isDirectory() && !entry.name.startsWith(".")) {
                     const skillMdPath = join(this.skillsDir, entry.name, "SKILL.md");
                     if (existsSync(skillMdPath)) {
                         try {
