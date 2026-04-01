@@ -72,27 +72,15 @@ export class CronManager extends BaseProcess {
 
   private runJob(row: ScheduleRow): void {
     const now = Date.now();
-    this.emitEvent("event.cron.started", { scheduleId: row.id, taskType: row.task_type, timestamp: now });
+    this.emitEvent("event.cron.started", {
+      scheduleId: row.id,
+      taskType: row.task_type,
+      timestamp: now,
+    });
+
     try {
       const payload = row.payload ? JSON.parse(row.payload) : {};
-
-      // AI Query task type
-      if (row.task_type === "ai_query") {
-        const query = payload.reminderMessage || payload.query || "";
-        const chatId = payload.chatId;
-        const userId = payload.userId;
-
-        this.emitEvent("event.cron.ai_query", {
-          scheduleId: row.id,
-          taskType: row.task_type,
-          query,
-          chatId,
-          userId,
-          timestamp: Date.now()
-        });
-        return;
-      }
-
+      
       // Default: Reminder or generic task payload
       const reminderPayload: Record<string, unknown> = {
         scheduleId: row.id,
@@ -101,13 +89,25 @@ export class CronManager extends BaseProcess {
         timestamp: Date.now(),
       };
 
-      // If this is a reminder task, extract structured fields
-      if (row.task_type === "reminder" || payload.chatId || payload.reminderMessage) {
-        reminderPayload.chatId = payload.chatId;
-        reminderPayload.reminderMessage = payload.reminderMessage;
-        reminderPayload.userId = payload.userId;
+      // Extract common fields for easier routing in Orchestrator if present
+      const q = payload.reminderMessage || payload.query;
+      if (q) reminderPayload.reminderMessage = q;
+      if (payload.chatId !== undefined) reminderPayload.chatId = payload.chatId;
+      if (payload.userId !== undefined) reminderPayload.userId = payload.userId;
+
+      // Emit specific event types for legacy/orchestrator compatibility
+      if (row.task_type === "ai_query") {
+        this.emitEvent("event.cron.ai_query", {
+          scheduleId: row.id,
+          taskType: row.task_type,
+          query: payload.reminderMessage || payload.query || "",
+          chatId: payload.chatId,
+          userId: payload.userId,
+          timestamp: Date.now(),
+        });
       }
 
+      // Always emit completed event for tracking and logging
       this.emitEvent("event.cron.completed", reminderPayload);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
