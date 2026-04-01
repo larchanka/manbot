@@ -196,7 +196,7 @@ export class Orchestrator {
           this.handleCronAIQueryEvent(envelope);
         } else if (envelope.type === "event.cron.completed") {
           const pl = envelope.payload as Record<string, unknown>;
-          if (pl.taskType !== "ai_query") {
+          if (pl.taskType === "reminder") {
             this.handleCronReminderEvent(envelope);
           }
         }
@@ -208,7 +208,7 @@ export class Orchestrator {
           ConsoleLogger.ipc("core", "→", envelope);
           this.broadcastIpcLog("→", "core", "logger", envelope);
         }
-        
+
         // If it was one of our handled events, we're done
         if (envelope.type === "event.cron.ai_query" || envelope.type === "event.cron.completed") {
           return;
@@ -586,7 +586,7 @@ export class Orchestrator {
       previousPlan = plan;
       const nodes = plan.nodes as Array<{ id: string; type: string; service: string; input?: unknown }>;
       const edges = (plan.edges ?? []) as Array<{ from: string; to: string }>;
-      
+
       // Update task DAG in memory
       await this.sendAndWait(taskMemory, "task.updateDag", {
         taskId,
@@ -598,7 +598,7 @@ export class Orchestrator {
       }).catch(() => { });
 
       this.sendToTelegram(chatId, "💨 Planning complete. Execution started...", true);
-      
+
       // Explicitly set task to 'running' before dispatching to executor
       await this.sendAndWait(taskMemory, "task.updateStatus", { taskId, status: "running" }).catch(() => { });
 
