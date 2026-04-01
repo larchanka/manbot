@@ -195,7 +195,10 @@ export class Orchestrator {
         if (envelope.type === "event.cron.ai_query") {
           this.handleCronAIQueryEvent(envelope);
         } else if (envelope.type === "event.cron.completed") {
-          this.handleCronReminderEvent(envelope);
+          const pl = envelope.payload as Record<string, unknown>;
+          if (pl.taskType !== "ai_query") {
+            this.handleCronReminderEvent(envelope);
+          }
         }
 
         // Always forward cron events to logger for audit trail
