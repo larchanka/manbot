@@ -1003,7 +1003,7 @@ export class Orchestrator {
     ConsoleLogger.info("core", `Triggering autonomous AI task: "${query}" for chatId ${chatIdNum} (taskId: ${taskId})`);
 
     // Immediate feedback so user knows the cron triggered
-    this.sendToTelegram(chatIdNum, `🤖 <b>Autonomous task triggered</b>: <i>"${query}"</i>\n\nStarting planning...`, true, "HTML");
+    this.sendToTelegram(chatIdNum, `🤖 <b>Autonomous task triggered</b>:\n<blockquote>${query}</blockquote>\n\nStarting planning...`, true, "HTML");
 
     // Route to task queue (priority 0 for synthetic)
     this.enqueueTask({
