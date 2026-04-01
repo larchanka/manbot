@@ -191,22 +191,25 @@ export class Orchestrator {
         return;
       }
       // Handle cron AI query events from cron-manager
-      if (fromProcess === "cron-manager" && envelope.type === "event.cron.ai_query") {
-        this.handleCronAIQueryEvent(envelope);
-        return;
-      }
+      if (fromProcess === "cron-manager") {
+        if (envelope.type === "event.cron.ai_query") {
+          this.handleCronAIQueryEvent(envelope);
+        } else if (envelope.type === "event.cron.completed") {
+          this.handleCronReminderEvent(envelope);
+        }
 
-      // Handle cron reminder events from cron-manager
-      if (fromProcess === "cron-manager" && envelope.type === "event.cron.completed") {
-        this.handleCronReminderEvent(envelope);
-        // Also forward to logger as before
+        // Always forward cron events to logger for audit trail
         const logger = this.children.get("logger");
         if (logger?.stdin.writable) {
           logger.stdin.write(trimmed + "\n");
           ConsoleLogger.ipc("core", "→", envelope);
           this.broadcastIpcLog("→", "core", "logger", envelope);
         }
-        return;
+        
+        // If it was one of our handled events, we're done
+        if (envelope.type === "event.cron.ai_query" || envelope.type === "event.cron.completed") {
+          return;
+        }
       }
 
       if (to === "core") {
@@ -998,6 +1001,9 @@ export class Orchestrator {
     const taskId = randomUUID();
 
     ConsoleLogger.info("core", `Triggering autonomous AI task: "${query}" for chatId ${chatIdNum} (taskId: ${taskId})`);
+
+    // Immediate feedback so user knows the cron triggered
+    this.sendToTelegram(chatIdNum, `🤖 <b>Autonomous task triggered</b>: <i>"${query}"</i>\n\nStarting planning...`, true, "HTML");
 
     // Route to task queue (priority 0 for synthetic)
     this.enqueueTask({
