@@ -64,11 +64,11 @@ const SKILL_TOOLS: any[] = [
       parameters: {
         type: "object",
         properties: {
-          local_file_url: { type: "string", description: "Absolute path to the file in the sandbox" },
+          local_path: { type: "string", description: "Absolute path to the file in the sandbox. MUST be a local path, not a URL." },
           brief_file_description: { type: "string", description: "Brief description or caption for the file" },
           chatId: { type: "number", description: "Optional chat ID. If omitted, will use the current chat context." }
         },
-        required: ["local_file_url"]
+        required: ["local_path"]
       }
     }
   }
@@ -860,7 +860,10 @@ export class ExecutorAgent extends BaseProcess {
     const input = node.input ?? {};
     const nodeInput = input as Record<string, unknown>;
     
-    let localPath = (nodeInput.local_file_url as string) || (nodeInput.path as string);
+    let localPath = (nodeInput.local_path as string) || (nodeInput.path as string);
+    if (localPath && (localPath.startsWith("http://") || localPath.startsWith("https://"))) {
+      throw new Error(`send_file requires a local path, but received a URL: ${localPath}. Download the file first using shell (curl/wget) if needed.`);
+    }
     let caption = (nodeInput.brief_file_description as string) || (nodeInput.caption as string);
     const chatId = (nodeInput.chatId as number) || (context._chatId as number);
 
