@@ -534,7 +534,7 @@ function main(): void {
               await bot.sendDocument(pl.chatId, fileData, sendOptions);
             } else {
               // Auto-detect based on extension if not provided
-              const ext = extname(path).toLowerCase().split('?')[0];
+              const ext = (extname(path).toLowerCase().split('?')[0]) ?? "";
               if ([".jpg", ".jpeg", ".png", ".gif", ".bmp"].includes(ext)) {
                 await bot.sendPhoto(pl.chatId, fileData, sendOptions);
               } else if ([".mp3", ".wav", ".m4a", ".ogg"].includes(ext)) {
