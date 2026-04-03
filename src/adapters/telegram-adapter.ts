@@ -8,7 +8,7 @@
 
 import TelegramBot from "node-telegram-bot-api";
 import { randomUUID } from "node:crypto";
-import { mkdir, createWriteStream } from "node:fs";
+import { mkdir, createWriteStream, createReadStream, existsSync } from "node:fs";
 import { pipeline } from "node:stream/promises";
 import { resolve, extname } from "node:path";
 import { PROTOCOL_VERSION } from "../shared/protocol.js";
@@ -508,34 +508,52 @@ function main(): void {
       if (typeof pl.chatId === "number" && typeof pl.localPath === "string") {
         (async () => {
           try {
-            const path = pl.localPath;
-            const caption = pl.caption;
-            const type = pl.type;
+            const { localPath: path, caption, type } = pl;
+
+            if (!existsSync(path) && !path.startsWith("http")) {
+              throw new Error(`File not found at path: ${path}`);
+            }
+
+            const sendOptions: any = { 
+              caption: caption ? escapeHtml(caption) : undefined,
+              parse_mode: "HTML"
+            };
+
+            // Use Stream for local files to ensure multipart/form-data upload
+            const fileData = (path.startsWith("http://") || path.startsWith("https://")) 
+              ? path 
+              : createReadStream(path);
 
             if (type === "photo") {
-              await bot.sendPhoto(pl.chatId, path, { caption });
+              await bot.sendPhoto(pl.chatId, fileData, sendOptions);
             } else if (type === "audio") {
-              await bot.sendAudio(pl.chatId, path, { caption });
+              await bot.sendAudio(pl.chatId, fileData, sendOptions);
             } else if (type === "video") {
-              await bot.sendVideo(pl.chatId, path, { caption });
+              await bot.sendVideo(pl.chatId, fileData, sendOptions);
             } else if (type === "document") {
-              await bot.sendDocument(pl.chatId, path, { caption });
+              await bot.sendDocument(pl.chatId, fileData, sendOptions);
             } else {
               // Auto-detect based on extension if not provided
-              const ext = extname(path).toLowerCase();
+              const ext = extname(path).toLowerCase().split('?')[0];
               if ([".jpg", ".jpeg", ".png", ".gif", ".bmp"].includes(ext)) {
-                await bot.sendPhoto(pl.chatId, path, { caption });
+                await bot.sendPhoto(pl.chatId, fileData, sendOptions);
               } else if ([".mp3", ".wav", ".m4a", ".ogg"].includes(ext)) {
-                await bot.sendAudio(pl.chatId, path, { caption });
+                await bot.sendAudio(pl.chatId, fileData, sendOptions);
               } else if ([".mp4", ".mov", ".avi", ".mkv"].includes(ext)) {
-                await bot.sendVideo(pl.chatId, path, { caption });
+                await bot.sendVideo(pl.chatId, fileData, sendOptions);
               } else {
-                await bot.sendDocument(pl.chatId, path, { caption });
+                await bot.sendDocument(pl.chatId, fileData, sendOptions);
               }
             }
-          } catch (err) {
+          } catch (err: any) {
             console.error("[telegram-adapter] Error sending file:", err);
-            sendToUser(pl.chatId, `⚠️ Failed to send file: ${err instanceof Error ? err.message : String(err)}`);
+            let userMsg = err instanceof Error ? err.message : String(err);
+            if (userMsg.includes("wrong type of the web page content")) {
+              userMsg = "Telegram could not fetch this URL as a file. Make sure it's a direct link to binary data, or download it to the sandbox first.";
+            } else if (userMsg.includes("FILE_PART_0_MISSING")) {
+              userMsg = "Failed to upload file to Telegram. The file might be empty or inaccessible.";
+            }
+            sendToUser(pl.chatId, `⚠️ Failed to send file: ${userMsg}`);
           }
         })();
       }
