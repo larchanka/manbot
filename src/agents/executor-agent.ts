@@ -75,6 +75,7 @@ const SKILL_TOOLS: any[] = [
 ];
 
 import { randomUUID } from "node:crypto";
+import { resolve, isAbsolute } from "node:path";
 import { BaseProcess } from "../shared/base-process.js";
 import type { CapabilityGraph, CapabilityNode } from "../shared/graph-utils.js";
 import {
@@ -901,6 +902,11 @@ export class ExecutorAgent extends BaseProcess {
 
     if (localPath) localPath = resolveValue(localPath).trim();
     if (caption) caption = resolveValue(caption).trim();
+
+    // Resolve relative path against sandboxDir
+    if (localPath && !isAbsolute(localPath) && !localPath.startsWith("http")) {
+      localPath = resolve(getConfig().toolHost.sandboxDir, localPath);
+    }
 
     if (!localPath) {
       throw new Error("send_file requires local_path (or local_file_url)");
