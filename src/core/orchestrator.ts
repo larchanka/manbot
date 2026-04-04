@@ -1074,7 +1074,7 @@ export class Orchestrator {
           } catch (e) { }
 
           const typeLabel = s.taskType === "ai_query" ? "🤖 Task" : "🔔 Reminder";
-          return `<b>${typeLabel}</b>\nID: <code>${s.id}</code>\nTime: <code>${s.cronExpr}</code>\n<blockquote expandable>Message: ${message.substring(0, 100)}...</blockquote>`;
+          return `<b>${typeLabel}</b>\nID: <code>${s.id}</code>\nTime: <code>${s.cronExpr}</code>\n<blockquote>Message: ${message.substring(0, 100)}...</blockquote>`;
         })
         .join("\n\n---\n\n");
 
