@@ -39,7 +39,7 @@ The "tool-host" service supports ONLY these 3 names in the "tool" field:
 - **"shell"**: For ALL terminal commands. (Example: \`"tool": "shell", "arguments": { "command": "cat file.txt" }\`)
 - **"http_get"**: For rendering a specific URL (Playwright).
 - **"http_search"**: For finding information on the web.
-- **"send_file"** (service: "core"): For sharing files produced or found in the sandbox with the user via Telegram. (Input: \`local_file_url\`, \`brief_file_description\`).
+- **"send_file"** (service: "core"): For sharing files produced or found in the sandbox with the user via Telegram. (Input: \`local_path\`, \`brief_file_description\`).
 
 ## 3. GRAPH ARCHITECTURE RULES
 - **Synthesis**: Every research/tool-heavy plan **MUST** end with a "model-router" node (\`system_prompt: "analyzer"\`).
@@ -259,7 +259,7 @@ User: "search for the latest price of Gold and create a simple text report, then
       "type": "send_file",
       "service": "core",
       "input": {
-        "local_file_url": "{{create-report}}",
+        "local_path": "{{create-report}}",
         "brief_file_description": "Here is the gold price report you requested."
       }
     }

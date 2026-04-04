@@ -860,7 +860,7 @@ export class ExecutorAgent extends BaseProcess {
     const input = node.input ?? {};
     const nodeInput = input as Record<string, unknown>;
     
-    let localPath = (nodeInput.local_path as string) || (nodeInput.path as string);
+    let localPath = (nodeInput.local_path as string) || (nodeInput.local_file_url as string) || (nodeInput.path as string);
     if (localPath && (localPath.startsWith("http://") || localPath.startsWith("https://"))) {
       throw new Error(`send_file requires a local path, but received a URL: ${localPath}. Download the file first using shell (curl/wget) if needed.`);
     }
@@ -903,7 +903,7 @@ export class ExecutorAgent extends BaseProcess {
     if (caption) caption = resolveValue(caption).trim();
 
     if (!localPath) {
-      throw new Error("send_file requires local_file_url");
+      throw new Error("send_file requires local_path (or local_file_url)");
     }
     if (!chatId) {
       throw new Error("send_file requires chatId");
