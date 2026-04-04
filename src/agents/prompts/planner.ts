@@ -35,7 +35,7 @@ Before using raw tools, scan <available_skills>.
 - Manual "shell" or "http" chains are a last resort when no skill fits.
 
 ## 2. TOOL CONSTRAINTS
-The "tool-host" service supports ONLY these 3 names in the "tool" field:
+The "tool-host" service supports ONLY these 4 names in the "tool" field:
 - **"shell"**: For ALL terminal commands. (Example: \`"tool": "shell", "arguments": { "command": "cat file.txt" }\`)
 - **"http_get"**: For rendering a specific URL (Playwright).
 - **"http_search"**: For finding information on the web.
