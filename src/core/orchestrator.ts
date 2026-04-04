@@ -1047,7 +1047,7 @@ export class Orchestrator {
       const filteredSchedules = schedules.filter((s) => {
         if (!s.enabled) return false;
         if (s.taskType !== "reminder" && s.taskType !== "ai_query") return false;
-        
+
         try {
           const payload = JSON.parse(s.payload);
           return payload.chatId === chatId;
@@ -1071,13 +1071,13 @@ export class Orchestrator {
           try {
             const p = JSON.parse(s.payload);
             message = p.reminderMessage || p.query || "N/A";
-          } catch (e) {}
-          
+          } catch (e) { }
+
           const typeLabel = s.taskType === "ai_query" ? "🤖 Task" : "🔔 Reminder";
-          return `<b>${typeLabel}</b>\nID: <code>${s.id}</code>\nTime: <code>${s.cronExpr}</code>\nMessage: ${message}`;
+          return `<b>${typeLabel}</b>\nID: <code>${s.id}</code>\nTime: <code>${s.cronExpr}</code>\n<blockquote expandable>Message: ${message.substring(0, 100)}...</blockquote>`;
         })
         .join("\n\n---\n\n");
-        
+
       const message = `⏰ <b>Active schedules:</b>\n\n${formatted}`;
       ConsoleLogger.info("core", `Sending reminder list to chatId ${chatId}: ${message.substring(0, 100)}...`);
       this.sendToTelegram(chatId, message, false, "HTML");
