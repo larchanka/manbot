@@ -1037,30 +1037,48 @@ export class Orchestrator {
         id: string;
         cronExpr: string;
         taskType: string;
+        payload: string;
         enabled: boolean;
       }>;
 
       ConsoleLogger.info("core", `Found ${schedules.length} total schedules`);
 
-      // Filter reminders for this chatId - we need to check the payload of each schedule
-      // Since we can't easily query by chatId, we'll need to get schedule details
-      // For now, filter by taskType === "reminder"
-      const reminderSchedules = schedules.filter((s) => s.taskType === "reminder" && s.enabled);
+      // Filter reminders for this chatId
+      const filteredSchedules = schedules.filter((s) => {
+        if (!s.enabled) return false;
+        if (s.taskType !== "reminder" && s.taskType !== "ai_query") return false;
+        
+        try {
+          const payload = JSON.parse(s.payload);
+          return payload.chatId === chatId;
+        } catch (err) {
+          return false;
+        }
+      });
 
-      ConsoleLogger.info("core", `Found ${reminderSchedules.length} reminder schedules`);
+      ConsoleLogger.info("core", `Found ${filteredSchedules.length} filtered schedules for chatId ${chatId}`);
 
-      if (reminderSchedules.length === 0) {
+      if (filteredSchedules.length === 0) {
         ConsoleLogger.info("core", "No reminders found, sending 'No active reminders' message");
         this.sendToTelegram(chatId, "👌🏻 No active reminders.");
         return;
       }
 
-      // Format reminders - we'll show ID and cronExpr, but reminderMessage is in the payload
-      // For a better implementation, we'd need to query each schedule's payload
-      const formatted = reminderSchedules
-        .map((rem) => `ID: ${rem.id}\nTime: ${rem.cronExpr}`)
+      // Format reminders - include message/query and task type
+      const formatted = filteredSchedules
+        .map((s) => {
+          let message = "N/A";
+          try {
+            const p = JSON.parse(s.payload);
+            message = p.reminderMessage || p.query || "N/A";
+          } catch (e) {}
+          
+          const typeLabel = s.taskType === "ai_query" ? "🤖 Task" : "🔔 Reminder";
+          return `<b>${typeLabel}</b>\nID: <code>${s.id}</code>\nTime: <code>${s.cronExpr}</code>\nMessage: ${message}`;
+        })
         .join("\n\n---\n\n");
-      const message = `Active reminders:\n\n${formatted}`;
+        
+      const message = `⏰ <b>Active schedules:</b>\n\n${formatted}`;
       ConsoleLogger.info("core", `Sending reminder list to chatId ${chatId}: ${message.substring(0, 100)}...`);
       this.sendToTelegram(chatId, message, false, "HTML");
     } catch (err) {
@@ -1078,12 +1096,37 @@ export class Orchestrator {
     }
 
     try {
+      // Security: verify that this reminder belongs to this chatId
+      const listResponse = await this.sendAndWait(cronManager, "cron.schedule.list", {});
+      const listPayload = listResponse.payload as { result?: { schedules?: Array<{ id: string; payload: string }> } };
+      const schedules = listPayload.result?.schedules ?? [];
+      const targetSchedule = schedules.find(s => s.id === reminderId);
+
+      if (!targetSchedule) {
+        this.sendToTelegram(chatId, `😨 Reminder <code>${reminderId}</code> not found.`);
+        return;
+      }
+
+      try {
+        const payload = JSON.parse(targetSchedule.payload);
+        if (payload.chatId !== chatId) {
+          this.sendToTelegram(chatId, `❌ You are not authorized to cancel this reminder.`);
+          return;
+        }
+      } catch (e) {
+        // If payload is malformed or missing chatId, we might want to prevent deletion or allow it?
+        // Let's be conservative: if we can't confirm ownership, we reject.
+        // UNLESS we are superuser (could add later).
+        this.sendToTelegram(chatId, `❌ Security check failed for reminder <code>${reminderId}</code>.`);
+        return;
+      }
+
       const response = await this.sendAndWait(cronManager, "cron.schedule.remove", { id: reminderId });
       const responsePayload = response.payload as { status?: string; result?: { removed?: string } };
       if (responsePayload.result?.removed === reminderId) {
-        this.sendToTelegram(chatId, `🟢 Reminder ${reminderId} has been canceled.`);
+        this.sendToTelegram(chatId, `🟢 Reminder <code>${reminderId}</code> has been canceled.`);
       } else {
-        this.sendToTelegram(chatId, `😨 Reminder ${reminderId} not found.`);
+        this.sendToTelegram(chatId, `😨 Reminder <code>${reminderId}</code> not found.`);
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);

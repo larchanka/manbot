@@ -148,17 +148,19 @@ export class CronManager extends BaseProcess {
     return id;
   }
 
-  private listSchedules(): Array<{ id: string; cronExpr: string; taskType: string; enabled: boolean }> {
-    const rows = this.db.prepare("SELECT id, cron_expr, task_type, enabled FROM cron_schedules").all() as Array<{
+  private listSchedules(): Array<{ id: string; cronExpr: string; taskType: string; payload: string; enabled: boolean }> {
+    const rows = this.db.prepare("SELECT id, cron_expr, task_type, payload, enabled FROM cron_schedules").all() as Array<{
       id: string;
       cron_expr: string;
       task_type: string;
+      payload: string;
       enabled: number;
     }>;
     return rows.map((r) => ({
       id: r.id,
       cronExpr: r.cron_expr,
       taskType: r.task_type,
+      payload: r.payload,
       enabled: r.enabled === 1,
     }));
   }
