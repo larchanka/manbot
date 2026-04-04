@@ -40,12 +40,12 @@ export class SkillManager {
                             const lines = content.split("\n").filter(l => l.trim() !== "");
                             const firstLine = lines[0]?.trim();
                             if (!firstLine) continue;
-                            
+
                             let description = firstLine;
                             if (firstLine.toLowerCase().startsWith("description:")) {
                                 description = firstLine.substring("description:".length).trim();
                             }
-                            
+
                             if (description) {
                                 skills.push({
                                     name: entry.name,
@@ -76,7 +76,7 @@ export class SkillManager {
 
         try {
             const content = readFileSync(skillPath, "utf-8");
-            return `${content}\n\n## OUTPUT FORMATTING\n${TELEGRAM_HTML_FORMAT_INSTRUCTION}\n\nYou MUST format your final response using only the Telegram HTML tags listed above. Never use Markdown (replace will allowed HTML tags).`;
+            return `${content}\n\n## OUTPUT FORMATTING\nYou MUST format your final response using only the Telegram HTML tags listed above. Never use Markdown (replace will allowed HTML tags).\n\n${TELEGRAM_HTML_FORMAT_INSTRUCTION}`;
         } catch (err) {
             console.error(`Failed to load skill prompt for ${name}:`, err);
             return null;
