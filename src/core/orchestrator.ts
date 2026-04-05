@@ -682,6 +682,30 @@ export class Orchestrator {
       return;
     }
 
+    const taskId = randomUUID();
+    // Create placeholder task in memory so it shows up in dashboard during processing
+    const taskMemory = this.children.get("task-memory");
+    if (taskMemory?.stdin.writable) {
+      this.send({
+        id: randomUUID(),
+        timestamp: Date.now(),
+        from: "core",
+        to: "task-memory",
+        type: "task.create",
+        version: "1.0",
+        payload: {
+          taskId,
+          userId: String(userId),
+          conversationId: conversationId ?? String(chatId),
+          goal: caption || "Processing uploaded files...",
+          status: "pending",
+          complexity: "unknown",
+          nodes: [],
+          edges: []
+        }
+      });
+    }
+
     // Notify user processing has started
     const fileWord = files.length === 1 ? "file" : "files";
     this.sendToTelegram(chatId, `⏳ Processing ${files.length} ${fileWord}...`, true);
@@ -799,7 +823,7 @@ export class Orchestrator {
 
     // Run the task pipeline with the enriched goal
     ConsoleLogger.debug("core", `Running task pipeline with enriched goal (length: ${enrichedGoal.length})`);
-    await this.runTaskPipeline(chatId, userId, enrichedGoal, conversationId);
+    await this.runTaskPipeline(chatId, userId, enrichedGoal, conversationId, taskId);
   }
 
   // ---------------------------------------------------------------------------
