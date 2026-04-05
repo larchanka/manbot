@@ -26,8 +26,8 @@ Responsibilities:
 Responsibilities:
 - Intent analysis
 - Capability determination
-- Execution graph creation
-- Model complexity selection
+- Creates an **Agent-based Execution Graph** (DAG)
+- Assigns specialized roles to agents (input: `name`, `instructions`)
 
 Input:
 - User message
@@ -41,10 +41,10 @@ Output:
 
 ### 3. Executor Agent
 Responsibilities:
-- Execute DAG nodes
-- Call services
-- Aggregate intermediate results
-- Update task memory
+- Traverses the DAG and manages **Autonomous Agent Loops**
+- Provides core tools (shell, browser, search) to agents
+- Handles **Dynamic Skill Loading** via `load_skill` tool
+- Aggregates results and updates task memory
 
 ---
 

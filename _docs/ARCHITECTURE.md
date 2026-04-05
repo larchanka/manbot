@@ -47,13 +47,14 @@ Prevents chaotic reasoning loops.
 
 ## 4. Capability Graph Pattern
 
-Planner produces a Directed Acyclic Graph (DAG):
+Planner produces a Directed Acyclic Graph (DAG) consisting of independent **Agents**:
 
 Example:
 
-semantic_search → sql_query → generate_text → reflect
+research_agent → coding_agent → testing_agent → analysis_agent
 
-Executor processes nodes sequentially or parallel when possible.
+Nodes are now specialized autonomous agents that can dynamically load instructions (Skills) as needed.
+Executor processes these agent nodes sequentially or parallel when possible.
 
 ---
 

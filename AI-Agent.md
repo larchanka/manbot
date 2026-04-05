@@ -91,7 +91,7 @@ AI-Agent/
 ### Agent layer
 
 - **Planner**: Listens for `plan.create`; uses Lemonade + Model Router to produce a DAG; validates with `validateGraph`; responds with plan.
-- **Executor**: Listens for `plan.execute`; computes ready nodes (parallel batch, concurrency limit); dispatches `node.execute` to `node.service` (model-router, rag-service, critic-agent, tool-host); waits for response by `correlationId`; updates Task Memory; after DAG, optional reflection loop (Critic → REVISE → re-run generation, max 3); aggregates result and completes task.
+- **Executor**: Listens for `plan.execute`; traverses the DAG and manages **Autonomous Agent Loops**; provides an agent system prompt and core tools; handles **Dynamic Skill Loading**; after DAG, optional reflection loop.
 - **Critic**: Listens for `reflection.evaluate`; uses Lemonade with Critic prompt; returns structured `{ decision: PASS|REVISE, feedback, score }`.
 
 ### Service layer
@@ -121,7 +121,7 @@ AI-Agent/
 3. Core → Planner: `plan.create` (goal); Planner → Core: plan (DAG).
 4. Core → Task Memory: `task.create` (taskId, goal, nodes, edges).
 5. Core → Executor: `plan.execute` (taskId, plan, goal).
-6. Executor runs DAG: `node.execute` to model-router, rag-service, critic-agent, tool-host; Task Memory updates; optional Critic revision loop.
+6. Executor runs DAG: executes specialized **Agents** with instructions; Agents use tools and dynamically call `load_skill`; Task Memory updates; optional Critic revision loop.
 7. Executor → Core: response with aggregated result.
 8. Core → Telegram Adapter: `telegram.send` (chatId, text).
 9. User sees reply in Telegram.
