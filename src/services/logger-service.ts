@@ -57,7 +57,7 @@ export class LoggerService extends BaseProcess {
   }
 
   protected override handleEnvelope(envelope: Envelope): void {
-    if (!envelope.type.startsWith("event.")) {
+    if (!envelope.type.startsWith("event.") || envelope.type === "event.system.heartbeat") {
       return;
     }
 

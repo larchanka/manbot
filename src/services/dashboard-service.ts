@@ -252,7 +252,7 @@ export class DashboardService extends BaseProcess {
       if (fs.existsSync(logPath)) {
         stats.logs = fs.readFileSync(logPath, 'utf8').trim().split('\n').map(line => {
           try { return JSON.parse(line); } catch (e) { return { message: line }; }
-        }).reverse();
+        }).filter((l: any) => l.type !== "event.system.heartbeat").reverse();
       }
     } catch (e) { }
     return stats;
