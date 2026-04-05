@@ -266,11 +266,16 @@ async function updateDashboard() {
                                 const activeIndicator = ['planning', 'running'].includes(n.status) ? '<div class="pulse"></div>' : '';
                                 const typeLabel = n.type.split('.').pop().toUpperCase();
                                 let chipAttr = '';
-                                if (n.type === 'skill' && n.input) {
+                                if ((n.type === 'skill' || n.type === 'agent') && n.input) {
                                     try {
                                         const input = typeof n.input === 'string' ? JSON.parse(n.input) : n.input;
-                                        const skillName = input.skillName || input.skill;
-                                        if (skillName) chipAttr = ` data-title="Skill: ${skillName}"`;
+                                        if (n.type === 'skill') {
+                                            const skillName = input.skillName || input.skill;
+                                            if (skillName) chipAttr = ` data-title="Skill: ${skillName}"`;
+                                        } else if (n.type === 'agent') {
+                                            const agentName = input.name || "Task Agent";
+                                            chipAttr = ` data-title="Agent: ${agentName}"`;
+                                        }
                                     } catch (e) { }
                                 }
                                 return `<div class="node-chip ${n.status}"${chipAttr}>${activeIndicator}${typeLabel}</div>`;
