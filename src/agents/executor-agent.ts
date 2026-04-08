@@ -519,14 +519,15 @@ export class ExecutorAgent extends BaseProcess {
         (async () => {
           try {
             const messages: any[] = [];
-            
+
             if (isAgent) {
               const skillsList = this.skillManager.listSkills();
               const skillsDescription = skillsList.map(s => `- ${s.name}: ${s.description}`).join("\n");
               const agentPrompt = buildAgentPrompt(
                 (node.input?.name as string) || "Task Agent",
                 task,
-                skillsDescription
+                skillsDescription,
+                new Date().toISOString()
               );
               messages.push({ role: "system", content: agentPrompt });
               messages.push({ role: "user", content: "Proceed with the task." });
@@ -546,7 +547,7 @@ export class ExecutorAgent extends BaseProcess {
               const genResponse = await this.callModelRouter(taskId, node.id, {
                 type: "generate_text",
                 input: {
-                  prompt: task, 
+                  prompt: task,
                   messages,
                   tools: SKILL_TOOLS
                 },
@@ -566,7 +567,7 @@ export class ExecutorAgent extends BaseProcess {
                   if (typeof args === "string") {
                     try {
                       args = JSON.parse(args);
-                    } catch (e) {}
+                    } catch (e) { }
                   }
 
                   let toolResult: any;
@@ -895,7 +896,7 @@ export class ExecutorAgent extends BaseProcess {
   ): Promise<unknown> {
     const input = node.input ?? {};
     const nodeInput = input as Record<string, unknown>;
-    
+
     let localPath = (nodeInput.local_path as string) || (nodeInput.local_file_url as string) || (nodeInput.path as string);
     if (localPath && (localPath.startsWith("http://") || localPath.startsWith("https://"))) {
       throw new Error(`send_file requires a local path, but received a URL: ${localPath}. Download the file first using shell (curl/wget) if needed.`);

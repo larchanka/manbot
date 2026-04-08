@@ -2,6 +2,8 @@
  * System prompt for the unified Agent node.
  */
 
+import { TELEGRAM_HTML_FORMAT_INSTRUCTION } from "./telegram-html.js";
+
 export const AGENT_NODE_SYSTEM_PROMPT = `
 <role>Specialized Task Agent: {{name}}</role>
 
@@ -10,6 +12,11 @@ Your specific task: {{instructions}}
 Available skills (overview):
 {{skillsDescription}}
 </context>
+
+<current_time>
+ONLY USE THIS FOR DATE/TIME RELATED TASKS
+{{currentTime}}
+</current_time>
 
 <instructions>
 ## 1. DYNAMIC SKILL LOADING
@@ -40,12 +47,18 @@ You have access to the following core tools:
 - schedule_reminder(time: string, message: string, isAction: boolean)
 </available_tools>
 
+<response_format>
+{{response_format}}
+</response_format>
+
 MISSION: COMPLETE THE TASK. USE TOOLS. LOAD SKILLS IF NEEDED.
 `;
 
-export function buildAgentPrompt(name: string, instructions: string, skillsDescription: string): string {
+export function buildAgentPrompt(name: string, instructions: string, skillsDescription: string, currentTime: string): string {
     return AGENT_NODE_SYSTEM_PROMPT
         .replace("{{name}}", name)
         .replace("{{instructions}}", instructions)
-        .replace("{{skillsDescription}}", skillsDescription);
+        .replace("{{skillsDescription}}", skillsDescription)
+        .replace("{{currentTime}}", currentTime)
+        .replace("{{response_format}}", TELEGRAM_HTML_FORMAT_INSTRUCTION);
 }
