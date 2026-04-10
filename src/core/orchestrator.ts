@@ -565,6 +565,9 @@ export class Orchestrator {
           if (details.originalErrorMessage != null) parts.push(String(details.originalErrorMessage));
           lastError = parts.join(" ");
         }
+        
+        this.sendAndWait(taskMemory, "task.fail", { taskId, reason: lastError }).catch(() => { });
+        
         if (attempt === Orchestrator.MAX_PLAN_RETRIES) {
           this.sendToTelegram(chatId, lastError);
           return;
@@ -576,6 +579,9 @@ export class Orchestrator {
       const plan = planPayload.result as { nodes: unknown[]; edges?: unknown[]; complexity?: string } | undefined;
       if (!plan?.nodes || !Array.isArray(plan.nodes)) {
         lastError = "Invalid plan from planner: missing or invalid nodes.";
+        
+        this.sendAndWait(taskMemory, "task.fail", { taskId, reason: lastError }).catch(() => { });
+        
         if (attempt === Orchestrator.MAX_PLAN_RETRIES) {
           this.sendToTelegram(chatId, lastError);
           return;
@@ -616,6 +622,9 @@ export class Orchestrator {
           if (details.originalErrorMessage != null) parts.push(String(details.originalErrorMessage));
           lastError = parts.join(". ");
         }
+        
+        this.sendAndWait(taskMemory, "task.fail", { taskId, reason: lastError }).catch(() => { });
+        
         if (attempt === Orchestrator.MAX_PLAN_RETRIES) {
           this.sendToTelegram(chatId, lastError);
           return;
