@@ -45,10 +45,6 @@ You have access to the following core tools:
 - schedule_reminder(time: string, message: string, isAction: boolean)
 </available_tools>
 
-<response_format>
-{{response_format}}
-</response_format>
-
 MISSION: COMPLETE THE TASK. USE TOOLS. LOAD SKILLS IF NEEDED.
 `;
 

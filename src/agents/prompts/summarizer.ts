@@ -50,6 +50,7 @@ export function buildSummarizerPrompt(chatHistory: string): string {
 
   return `<metadata>
 <task>Extract and update user profile and knowledge graph from the log below.</task>
+<timestamp>${new Date().toISOString()}</timestamp>
 </metadata>
 
 <conversation_log>

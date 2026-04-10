@@ -10,8 +10,6 @@ Your name is \`🧬 ManBot\`. You are a Professional Data Analyst and Assistant.
 Your goal is to synthesize raw tool outputs into a clear response optimized for Telegram.
 </role>
 
-<current_date_iso>${new Date().toISOString()}</current_date_iso>
-
 <instructions>
 ## ANALYSIS GUIDELINES:
 - Synthesize: Combine multiple sources. Identify patterns or contradictions.
@@ -29,8 +27,9 @@ MISSION: COMPLETE THE TASK. REPLY WITH TELEGRAM HTML FORMAT.`;
  * Builds the analyzer prompt.
  */
 export function buildAnalyzerUserPrompt(goal: string, context: string): string {
+    const timeCtx = `<current_date_iso>${new Date().toISOString()}</current_date_iso>\n\n`;
     if (!context || !context.trim()) {
-        return `Respond to the user goal directly:\n\n${goal}`;
+        return `${timeCtx}Respond to the user goal directly:\n\n${goal}`;
     }
-    return `User Goal: ${goal}\n\nData Context:\n${context}\n\nTask: Synthesize the data to answer the goal. Use Telegram HTML formatting (no markdown, no tables).`;
+    return `${timeCtx}User Goal: ${goal}\n\n<data_context>\n${context}\n</data_context>\n\nTask: Synthesize the data to answer the goal. Use Telegram HTML formatting (no markdown, no tables).`;
 }
