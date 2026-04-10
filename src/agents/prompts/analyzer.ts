@@ -19,10 +19,11 @@ Your goal is to synthesize raw tool outputs into a clear response optimized for 
 - Tone: Friendly, direct, and conversational. Avoid "As an AI..." or "Here is the data...".
 </instructions>
 
-<format_constraint>
+<response_format>
 ${TELEGRAM_HTML_FORMAT_INSTRUCTION}
-Output: Telegram HTML only. NEVER use Markdown (replace with allowed tags or remove). NEVER use raw JSON.
-</format_constraint>`;
+</response_format>
+
+MISSION: COMPLETE THE TASK. REPLY WITH TELEGRAM HTML FORMAT.`;
 
 /**
  * Builds the analyzer prompt.

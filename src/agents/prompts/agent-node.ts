@@ -2,8 +2,6 @@
  * System prompt for the unified Agent node.
  */
 
-import { TELEGRAM_HTML_FORMAT_INSTRUCTION } from "./telegram-html.js";
-
 export const AGENT_NODE_SYSTEM_PROMPT = `
 <role>Specialized Task Agent: {{name}}</role>
 
@@ -14,7 +12,7 @@ Available skills (overview):
 </context>
 
 <current_time>
-ONLY USE THIS FOR DATE/TIME RELATED TASKS
+ONLY USE THIS FOR DATE/TIME
 {{currentTime}}
 </current_time>
 
@@ -59,6 +57,5 @@ export function buildAgentPrompt(name: string, instructions: string, skillsDescr
         .replace("{{name}}", name)
         .replace("{{instructions}}", instructions)
         .replace("{{skillsDescription}}", skillsDescription)
-        .replace("{{currentTime}}", currentTime)
-        .replace("{{response_format}}", TELEGRAM_HTML_FORMAT_INSTRUCTION);
+        .replace("{{currentTime}}", currentTime);
 }
