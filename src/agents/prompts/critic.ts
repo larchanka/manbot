@@ -52,9 +52,9 @@ Return ONLY a raw JSON object. No markdown wrappers.
  * Builds the critic prompt with injection protection.
  */
 export function buildCriticPrompt(goal: string, draftOutput: string): string {
-  // Basic sanitization to prevent tag-breaking injection
-  const safeGoal = goal.replace(/<\/?[^>]+(>|$)/g, "");
-  const safeDraft = draftOutput.replace(/<\/?[^>]+(>|$)/g, "");
+  // Wrap in CDATA to prevent XML structure breakage while preserving original tags
+  const safeGoal = `<![CDATA[\n${goal.replace(/\]\]>/g, ']]]]><![CDATA[>')}\n]]>`;
+  const safeDraft = `<![CDATA[\n${draftOutput.replace(/\]\]>/g, ']]]]><![CDATA[>')}\n]]>`;
 
   return `<audit_request>
 <user_goal>

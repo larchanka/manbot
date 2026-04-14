@@ -13,7 +13,7 @@ A multi-process AI platform with type-safe IPC and capability-graph execution. U
 ## Features
 
 - **Multi-agent pipeline**: Planner → Task Memory → Executor → Critic (optional revision loop)
-- **Capability graph (DAG)**: Nodes for `generate_text`, `semantic_search`, `reflect`, `tool`; parallel execution where dependencies allow
+- **Capability graph (DAG)**: Nodes for specialized **Agents** and tool-agnostic LLM generation; parallel execution where dependencies allow
 - **Type-safe IPC**: JSONL over stdin/stdout with Zod-validated envelopes
 - **Conversation Memory**: Short-term memory (last 5 tasks) is injected into the Planner for immediate session context; `/new` resets the session and archives the conversation.
 - **Session-Scoped RAG**: Memory searches are session-scoped by default to prevent context leakage after `/new`, with an optional `global` scope.

@@ -71,6 +71,20 @@ const SKILL_TOOLS: any[] = [
         required: ["local_path"]
       }
     }
+  },
+  {
+    type: "function",
+    function: {
+      name: "load_skill",
+      description: "Load detailed instructions for a specific skill. Use this if you need more information on how to use a skill from the available list.",
+      parameters: {
+        type: "object",
+        properties: {
+          skillName: { type: "string", description: "The name of the skill to load" }
+        },
+        required: ["skillName"]
+      }
+    }
   }
 ];
 
@@ -89,6 +103,7 @@ import { responsePayloadSchema } from "../shared/protocol.js";
 import { getConfig } from "../shared/config.js";
 import { SkillManager } from "../services/skill-manager.js";
 import { parseTimeExpression } from "../services/time-parser.js";
+import { buildAgentPrompt } from "./prompts/agent-node.js";
 
 const PLAN_EXECUTE = "plan.execute";
 const NODE_EXECUTE = "node.execute";
@@ -102,7 +117,8 @@ const TYPE_TO_SERVICE: Record<string, string> = {
   generate_text: "model-router",
   generate: "model-router",
   summarize: "model-router",
-  skill: "model-router", // skills are handled by generation with custom system prompt
+  skill: "model-router", // legacy skill support
+  agent: "model-router", // new agent node support
   tool: "tool-host",
   semantic_search: "rag-service",
   reflect: "critic-agent",
@@ -482,10 +498,11 @@ export class ExecutorAgent extends BaseProcess {
         ...(Object.keys(context).length > 0 && { context }),
       };
 
-      // Handle skill nodes by swapping prompt and injecting skill system prompt
-      if (node.type === "skill") {
+      // Handle agent/skill nodes by running an LLM loop with tool access
+      if (node.type === "agent" || node.type === "skill") {
+        const isAgent = node.type === "agent";
         const skillName = (node.input?.skillName ?? node.input?.skill) as string;
-        let task = (node.input?.task ?? node.input?.prompt ?? "") as string;
+        let task = (node.input?.task ?? node.input?.prompt ?? node.input?.instructions ?? "") as string;
 
         // Replace placeholders from context if present (e.g. {{nodeId}})
         for (const [key, value] of Object.entries(context)) {
@@ -498,26 +515,39 @@ export class ExecutorAgent extends BaseProcess {
           }
         }
 
-        const skillPrompt = this.skillManager.getSkillPrompt(skillName);
-        if (!skillPrompt) {
-          reject(new Error(`Skill prompt not found: ${skillName}`));
-          return;
-        }
-
-        // Active Skill loop
+        // Active Agent/Skill loop
         (async () => {
           try {
-            const messages: any[] = [
-              { role: "system", content: skillPrompt },
-              { role: "user", content: task }
-            ];
+            const messages: any[] = [];
+
+            if (isAgent) {
+              const skillsList = this.skillManager.listSkills();
+              const skillsDescription = skillsList.map(s => `- ${s.name}: ${s.description}`).join("\n");
+              const agentPrompt = buildAgentPrompt(
+                (node.input?.name as string) || "Task Agent",
+                task,
+                skillsDescription,
+                new Date().toISOString()
+              );
+              messages.push({ role: "system", content: agentPrompt });
+              messages.push({ role: "user", content: "Proceed with the task." });
+            } else {
+              // Legacy skill handling
+              const skillPrompt = this.skillManager.getSkillPrompt(skillName);
+              if (!skillPrompt) {
+                reject(new Error(`Skill prompt not found: ${skillName}`));
+                return;
+              }
+              messages.push({ role: "system", content: skillPrompt });
+              messages.push({ role: "user", content: task });
+            }
 
             let turnCount = 0;
             while (turnCount < MAX_SKILL_TURNS) {
               const genResponse = await this.callModelRouter(taskId, node.id, {
                 type: "generate_text",
                 input: {
-                  prompt: task, // Fallback, messages are used if present
+                  prompt: task,
                   messages,
                   tools: SKILL_TOOLS
                 },
@@ -532,35 +562,41 @@ export class ExecutorAgent extends BaseProcess {
 
                 // Execute each tool call
                 for (const tc of result.tool_calls) {
+                  const toolName = tc.function.name;
                   let args = tc.function.arguments;
                   if (typeof args === "string") {
                     try {
                       args = JSON.parse(args);
-                    } catch (e) {
-                      // fallback to raw string if not JSON
-                    }
+                    } catch (e) { }
                   }
-                  const toolResult = await this.callTool(taskId, node.id, tc.function.name, args, context);
+
+                  let toolResult: any;
+                  if (toolName === "load_skill") {
+                    const sn = args.skillName;
+                    const content = this.skillManager.getSkillPrompt(sn);
+                    toolResult = content ? `Skill '${sn}' loaded:\n${content}` : `Skill '${sn}' not found.`;
+                  } else {
+                    toolResult = await this.callTool(taskId, node.id, toolName, args, context);
+                  }
+
                   let content = typeof toolResult === "string" ? toolResult : JSON.stringify(toolResult);
-                  // Safety truncation for large web pages or shell outputs to stay within context limits
                   if (content.length > 30000) {
-                    content = content.substring(0, 30000) + "\n\n...[TRUNCATED DUE TO LENGTH]...";
+                    content = content.substring(0, 30000) + "\n\n...[TRUNCATED]...";
                   }
                   messages.push({
                     role: "tool",
                     tool_call_id: tc.id,
-                    name: tc.function.name,
+                    name: toolName,
                     content
                   });
                 }
                 turnCount++;
               } else {
-                // No more tool calls, we are done
                 resolve(result);
                 return;
               }
             }
-            reject(new Error(`Skill exceeded maximum turns (${MAX_SKILL_TURNS})`));
+            reject(new Error(`Agent/Skill exceeded maximum turns (${MAX_SKILL_TURNS})`));
           } catch (err) {
             reject(err);
           }
@@ -860,7 +896,7 @@ export class ExecutorAgent extends BaseProcess {
   ): Promise<unknown> {
     const input = node.input ?? {};
     const nodeInput = input as Record<string, unknown>;
-    
+
     let localPath = (nodeInput.local_path as string) || (nodeInput.local_file_url as string) || (nodeInput.path as string);
     if (localPath && (localPath.startsWith("http://") || localPath.startsWith("https://"))) {
       throw new Error(`send_file requires a local path, but received a URL: ${localPath}. Download the file first using shell (curl/wget) if needed.`);

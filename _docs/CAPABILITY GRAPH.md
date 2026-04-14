@@ -1,43 +1,41 @@
-# CAPABILITY GRAPH JSON FORMAT
-
-## Execution Plan Structure
-
-```
+```json
 {
   "taskId": "uuid",
   "complexity": "medium",
   "reflectionMode": "NORMAL",
   "nodes": [
     {
-      "id": "node1",
-      "type": "semantic_search",
-      "service": "rag-service",
+      "id": "research-01",
+      "type": "agent",
+      "service": "executor",
       "input": {
-        "query": "scalable API architecture"
+        "name": "Research Agent",
+        "instructions": "Search for the latest F1 results using http_search."
       }
     },
     {
-      "id": "node2",
+      "id": "summary-01",
+      "type": "agent",
+      "service": "executor",
+      "input": {
+        "name": "Summary Agent",
+        "instructions": "Summarize the research from {{research-01}} and load the 'email' skill to prepare a draft."
+      },
+      "dependsOn": ["research-01"]
+    },
+    {
+      "id": "node-final",
       "type": "generate_text",
       "service": "model-router",
       "input": {
-        "modelClass": "medium",
-        "promptTemplate": "architecture_template",
-        "dependsOn": ["node1"]
-      }
-    },
-    {
-      "id": "node3",
-      "type": "reflect",
-      "service": "critic-agent",
-      "input": {
-        "dependsOn": ["node2"]
+        "prompt": "Construct final Telegram response: {{summary-01}}",
+        "system_prompt": "analyzer"
       }
     }
   ],
   "edges": [
-    { "from": "node1", "to": "node2" },
-    { "from": "node2", "to": "node3" }
+    { "from": "research-01", "to": "summary-01" },
+    { "from": "summary-01", "to": "node-final" }
   ]
 }
 ```
@@ -65,8 +63,9 @@ interface CapabilityNode {
 
 ## Node types (model-router / Generator)
 
-- **generate_text** — LLM generation; input: `modelClass`, optional `prompt`, context from dependencies.
-- **summarize** — Memory extraction from chat history; input: `chatHistory` (text). Uses dedicated summarizer system prompt. Used by Orchestrator for conversation archiving.
+- **agent** — Autonomous LLM loop; input: `name`, `instructions`. High-level strategic node that can use tools and dynamically call `load_skill`.
+- **generate_text** — Simple LLM generation; input: `prompt`, context from dependencies. Used for final consolidation.
+- **summarize** — Memory extraction from chat history; input: `chatHistory`.
 
 ## Graph Rules
 

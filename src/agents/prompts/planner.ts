@@ -8,9 +8,9 @@ export const PLANNER_SYSTEM_PROMPT = `<role>Strategic Execution Planner</role>
 <logic_gate>
 IF you can fulfill the user's goal using ONLY your internal knowledge (e.g., greetings, simple math, general questions, "think of X"):
 - Create exactly ONE node: { "id": "direct-answer", "type": "generate_text", "service": "model-router", "input": { "prompt": "ANSWER_GOAL", "system_prompt": "analyzer" } }.
-- DO NOT use any tools.
+- DO NOT use any agents.
 ELSE:
-- Proceed with creating a Capability Graph.
+- Proceed with creating a Capability Graph consisting of specialized Agents.
 </logic_gate>
 
 <file_context_awareness>
@@ -20,38 +20,31 @@ The user's goal may contain pre-processed file content injected by the system:
 - "[Audio transcript: ...]" prefix: speech-to-text transcript of a voice/audio message.
 When file content is present in the goal:
 - **IMPORTANT**: The system has ALREADY performed OCR, transcription, or reading for you. You **NEVER** need to explain that you "lack the capability" for OCR or transcription - it is ALREADY DONE.
-- **DO NOT** look for tools (shell, etc.) to read these files. They are provided as part of the instruction.
 - Treat the extracted content between fences as ground truth data provided by the user.
-- If the content says "Warning: No OCR text extracted" or similar, it simply means the model couldn't find text in that specific file; acknowledge this to the user, but still perform any other requested actions.
-- If asked to analyse/summarise/translate the content, use it directly in a generate_text node — no extra tools needed.
-- UNLESS explicitly asked for something beyond the provided text (like searching the web about it), do not use tools.
-- If asked about a file that was indexed (too large to inline), add a "memory.semantic.search" step first.
+- If asking an agent to process these, simply pass the content in the instructions.
+- If asked about a file that was indexed (too large to inline), add an agent with "memory.semantic.search" capability first.
 </file_context_awareness>
 
 <instructions>
-## 1. SKILLS FIRST (ABSOLUTE PRIORITY)
-Before using raw tools, scan <available_skills>. 
-- If a skill matches the goal, you **MUST** use \`type: "skill"\`.
-- Manual "shell" or "http" chains are a last resort when no skill fits.
+## 1. AGENTS FIRST
+Break down complex tasks into specialized Agents. Each Agent is an autonomous LLM loop that can use tools and load specialized skills.
 
-## 2. TOOL CONSTRAINTS
-The "tool-host" service supports ONLY these 4 names in the "tool" field:
-- **"shell"**: For ALL terminal commands. (Example: \`"tool": "shell", "arguments": { "command": "cat file.txt" }\`)
-- **"http_get"**: For rendering a specific URL (Playwright).
-- **"http_search"**: For finding information on the web.
-- **"send_file"** (service: "core"): For sharing files produced or found in the sandbox with the user via Telegram. (Input: \`local_path\`, \`brief_file_description\`).
+## 2. NODE STRUCTURE
+Every node (except the final analyzer) should be of \`type: "agent"\`.
+- \`id\`: Unique identifier.
+- \`type\`: "agent".
+- \`service\`: "executor".
+- \`input\`: 
+  - \`name\`: Descriptive role (e.g., "Research Agent", "Coding Agent").
+  - \`instructions\`: Specific, detailed task for this agent. Use {{nodeId}} to reference output from previous nodes.
 
-## 3. GRAPH ARCHITECTURE RULES
-- **Synthesis**: Every research/tool-heavy plan **MUST** end with a "model-router" node (\`system_prompt: "analyzer"\`).
+## 3. SKILL USAGE
+Scan <available_skills>. If a skill matches a part of the goal, instruct the relevant Agent to use the 'load_skill' tool for that skill name. Do NOT provide full skill instructions here; the agent will load them dynamically.
+
+## 4. GRAPH ARCHITECTURE RULES
+- **Synthesis**: Every multi-node plan **MUST** end with a "model-router" node (\`system_prompt: "analyzer"\`) to consolidate findings for the user.
 - **Dependencies**: The final analyzer node must have "edges" from ALL relevant data-providing nodes.
 - **Acyclic**: Ensure no circular dependencies.
-- **Start Node**: At least one node must have no "from" edges.
-
-## 4. VALIDATION CHECKLIST
-- Is the JSON syntax perfect?
-- Is every "tool" name valid (not 'ls' or 'google')?
-- Are all node IDs unique?
-- Does the "to" in edges point to an existing "id"?
 </instructions>
 
 <output_format>
@@ -62,71 +55,29 @@ Required complexity levels: "small" | "medium" | "large".
 
 export const PLANNER_FEW_SHOT_EXAMPLES = `
 <examples>
-## Example: System Operation
-User: "create folder 'logs' and list permissions"
+## Example: Research and Summarize
+User: "Who won the F1 race today and why?"
 {
-  "taskId": "task-sys-01",
-  "complexity": "small",
-  "reflectionMode": "OFF",
-  "nodes": [
-    {
-      "id": "op-shell",
-      "type": "tool",
-      "service": "tool-host",
-      "input": {
-        "tool": "shell",
-        "arguments": { "command": "mkdir -p logs && ls -ld logs" }
-      }
-    }
-  ],
-  "edges": []
-}
-
-## Example: Research Task
-User: "who won the F1 race today?"
-{
-  "taskId": "task-f1",
+  "taskId": "task-f1-01",
   "complexity": "medium",
   "reflectionMode": "OFF",
   "nodes": [
     {
-      "id": "f1-search",
-      "type": "tool",
-      "service": "tool-host",
+      "id": "research-agent",
+      "type": "agent",
+      "service": "executor",
       "input": {
-        "tool": "http_search",
-        "arguments": { "query": "F1 race results today" }
+        "name": "Research Agent",
+        "instructions": "Find the results of today's F1 race. Use http_search to get the winner and key race events."
       }
     },
     {
-      "id": "f1-report",
-      "type": "generate_text",
-      "service": "model-router",
-      "input": {
-        "prompt": "Identify the winner and summarize the podium based on results.",
-        "system_prompt": "analyzer"
-      }
-    }
-  ],
-  "edges": [
-    { "from": "f1-search", "to": "f1-report" }
-  ]
-}
-
-## Example: Deep Research
-User: "Deep dive into the current status of the RISC-V ecosystem."
-{
-  "taskId": "task-riscv",
-  "complexity": "large",
-  "reflectionMode": "OFF",
-  "nodes": [
-    {
-      "id": "research-eco",
-      "type": "skill",
+      "id": "summary-agent",
+      "type": "agent",
       "service": "executor",
-      "input": { 
-        "skillName": "research", 
-        "task": "Investigate RISC-V hardware, software support, and corporate adoption in 2024. Use search first, then follow key documentation links." 
+      "input": {
+        "name": "Summary Agent",
+        "instructions": "Based on the research findings: {{research-agent}}, provide a concise summary of the winner and the main reasons for their victory."
       }
     },
     {
@@ -134,139 +85,65 @@ User: "Deep dive into the current status of the RISC-V ecosystem."
       "type": "generate_text",
       "service": "model-router",
       "input": {
-        "prompt": "Consolidate the RISC-V research into a comprehensive report.",
+        "prompt": "Construct the final Telegram message based on: {{summary-agent}}",
         "system_prompt": "analyzer"
       }
     }
   ],
   "edges": [
-    { "from": "research-eco", "to": "final-report" }
+    { "from": "research-agent", "to": "summary-agent" },
+    { "from": "summary-agent", "to": "final-report" }
   ]
 }
 
-## Example: Image with OCR Warning
-User: "--- image: receipt.jpg ---\nWarning: No OCR text extracted from the image.\n---"
-{
-  "taskId": "task-img-warn",
-  "complexity": "small",
-  "reflectionMode": "OFF",
-  "nodes": [
-    {
-      "id": "direct-answer",
-      "type": "generate_text",
-      "service": "model-router",
-      "input": { 
-        "prompt": "The user provided an image but no text could be extracted. Formulate a polite response asking if they wanted a visual description or if they can send a clearer photo.",
-        "system_prompt": "analyzer"
-      }
-    }
-  ],
-  "edges": []
-}
-
-## Example: Reminder
-User: "remind me to drink water in 2 hrs"
+## Example: Skill Usage (Reminder)
+User: "remind me to check my crypto at 9pm"
 {
   "taskId": "task-rem-01",
   "complexity": "small",
   "reflectionMode": "OFF",
   "nodes": [
     {
-      "id": "rem-node",
-      "type": "skill",
+      "id": "rem-agent",
+      "type": "agent",
       "service": "executor",
       "input": {
-        "skillName": "reminder",
-        "task": "remind me to drink water in 2 hrs"
+        "name": "Scheduler Agent",
+        "instructions": "Use the 'load_skill' tool for 'reminder' to see how to schedule this: 'remind me to check my crypto at 9pm'"
       }
     }
   ],
   "edges": []
 }
-## Example: Generate and Save
-User: "think of a 3-day workout plan and save it to my notes"
+
+## Example: Complex Coding/File Task
+User: "Create a python script that fetches btc price and save it to btc.py"
 {
-  "taskId": "task-workout",
+  "taskId": "task-btc-01",
   "complexity": "medium",
   "reflectionMode": "OFF",
   "nodes": [
     {
-      "id": "gen-plan",
+      "id": "coder-agent",
+      "type": "agent",
+      "service": "executor",
+      "input": {
+        "name": "Python Developer",
+        "instructions": "Write a python script that uses an public API to fetch the current BTC price. Save the code to 'btc.py' using the shell tool."
+      }
+    },
+    {
+      "id": "final-report",
       "type": "generate_text",
       "service": "model-router",
-      "input": { "prompt": "Create a 3-day workout plan for a beginner." }
-    },
-    {
-      "id": "save-notes",
-      "type": "skill",
-      "service": "executor",
-      "input": { 
-        "skillName": "apple-notes", 
-        "task": "Save this workout plan to my notes: {{gen-plan}}" 
+      "input": {
+        "prompt": "Tell the user that the script btc.py has been created successfully. Mention the code: {{coder-agent}}",
+        "system_prompt": "analyzer"
       }
     }
   ],
   "edges": [
-    { "from": "gen-plan", "to": "save-notes" }
-  ]
-}
-## Example: Email/Calendar
-User: "check my inbox for unread messages"
-{
-  "taskId": "task-gog-01",
-  "complexity": "small",
-  "reflectionMode": "OFF",
-  "nodes": [
-    {
-      "id": "check-mail",
-      "type": "skill",
-      "service": "executor",
-      "input": {
-        "skillName": "gog",
-        "task": "check my inbox for unread messages"
-      }
-    }
-  ],
-  "edges": []
-}
-## Example: Generate and Send File
-User: "search for the latest price of Gold and create a simple text report, then send it to me"
-{
-  "taskId": "task-gold-01",
-  "complexity": "medium",
-  "reflectionMode": "OFF",
-  "nodes": [
-    {
-      "id": "gold-search",
-      "type": "tool",
-      "service": "tool-host",
-      "input": {
-        "tool": "http_search",
-        "arguments": { "query": "current gold price" }
-      }
-    },
-    {
-      "id": "create-report",
-      "type": "tool",
-      "service": "tool-host",
-      "input": {
-        "tool": "shell",
-        "arguments": { "command": "echo \\"Latest Gold Price: $(grep -oE '[0-9,]+\\.[0-9]+' gold_results.txt | head -1)\\" > gold_report.txt && realpath gold_report.txt" }
-      }
-    },
-    {
-      "id": "send-report",
-      "type": "send_file",
-      "service": "core",
-      "input": {
-        "local_path": "{{create-report}}",
-        "brief_file_description": "Here is the gold price report you requested."
-      }
-    }
-  ],
-  "edges": [
-    { "from": "gold-search", "to": "create-report" },
-    { "from": "create-report", "to": "send-report" }
+    { "from": "coder-agent", "to": "final-report" }
   ]
 }
 </examples>`;
@@ -304,7 +181,16 @@ ${Object.entries(process.env)
   "service": "executor",
   "input": { "skillName": "NAME", "task": "INSTRUCTION" }
 }
-</skill_node_template>`;
+</skill_node_template>
+
+<agent_node_template>
+{
+  "id": "agent-node",
+  "type": "agent",
+  "service": "executor",
+  "input": { "name": "ROLE_NAME", "instructions": "DETAILED_INSTRUCTIONS" }
+}
+</agent_node_template>`;
   }
 
   const now = new Date().toISOString().split('T')[0];
